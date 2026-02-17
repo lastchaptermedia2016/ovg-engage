@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle,
@@ -23,16 +23,17 @@ const ChatWidget = () => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       return stored ? JSON.parse(stored) : [];
-    } catch {
+    } catch (err) {
+      console.error("Failed to parse stored messages:", err);
       return [];
     }
   });
   const [input, setInput] = useState("");
   const [hasConsent, setHasConsent] = useState(() => localStorage.getItem(CONSENT_KEY) === "true");
   const [showConsent, setShowConsent] = useState(false);
-  const [consentChecked, setConsentChecked] = useState(false);
   const [showPeek, setShowPeek] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);
+  const [isPendingClose, startCloseTransition] = useTransition();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -56,23 +57,23 @@ const ChatWidget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Fill input with voice transcript
+  // Fill input with final voice transcript
   useEffect(() => {
-    if (transcript) {
-      setInput(transcript);
+    if (transcript?.trim()) {
+      setInput((prev) => (prev ? prev + " " : "") + transcript.trim());
       resetTranscript();
     }
   }, [transcript, resetTranscript]);
 
-  // Proactive greeting
+  // Proactive peek greeting
   useEffect(() => {
-    if (hasGreeted || messages.length > 0) return;
+    if (hasGreeted || messages.length > 0 || isOpen) return;
     const timer = setTimeout(() => {
       setShowPeek(true);
       setHasGreeted(true);
     }, PROACTIVE_DELAY);
     return () => clearTimeout(timer);
-  }, [hasGreeted, messages.length]);
+  }, [hasGreeted, messages.length, isOpen]);
 
   const addMessage = useCallback(
     (role: "user" | "ai", text: string) => {
@@ -84,7 +85,6 @@ const ChatWidget = () => {
       };
       setMessages((prev) => {
         const next = [...prev, msg];
-        // Generate AI reply if user message
         if (role === "user") {
           const aiText = generateMockAIResponse(text, next);
           const aiMsg: ChatMessage = {
@@ -101,54 +101,59 @@ const ChatWidget = () => {
     []
   );
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     const trimmed = input.trim();
     if (!trimmed) return;
     setInput("");
     addMessage("user", trimmed);
-  };
+  }, [input, addMessage]);
 
-  const handleOpen = () => {
+  const handleOpen = useCallback(() => {
     setShowPeek(false);
     if (!hasConsent) {
       setShowConsent(true);
     } else {
       setIsOpen(true);
-      // Send proactive greeting if first open
+      // Send greeting only if first chat
       if (messages.length === 0) {
         addMessage(
-          "ai" as const,
+          "ai",
           "Hi! 👋 Looking for help today? I can offer 20% off your first consultation."
         );
       }
+      // Focus input after open
+      setTimeout(() => inputRef.current?.focus(), 300);
     }
-  };
+  }, [hasConsent, messages.length, addMessage]);
 
-  const handleAcceptConsent = () => {
-    if (!consentChecked) return;
+  const handleAcceptConsent = useCallback(() => {
     localStorage.setItem(CONSENT_KEY, "true");
     setHasConsent(true);
     setShowConsent(false);
     setIsOpen(true);
+    // Greeting after consent
     if (messages.length === 0) {
-      setMessages([
-        {
-          id: crypto.randomUUID(),
-          role: "ai",
-          text: "Hi! 👋 Looking for help today? I can offer 20% off your first consultation.",
-          timestamp: Date.now(),
-        },
-      ]);
+      addMessage(
+        "ai",
+        "Hi! 👋 Looking for help today? I can offer 20% off your first consultation."
+      );
     }
-  };
+  }, [messages.length, addMessage]);
 
-  const toggleMic = () => {
+  const toggleMic = useCallback(() => {
     if (isListening) {
       stopListening();
     } else {
       startListening();
     }
-  };
+  }, [isListening, startListening, stopListening]);
+
+  const handleClose = useCallback(() => {
+    startCloseTransition(() => {
+      setIsOpen(false);
+      stopListening(); // Ensure mic stops on close
+    });
+  }, [stopListening]);
 
   return (
     <>
@@ -164,6 +169,7 @@ const ChatWidget = () => {
             <button
               onClick={() => setShowPeek(false)}
               className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+              aria-label="Close peek message"
             >
               <X className="h-3 w-3" />
             </button>
@@ -205,8 +211,12 @@ const ChatWidget = () => {
               <label className="mt-4 flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={consentChecked}
-                  onChange={(e) => setConsentChecked(e.target.checked)}
+                  checked={hasConsent}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      handleAcceptConsent();
+                    }
+                  }}
                   className="mt-1 h-4 w-4 rounded border-border text-primary accent-primary"
                 />
                 <span className="text-sm">
@@ -220,13 +230,6 @@ const ChatWidget = () => {
                   onClick={() => setShowConsent(false)}
                 >
                   Cancel
-                </Button>
-                <Button
-                  className="flex-1"
-                  disabled={!consentChecked}
-                  onClick={handleAcceptConsent}
-                >
-                  Accept & Continue
                 </Button>
               </div>
             </motion.div>
@@ -256,8 +259,10 @@ const ChatWidget = () => {
                 </div>
               </div>
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={handleClose}
+                disabled={isPendingClose}
                 className="rounded-lg p-1 text-primary-foreground/70 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                aria-label="Close chat"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -303,7 +308,7 @@ const ChatWidget = () => {
                     ref={inputRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
                     placeholder={isListening ? "Listening..." : "Type a message..."}
                     className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
                   />
@@ -315,7 +320,7 @@ const ChatWidget = () => {
                           ? "text-destructive animate-pulse"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
-                      title={isListening ? "Stop listening" : "Start voice input"}
+                      aria-label={isListening ? "Stop voice input" : "Start voice input"}
                     >
                       {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </button>
@@ -325,7 +330,7 @@ const ChatWidget = () => {
                   size="icon"
                   className="h-10 w-10 shrink-0 rounded-xl"
                   onClick={handleSend}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || isPendingClose}
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -337,18 +342,30 @@ const ChatWidget = () => {
 
       {/* Floating bubble */}
       <motion.button
-        onClick={isOpen ? () => setIsOpen(false) : handleOpen}
+        onClick={isOpen ? handleClose : handleOpen}
+        disabled={isPendingClose}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg animate-pulse-glow"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
+        aria-label={isOpen ? "Close chat" : "Open chat"}
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
-            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+            <motion.div
+              key="close"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+            >
               <X className="h-6 w-6" />
             </motion.div>
           ) : (
-            <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+            <motion.div
+              key="chat"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+            >
               <MessageCircle className="h-6 w-6" />
             </motion.div>
           )}

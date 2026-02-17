@@ -1,4 +1,4 @@
-'use client';  // ← This is critical — fixes double elements, unresponsive clicks, and hydration issues on Vercel
+'use client';
 
 import { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -134,7 +134,7 @@ const ChatWidget = () => {
     return () => {
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
     };
-  }, [transcript, isListening, handleSend]);
+  }, [transcript, isListening]);
 
   // Clear auto-send timer if user types manually or closes
   useEffect(() => {

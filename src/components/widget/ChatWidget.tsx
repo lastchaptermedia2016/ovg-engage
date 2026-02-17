@@ -9,6 +9,8 @@ import {
   User,
   Bot,
   AlertCircle,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
@@ -38,6 +40,11 @@ const ChatWidget = () => {
   const [isAutoSending, setIsAutoSending] = useState(false);
   const [isPendingClose, startCloseTransition] = useTransition();
 
+  // ── TTS (Voice Response) State ────────────────────────────────────────
+  const [voiceEnabled, setVoiceEnabled] = useState(true); // Toggle for bot speaking
+  const synthRef = useRef<SpeechSynthesis | null>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autoSendTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -50,6 +57,51 @@ const ChatWidget = () => {
     stopListening,
     resetTranscript,
   } = useSpeechRecognition();
+
+  // Initialize TTS
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    synthRef.current = window.speechSynthesis;
+
+    const loadVoices = () => {
+      const available = synthRef.current?.getVoices() ?? [];
+      if (available.length > 0) {
+        setVoices(available);
+      }
+    };
+
+    loadVoices(); // Initial attempt
+    if (synthRef.current) {
+      synthRef.current.onvoiceschanged = loadVoices; // Voices load async
+    }
+
+    return () => {
+      if (synthRef.current) synthRef.current.cancel(); // Cleanup
+    };
+  }, []);
+
+  // Speak AI response
+  const speak = useCallback((text: string) => {
+    if (!voiceEnabled || !synthRef.current || !text.trim()) return;
+
+    synthRef.current.cancel(); // Stop any previous speech
+
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    // Prefer natural English voice (Google/Microsoft if available)
+    const preferredVoice = voices.find(v =>
+      v.lang.startsWith("en") &&
+      (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Microsoft"))
+    ) || voices.find(v => v.lang.startsWith("en")) || voices[0];
+
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    utterance.rate = 1.05;   // Slightly faster for natural flow
+    utterance.pitch = 1.0;
+    utterance.volume = 0.95;
+
+    synthRef.current.speak(utterance);
+  }, [voices, voiceEnabled]);
 
   // Persist messages
   useEffect(() => {
@@ -118,12 +170,14 @@ const ChatWidget = () => {
             text: aiText,
             timestamp: Date.now() + 1,
           };
+          // Speak the AI response if voice enabled
+          speak(aiText);
           return [...next, aiMsg];
         }
         return next;
       });
     },
-    []
+    [speak]
   );
 
   const handleSend = useCallback(() => {
@@ -187,19 +241,82 @@ const ChatWidget = () => {
 
   return (
     <>
-      {/* ... (Proactive peek and Consent modal unchanged - keep as is) ... */}
+      {/* Proactive peek and Consent modal - unchanged */}
 
       {/* Chat overlay */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            // ... (keep your existing motion props and classes)
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-24 right-6 z-50 flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-primary/10 max-h-[min(600px,calc(100vh-8rem))] md:w-[400px]"
           >
-            {/* Header - unchanged */}
+            {/* Header with voice toggle */}
+            <div className="flex items-center justify-between bg-primary px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/20">
+                  <Bot className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-primary-foreground">OVG Concierge</p>
+                  <p className="text-xs text-primary-foreground/70">Online now</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* TTS Toggle */}
+                <button
+                  onClick={() => setVoiceEnabled(!voiceEnabled)}
+                  className="rounded-lg p-1 text-primary-foreground/70 hover:bg-primary-foreground/10"
+                  aria-label={voiceEnabled ? "Mute bot voice" : "Enable bot voice"}
+                  title={voiceEnabled ? "Mute bot voice" : "Enable bot voice"}
+                >
+                  {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                </button>
 
-            {/* Messages - unchanged */}
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-lg p-1 text-primary-foreground/70 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
 
-            {/* Input bar with enhancements */}
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {messages.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+                >
+                  <div
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                      msg.role === "ai"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {msg.role === "ai" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                  </div>
+                  <div
+                    className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                      msg.role === "user"
+                        ? "rounded-br-md bg-primary text-primary-foreground"
+                        : "rounded-bl-md bg-muted text-foreground"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </motion.div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input bar */}
             <div className="border-t border-border px-4 py-3">
               <div className="flex items-center gap-2">
                 <div
@@ -292,7 +409,25 @@ const ChatWidget = () => {
         )}
       </AnimatePresence>
 
-      {/* Floating bubble - unchanged */}
+      {/* Floating bubble */}
+      <motion.button
+        onClick={isOpen ? () => setIsOpen(false) : handleOpen}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg animate-pulse-glow"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <AnimatePresence mode="wait">
+          {isOpen ? (
+            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+              <X className="h-6 w-6" />
+            </motion.div>
+          ) : (
+            <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+              <MessageCircle className="h-6 w-6" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.button>
     </>
   );
 };

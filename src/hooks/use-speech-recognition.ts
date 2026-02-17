@@ -9,7 +9,6 @@ interface SpeechRecognitionHookResult {
   resetTranscript: () => void;
 }
 
-// Extend Window for vendor-prefixed SpeechRecognition
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
   resultIndex: number;
@@ -18,7 +17,7 @@ interface SpeechRecognitionEvent extends Event {
 export function useSpeechRecognition(): SpeechRecognitionHookResult {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const SpeechRecognition =
     typeof window !== "undefined"
@@ -31,29 +30,49 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
+    recognition.continuous = true;          // Keep listening across pauses (better for chat)
+    recognition.interimResults = true;      // Enable live partial results
     recognition.lang = "en-US";
 
+    let interimTranscript = ""; // Local var to build current phrase
+
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let finalTranscript = "";
+      interimTranscript = ""; // Reset interim each time
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
+        const currentTranscript = result[0].transcript;
+
         if (result.isFinal) {
-          finalTranscript += result[0].transcript;
+          // Final result → append to main transcript
+          setTranscript((prev) => prev + currentTranscript + " ");
+          interimTranscript = ""; // Clear interim after final
+        } else {
+          // Interim (partial) → show live in state
+          interimTranscript += currentTranscript;
         }
       }
-      if (finalTranscript) {
-        setTranscript(finalTranscript);
+
+      // Always show the current interim if present (live preview)
+      if (interimTranscript) {
+        setTranscript((prev) => {
+          // Replace the last unfinished part with current interim
+          const lastSpaceIndex = prev.lastIndexOf(" ");
+          const base = lastSpaceIndex >= 0 ? prev.slice(0, lastSpaceIndex + 1) : "";
+          return base + interimTranscript;
+        });
       }
     };
 
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
       setIsListening(false);
     };
 
     recognition.onend = () => {
       setIsListening(false);
+      // Optional: Auto-restart if you want continuous listening
+      // if (isListening) recognition.start();
     };
 
     recognitionRef.current = recognition;
@@ -61,16 +80,16 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
     return () => {
       recognition.abort();
     };
-  }, [SpeechRecognition]);
+  }, []);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || isListening) return;
-    setTranscript("");
+    setTranscript(""); // Clear previous
     try {
       recognitionRef.current.start();
       setIsListening(true);
-    } catch {
-      // Already started
+    } catch (err) {
+      console.error("Start failed:", err);
     }
   }, [isListening]);
 

@@ -17,7 +17,7 @@ interface SpeechRecognitionEvent extends Event {
 export function useSpeechRecognition(): SpeechRecognitionHookResult {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const SpeechRecognition =
     typeof window !== "undefined"

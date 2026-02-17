@@ -1,4 +1,4 @@
-'use client';
+'use client';  // ← This is the most important line — MUST be first
 
 import { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,7 +21,7 @@ import { generateMockAIResponse, type ChatMessage } from "@/lib/mock-ai";
 const STORAGE_KEY = "ovgweb_chat_messages";
 const CONSENT_KEY = "ovgweb_consent";
 const PROACTIVE_DELAY = 3000;
-const AUTO_SEND_DELAY = 1000; // 1 second after final voice result
+const AUTO_SEND_DELAY = 1000;
 
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,7 +42,7 @@ const ChatWidget = () => {
   const [isAutoSending, setIsAutoSending] = useState(false);
   const [isPendingClose, startCloseTransition] = useTransition();
 
-  // ── TTS (Voice Response) State ────────────────────────────────────────
+  // TTS state
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -60,7 +60,7 @@ const ChatWidget = () => {
     resetTranscript,
   } = useSpeechRecognition();
 
-  // Initialize SpeechSynthesis (TTS)
+  // TTS initialization
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -68,36 +68,30 @@ const ChatWidget = () => {
 
     const loadVoices = () => {
       const available = synthRef.current?.getVoices() ?? [];
-      if (available.length > 0) {
-        setVoices(available);
-      }
+      if (available.length > 0) setVoices(available);
     };
 
     loadVoices();
-    if (synthRef.current) {
-      synthRef.current.onvoiceschanged = loadVoices;
-    }
+    if (synthRef.current) synthRef.current.onvoiceschanged = loadVoices;
 
     return () => {
       if (synthRef.current) synthRef.current.cancel();
     };
   }, []);
 
-  // Speak AI response
+  // Speak function
   const speak = useCallback((text: string) => {
     if (!voiceEnabled || !synthRef.current || !text.trim()) return;
 
-    synthRef.current.cancel(); // Prevent overlapping speech
+    synthRef.current.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
 
-    // Prefer natural English voice
-    const preferredVoice = voices.find(v =>
-      v.lang.startsWith("en") &&
-      (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Microsoft"))
+    const preferred = voices.find(v =>
+      v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Microsoft"))
     ) || voices.find(v => v.lang.startsWith("en")) || voices[0];
 
-    if (preferredVoice) utterance.voice = preferredVoice;
+    if (preferred) utterance.voice = preferred;
 
     utterance.rate = 1.05;
     utterance.pitch = 1.0;
@@ -116,7 +110,7 @@ const ChatWidget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Handle voice transcript → input + auto-send on final
+  // Voice transcript to input + auto-send
   useEffect(() => {
     if (transcript) {
       setInput(transcript.trim());
@@ -134,9 +128,9 @@ const ChatWidget = () => {
     return () => {
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
     };
-  }, [transcript, isListening]);
+  }, [transcript, isListening, handleSend]);
 
-  // Clear auto-send timer if user types manually or closes
+  // Clear auto-send timer
   useEffect(() => {
     if (input.trim() === "" || !isOpen) {
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
@@ -144,7 +138,7 @@ const ChatWidget = () => {
     }
   }, [input, isOpen]);
 
-  // Proactive greeting peek
+  // Proactive peek
   useEffect(() => {
     if (hasGreeted || messages.length > 0 || isOpen) return;
     const timer = setTimeout(() => {
@@ -172,7 +166,6 @@ const ChatWidget = () => {
             text: aiText,
             timestamp: Date.now() + 1,
           };
-          // Speak the AI response if voice enabled
           speak(aiText);
           return [...next, aiMsg];
         }
@@ -238,7 +231,6 @@ const ChatWidget = () => {
       if (isListening) stopListening();
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
       setIsAutoSending(false);
-      // Stop any ongoing TTS
       if (synthRef.current) synthRef.current.cancel();
     });
   }, [isListening, stopListening]);
@@ -332,7 +324,7 @@ const ChatWidget = () => {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed bottom-24 right-6 z-50 flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-primary/10 max-h-[min(600px,calc(100vh-8rem))] md:w-[400px]"
           >
-            {/* Header with voice toggle */}
+            {/* Header */}
             <div className="flex items-center justify-between bg-primary px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/20">
@@ -344,16 +336,13 @@ const ChatWidget = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {/* TTS Toggle */}
                 <button
                   onClick={() => setVoiceEnabled(!voiceEnabled)}
                   className="rounded-lg p-1 text-primary-foreground/70 hover:bg-primary-foreground/10"
                   aria-label={voiceEnabled ? "Mute bot voice" : "Enable bot voice"}
-                  title={voiceEnabled ? "Mute bot voice" : "Enable bot voice"}
                 >
                   {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                 </button>
-
                 <button
                   onClick={() => setIsOpen(false)}
                   className="rounded-lg p-1 text-primary-foreground/70 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
@@ -374,9 +363,7 @@ const ChatWidget = () => {
                 >
                   <div
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                      msg.role === "ai"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
+                      msg.role === "ai" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {msg.role === "ai" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
@@ -439,11 +426,7 @@ const ChatWidget = () => {
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                       aria-label={
-                        isListening
-                          ? "Stop listening"
-                          : micError
-                          ? "Mic error - click for details"
-                          : "Start voice input"
+                        isListening ? "Stop listening" : micError ? "Mic error - click for details" : "Start voice input"
                       }
                       title={micError || undefined}
                     >
@@ -478,9 +461,7 @@ const ChatWidget = () => {
               </div>
 
               {micError && (
-                <p className="mt-2 text-xs text-destructive text-center">
-                  {micError}
-                </p>
+                <p className="mt-2 text-xs text-destructive text-center">{micError}</p>
               )}
             </div>
           </motion.div>

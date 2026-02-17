@@ -1,4 +1,4 @@
-'use client';  // ← This line is required — prevents SSR/hydration issues that cause double elements or dead clicks
+'use client';  // ← This is critical — fixes double elements, unresponsive clicks, and hydration issues on Vercel
 
 import { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -116,13 +116,25 @@ const ChatWidget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Handle voice transcript → input
+  // Handle voice transcript → input + auto-send on final
   useEffect(() => {
     if (transcript) {
       setInput(transcript.trim());
       setMicError(null);
+
+      if (!isListening && transcript.trim()) {
+        setIsAutoSending(true);
+        autoSendTimerRef.current = setTimeout(() => {
+          handleSend();
+          setIsAutoSending(false);
+        }, AUTO_SEND_DELAY);
+      }
     }
-  }, [transcript]);
+
+    return () => {
+      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+    };
+  }, [transcript, isListening, handleSend]);
 
   // Clear auto-send timer if user types manually or closes
   useEffect(() => {

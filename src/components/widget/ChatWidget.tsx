@@ -1,3 +1,5 @@
+'use client';  // ← This line is required — prevents SSR/hydration issues that cause double elements or dead clicks
+
 import { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -41,7 +43,7 @@ const ChatWidget = () => {
   const [isPendingClose, startCloseTransition] = useTransition();
 
   // ── TTS (Voice Response) State ────────────────────────────────────────
-  const [voiceEnabled, setVoiceEnabled] = useState(true); // Toggle for bot speaking
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
@@ -58,9 +60,10 @@ const ChatWidget = () => {
     resetTranscript,
   } = useSpeechRecognition();
 
-  // Initialize TTS
+  // Initialize SpeechSynthesis (TTS)
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     synthRef.current = window.speechSynthesis;
 
     const loadVoices = () => {
@@ -70,13 +73,13 @@ const ChatWidget = () => {
       }
     };
 
-    loadVoices(); // Initial attempt
+    loadVoices();
     if (synthRef.current) {
-      synthRef.current.onvoiceschanged = loadVoices; // Voices load async
+      synthRef.current.onvoiceschanged = loadVoices;
     }
 
     return () => {
-      if (synthRef.current) synthRef.current.cancel(); // Cleanup
+      if (synthRef.current) synthRef.current.cancel();
     };
   }, []);
 
@@ -84,11 +87,11 @@ const ChatWidget = () => {
   const speak = useCallback((text: string) => {
     if (!voiceEnabled || !synthRef.current || !text.trim()) return;
 
-    synthRef.current.cancel(); // Stop any previous speech
+    synthRef.current.cancel(); // Prevent overlapping speech
 
     const utterance = new SpeechSynthesisUtterance(text);
 
-    // Prefer natural English voice (Google/Microsoft if available)
+    // Prefer natural English voice
     const preferredVoice = voices.find(v =>
       v.lang.startsWith("en") &&
       (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Microsoft"))
@@ -96,7 +99,7 @@ const ChatWidget = () => {
 
     if (preferredVoice) utterance.voice = preferredVoice;
 
-    utterance.rate = 1.05;   // Slightly faster for natural flow
+    utterance.rate = 1.05;
     utterance.pitch = 1.0;
     utterance.volume = 0.95;
 
@@ -119,7 +122,6 @@ const ChatWidget = () => {
       setInput(transcript.trim());
       setMicError(null);
 
-      // Auto-send after final result + short delay
       if (!isListening && transcript.trim()) {
         setIsAutoSending(true);
         autoSendTimerRef.current = setTimeout(() => {
@@ -132,7 +134,7 @@ const ChatWidget = () => {
     return () => {
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
     };
-  }, [transcript, isListening]);
+  }, [transcript, isListening, handleSend]);
 
   // Clear auto-send timer if user types manually or closes
   useEffect(() => {
@@ -236,12 +238,89 @@ const ChatWidget = () => {
       if (isListening) stopListening();
       if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
       setIsAutoSending(false);
+      // Stop any ongoing TTS
+      if (synthRef.current) synthRef.current.cancel();
     });
   }, [isListening, stopListening]);
 
   return (
     <>
-      {/* Proactive peek and Consent modal - unchanged */}
+      {/* Proactive peek */}
+      <AnimatePresence>
+        {showPeek && !isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border border-border bg-card p-4 shadow-xl"
+          >
+            <button
+              onClick={() => setShowPeek(false)}
+              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </button>
+            <p className="pr-4 text-sm">
+              Hi! 👋 Looking for help? I can offer{" "}
+              <span className="font-semibold text-primary">20% off</span> your first consultation.
+            </p>
+            <button
+              onClick={handleOpen}
+              className="mt-2 text-sm font-medium text-primary hover:underline"
+            >
+              Chat now →
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Consent modal */}
+      <AnimatePresence>
+        {showConsent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
+            >
+              <h3 className="font-display text-lg font-bold">AI Terms & Conditions</h3>
+              <p className="mt-3 text-sm text-muted-foreground">
+                By using this AI assistant, you agree to our terms of service and privacy policy.
+                Your conversation data may be collected to improve our services. We respect your
+                privacy and will never share your personal information without consent.
+              </p>
+              <label className="mt-4 flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasConsent}
+                  onChange={(e) => {
+                    if (e.target.checked) handleAcceptConsent();
+                  }}
+                  className="mt-1 h-4 w-4 rounded border-border text-primary accent-primary"
+                />
+                <span className="text-sm">
+                  I accept the AI Terms & Conditions and consent to data collection.
+                </span>
+              </label>
+              <div className="mt-6 flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowConsent(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Chat overlay */}
       <AnimatePresence>
@@ -398,7 +477,6 @@ const ChatWidget = () => {
                 </Button>
               </div>
 
-              {/* Error message display */}
               {micError && (
                 <p className="mt-2 text-xs text-destructive text-center">
                   {micError}
@@ -418,11 +496,21 @@ const ChatWidget = () => {
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
-            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+            <motion.div
+              key="close"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+            >
               <X className="h-6 w-6" />
             </motion.div>
           ) : (
-            <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+            <motion.div
+              key="chat"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+            >
               <MessageCircle className="h-6 w-6" />
             </motion.div>
           )}

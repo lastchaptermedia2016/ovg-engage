@@ -116,25 +116,13 @@ const ChatWidget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Handle voice transcript → input + auto-send on final
+  // Handle voice transcript → input
   useEffect(() => {
     if (transcript) {
       setInput(transcript.trim());
       setMicError(null);
-
-      if (!isListening && transcript.trim()) {
-        setIsAutoSending(true);
-        autoSendTimerRef.current = setTimeout(() => {
-          handleSend();
-          setIsAutoSending(false);
-        }, AUTO_SEND_DELAY);
-      }
     }
-
-    return () => {
-      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-    };
-  }, [transcript, isListening, handleSend]);
+  }, [transcript]);
 
   // Clear auto-send timer if user types manually or closes
   useEffect(() => {

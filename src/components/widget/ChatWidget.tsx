@@ -1,4 +1,4 @@
-'use client';  // ← This is the most important line — MUST be first
+// ChatWidget - floating AI chat with voice input
 
 import { useState, useEffect, useRef, useCallback, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -110,25 +110,13 @@ const ChatWidget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Voice transcript to input + auto-send
+  // Voice transcript to input
   useEffect(() => {
     if (transcript) {
       setInput(transcript.trim());
       setMicError(null);
-
-      if (!isListening && transcript.trim()) {
-        setIsAutoSending(true);
-        autoSendTimerRef.current = setTimeout(() => {
-          handleSend();
-          setIsAutoSending(false);
-        }, AUTO_SEND_DELAY);
-      }
     }
-
-    return () => {
-      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-    };
-  }, [transcript, isListening, handleSend]);
+  }, [transcript]);
 
   // Clear auto-send timer
   useEffect(() => {

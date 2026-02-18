@@ -148,17 +148,17 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
 
   // ── Speak function ──
   const speak = useCallback((text: string) => {
-    console.log("[TTS] speak() called, voiceEnabled:", voiceEnabled, "text:", text.slice(0, 50));
     if (!voiceEnabled || !synthRef.current || !text.trim()) return;
     synthRef.current.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     const preferred = voices.find(v =>
-      v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Microsoft"))
+      v.lang.startsWith("en") && (v.name.includes("Natural") || v.name.includes("Neural") || v.name.includes("WaveNet") || v.name.includes("Female") || v.name.includes("Microsoft") || v.name.includes("Google"))
     ) || voices.find(v => v.lang.startsWith("en")) || voices[0];
     if (preferred) utterance.voice = preferred;
-    utterance.rate = 1.05;
-    utterance.pitch = 1.0;
-    utterance.volume = 0.95;
+    console.log("Speaking with voice:", preferred?.name);
+    utterance.rate = 1.02;
+    utterance.pitch = 1.05;
+    utterance.volume = 0.92;
     synthRef.current.speak(utterance);
   }, [voices, voiceEnabled]);
 
@@ -210,6 +210,7 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
       // Show typing indicator then reply
       setIsTyping(true);
       setTimeout(() => {
+
         const aiText = generateMockAIResponse(trimmed, next);
         const aiMsg: ChatMessage = {
           id: crypto.randomUUID(),
@@ -220,7 +221,7 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
         setMessages(p => [...p, aiMsg]);
         setIsTyping(false);
         speak(aiText);
-      }, 800 + Math.random() * 700);
+      }, 1500);
       return next;
     });
 
@@ -292,11 +293,16 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
       toast({ title: "Missing Info", description: "Please fill in both name and email.", variant: "destructive" });
       return;
     }
+    console.log("Lead submitted:", { name: leadName, email: leadEmail });
     toast({ title: "Thank you!", description: `We'll reach out to ${leadName} at ${leadEmail} soon.` });
     setShowLeadForm(false);
+    const name = leadName;
     setLeadName("");
     setLeadEmail("");
-    sendMessageDirect(`My name is ${leadName} and my email is ${leadEmail}`);
+    // Add agent reply directly
+    setMessages(prev => [...prev, {
+      id: crypto.randomUUID(), role: "ai", text: `Thanks ${name}! We'll be in touch.`, timestamp: Date.now()
+    }]);
   }, [leadName, leadEmail, toast, sendMessageDirect]);
 
   // ── Close chat ──

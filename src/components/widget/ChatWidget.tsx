@@ -110,13 +110,25 @@ const ChatWidget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Voice transcript to input
+  // Voice transcript to input + auto-send
   useEffect(() => {
     if (transcript) {
       setInput(transcript.trim());
       setMicError(null);
+
+      if (!isListening && transcript.trim()) {
+        setIsAutoSending(true);
+        autoSendTimerRef.current = setTimeout(() => {
+          handleSend();
+          setIsAutoSending(false);
+        }, AUTO_SEND_DELAY);
+      }
     }
-  }, [transcript]);
+
+    return () => {
+      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+    };
+  }, [transcript, isListening, handleSend]);
 
   // Clear auto-send timer
   useEffect(() => {

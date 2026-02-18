@@ -1,6 +1,4 @@
-'use client';
-
-import { useState, useEffect, useRef, useCallback, useTransition } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle,
@@ -10,20 +8,49 @@ import {
   MicOff,
   User,
   Bot,
-  AlertCircle,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import { generateMockAIResponse, type ChatMessage } from "@/lib/mock-ai";
 
 const STORAGE_KEY = "ovgweb_chat_messages";
 const CONSENT_KEY = "ovgweb_consent";
 const PROACTIVE_DELAY = 3000;
 const AUTO_SEND_DELAY = 1000;
+const LEAD_KEYWORDS = ["human", "call", "price", "pricing", "cost", "agent"];
 
-const ChatWidget = () => {
+interface ChatWidgetProps {
+  primaryColor?: string;
+  greeting?: string;
+}
+
+const TypingIndicator = () => (
+  <div className="flex items-end gap-2">
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+      <Bot className="h-4 w-4" />
+    </div>
+    <div className="rounded-2xl rounded-bl-md bg-muted px-4 py-3">
+      <div className="flex gap-1">
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            className="h-2 w-2 rounded-full bg-muted-foreground/50"
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+          />
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -36,11 +63,18 @@ const ChatWidget = () => {
   const [input, setInput] = useState("");
   const [hasConsent, setHasConsent] = useState(() => localStorage.getItem(CONSENT_KEY) === "true");
   const [showConsent, setShowConsent] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
   const [showPeek, setShowPeek] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);
-  const [micError, setMicError] = useState<string | null>(null);
-  const [isAutoSending, setIsAutoSending] = useState(false);
-  const [isPendingClose, startCloseTransition] = useTransition();
+  const [isTyping, setIsTyping] = useState(false);
+  const [showLeadForm, setShowLeadForm] = useState(false);
+  const [leadName, setLeadName] = useState("");
+  const [leadEmail, setLeadEmail] = useState("");
+
+  // Voice input state
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // TTS state
   const [voiceEnabled, setVoiceEnabled] = useState(true);
@@ -49,96 +83,96 @@ const ChatWidget = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const autoSendTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const {
-    isListening,
-    transcript,
-    isSupported: voiceSupported,
-    startListening,
-    stopListening,
-    resetTranscript,
-  } = useSpeechRecognition();
-
-  // TTS initialization
+  // ── TTS init ──
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     synthRef.current = window.speechSynthesis;
-
     const loadVoices = () => {
       const available = synthRef.current?.getVoices() ?? [];
       if (available.length > 0) setVoices(available);
     };
-
     loadVoices();
     if (synthRef.current) synthRef.current.onvoiceschanged = loadVoices;
-
-    return () => {
-      if (synthRef.current) synthRef.current.cancel();
-    };
+    return () => { if (synthRef.current) synthRef.current.cancel(); };
   }, []);
 
-  // Speak function
+  // ── Speech Recognition init ──
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    const recognition = new SR();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: any) => {
+      let finalText = "";
+      let interimText = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalText += t;
+        } else {
+          interimText += t;
+        }
+      }
+      if (finalText) {
+        setInput(finalText.trim());
+        // Auto-send after final result
+        if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+        autoSendTimerRef.current = setTimeout(() => {
+          sendMessageDirect(finalText.trim());
+        }, AUTO_SEND_DELAY);
+      } else if (interimText) {
+        setInput(interimText.trim());
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+      toast({ title: "Mic Error", description: `Speech recognition error: ${event.error}`, variant: "destructive" });
+    };
+
+    recognition.onend = () => {
+      console.log("[Speech] Recognition ended");
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    return () => { recognition.abort(); };
+  }, []);
+
+  // ── Speak function ──
   const speak = useCallback((text: string) => {
+    console.log("[TTS] speak() called, voiceEnabled:", voiceEnabled, "text:", text.slice(0, 50));
     if (!voiceEnabled || !synthRef.current || !text.trim()) return;
-
     synthRef.current.cancel();
-
     const utterance = new SpeechSynthesisUtterance(text);
-
     const preferred = voices.find(v =>
       v.lang.startsWith("en") && (v.name.includes("Google") || v.name.includes("Natural") || v.name.includes("Microsoft"))
     ) || voices.find(v => v.lang.startsWith("en")) || voices[0];
-
     if (preferred) utterance.voice = preferred;
-
     utterance.rate = 1.05;
     utterance.pitch = 1.0;
     utterance.volume = 0.95;
-
     synthRef.current.speak(utterance);
   }, [voices, voiceEnabled]);
 
-  // Persist messages
+  // ── Persist messages ──
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
   }, [messages]);
 
-  // Scroll to bottom
+  // ── Auto-scroll ──
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]);
 
-  // Voice transcript to input + auto-send
-  useEffect(() => {
-    if (transcript) {
-      setInput(transcript.trim());
-      setMicError(null);
-
-      if (!isListening && transcript.trim()) {
-        setIsAutoSending(true);
-        autoSendTimerRef.current = setTimeout(() => {
-          handleSend();
-          setIsAutoSending(false);
-        }, AUTO_SEND_DELAY);
-      }
-    }
-
-    return () => {
-      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-    };
-  }, [transcript, isListening, handleSend]);
-
-  // Clear auto-send timer
-  useEffect(() => {
-    if (input.trim() === "" || !isOpen) {
-      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-      setIsAutoSending(false);
-    }
-  }, [input, isOpen]);
-
-  // Proactive greeting peek
+  // ── Proactive greeting peek ──
   useEffect(() => {
     if (hasGreeted || messages.length > 0 || isOpen) return;
     const timer = setTimeout(() => {
@@ -148,41 +182,83 @@ const ChatWidget = () => {
     return () => clearTimeout(timer);
   }, [hasGreeted, messages.length, isOpen]);
 
-  const addMessage = useCallback(
-    (role: "user" | "ai", text: string) => {
-      const msg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role,
-        text,
-        timestamp: Date.now(),
-      };
-      setMessages((prev) => {
-        const next = [...prev, msg];
-        if (role === "user") {
-          const aiText = generateMockAIResponse(text, next);
-          const aiMsg: ChatMessage = {
-            id: crypto.randomUUID(),
-            role: "ai",
-            text: aiText,
-            timestamp: Date.now() + 1,
-          };
-          speak(aiText);
-          return [...next, aiMsg];
-        }
-        return next;
-      });
-    },
-    [speak]
-  );
+  // ── Check for lead keywords ──
+  const checkLeadKeywords = useCallback((text: string) => {
+    const lower = text.toLowerCase();
+    if (LEAD_KEYWORDS.some(kw => lower.includes(kw))) {
+      setShowLeadForm(true);
+    }
+  }, []);
 
-  const handleSend = useCallback(() => {
-    const trimmed = input.trim();
+  // ── Send message (direct, no dependency on state `input`) ──
+  const sendMessageDirect = useCallback((text: string) => {
+    const trimmed = text.trim();
     if (!trimmed) return;
     setInput("");
-    addMessage("user", trimmed);
-    if (isListening) stopListening();
-  }, [input, addMessage, isListening, stopListening]);
 
+    checkLeadKeywords(trimmed);
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      text: trimmed,
+      timestamp: Date.now(),
+    };
+
+    setMessages(prev => {
+      const next = [...prev, userMsg];
+      // Show typing indicator then reply
+      setIsTyping(true);
+      setTimeout(() => {
+        const aiText = generateMockAIResponse(trimmed, next);
+        const aiMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "ai",
+          text: aiText,
+          timestamp: Date.now(),
+        };
+        setMessages(p => [...p, aiMsg]);
+        setIsTyping(false);
+        speak(aiText);
+      }, 800 + Math.random() * 700);
+      return next;
+    });
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+  }, [speak, isListening, checkLeadKeywords]);
+
+  // ── Send from input state ──
+  const handleSend = useCallback(() => {
+    sendMessageDirect(input);
+  }, [input, sendMessageDirect]);
+
+  // ── Toggle mic ──
+  const toggleListening = useCallback(() => {
+    console.log("[Mic] toggleListening, current isListening:", isListening);
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      toast({ title: "Not Supported", description: "Voice input is not supported in this browser. Try Chrome or Edge.", variant: "destructive" });
+      return;
+    }
+    try {
+      recognitionRef.current?.start();
+      setIsListening(true);
+      console.log("[Mic] Started listening");
+    } catch (err) {
+      console.error("[Mic] Start failed:", err);
+      toast({ title: "Mic Error", description: "Could not start microphone.", variant: "destructive" });
+    }
+  }, [isListening, toast]);
+
+  // ── Open chat ──
   const handleOpen = useCallback(() => {
     setShowPeek(false);
     if (!hasConsent) {
@@ -190,50 +266,49 @@ const ChatWidget = () => {
     } else {
       setIsOpen(true);
       if (messages.length === 0) {
-        addMessage(
-          "ai",
-          "Hi! 👋 Looking for help today? I can offer 20% off your first consultation."
-        );
+        const greetText = greeting || "Hi! 👋 Looking for help today? I can offer 20% off your first consultation.";
+        setMessages([{ id: crypto.randomUUID(), role: "ai", text: greetText, timestamp: Date.now() }]);
       }
       setTimeout(() => inputRef.current?.focus(), 300);
     }
-  }, [hasConsent, messages.length, addMessage]);
+  }, [hasConsent, messages.length, greeting]);
 
+  // ── Accept consent ──
   const handleAcceptConsent = useCallback(() => {
     localStorage.setItem(CONSENT_KEY, "true");
     setHasConsent(true);
     setShowConsent(false);
     setIsOpen(true);
     if (messages.length === 0) {
-      addMessage(
-        "ai",
-        "Hi! 👋 Looking for help today? I can offer 20% off your first consultation."
-      );
+      const greetText = greeting || "Hi! 👋 Looking for help today? I can offer 20% off your first consultation.";
+      setMessages([{ id: crypto.randomUUID(), role: "ai", text: greetText, timestamp: Date.now() }]);
     }
-  }, [messages.length, addMessage]);
+    toast({ title: "Welcome!", description: "Chat is ready. Ask me anything." });
+  }, [messages.length, greeting, toast]);
 
-  const toggleMic = useCallback(() => {
-    setMicError(null);
-    if (isListening) {
-      stopListening();
-    } else {
-      if (!voiceSupported) {
-        setMicError("Voice input is not supported in this browser. Try Chrome or Edge.");
-        return;
-      }
-      startListening();
+  // ── Submit lead form ──
+  const handleLeadSubmit = useCallback(() => {
+    if (!leadName.trim() || !leadEmail.trim()) {
+      toast({ title: "Missing Info", description: "Please fill in both name and email.", variant: "destructive" });
+      return;
     }
-  }, [isListening, voiceSupported, startListening, stopListening]);
+    toast({ title: "Thank you!", description: `We'll reach out to ${leadName} at ${leadEmail} soon.` });
+    setShowLeadForm(false);
+    setLeadName("");
+    setLeadEmail("");
+    sendMessageDirect(`My name is ${leadName} and my email is ${leadEmail}`);
+  }, [leadName, leadEmail, toast, sendMessageDirect]);
 
+  // ── Close chat ──
   const handleClose = useCallback(() => {
-    startCloseTransition(() => {
-      setIsOpen(false);
-      if (isListening) stopListening();
-      if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-      setIsAutoSending(false);
-      if (synthRef.current) synthRef.current.cancel();
-    });
-  }, [isListening, stopListening]);
+    setIsOpen(false);
+    if (isListening) recognitionRef.current?.stop();
+    setIsListening(false);
+    if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+    if (synthRef.current) synthRef.current.cancel();
+  }, [isListening]);
+
+  const bubbleStyle = primaryColor ? { backgroundColor: primaryColor } : {};
 
   return (
     <>
@@ -246,20 +321,13 @@ const ChatWidget = () => {
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border border-border bg-card p-4 shadow-xl"
           >
-            <button
-              onClick={() => setShowPeek(false)}
-              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-            >
+            <button onClick={() => setShowPeek(false)} className="absolute right-2 top-2 text-muted-foreground hover:text-foreground">
               <X className="h-3 w-3" />
             </button>
             <p className="pr-4 text-sm">
-              Hi! 👋 Looking for help? I can offer{" "}
-              <span className="font-semibold text-primary">20% off</span> your first consultation.
+              Hi! 👋 Looking for help? I can offer <span className="font-semibold text-primary">20% off</span> your first consultation.
             </p>
-            <button
-              onClick={handleOpen}
-              className="mt-2 text-sm font-medium text-primary hover:underline"
-            >
+            <button onClick={handleOpen} className="mt-2 text-sm font-medium text-primary hover:underline">
               Chat now →
             </button>
           </motion.div>
@@ -279,37 +347,55 @@ const ChatWidget = () => {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
+              className="w-full max-w-md rounded-2xl border border-white/20 bg-background/80 backdrop-blur-xl p-6 shadow-2xl"
             >
               <h3 className="font-display text-lg font-bold">AI Terms & Conditions</h3>
               <p className="mt-3 text-sm text-muted-foreground">
                 By using this AI assistant, you agree to our terms of service and privacy policy.
-                Your conversation data may be collected to improve our services. We respect your
-                privacy and will never share your personal information without consent.
+                Your conversation data may be collected to improve our services.
               </p>
-              <label className="mt-4 flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hasConsent}
-                  onChange={(e) => {
-                    if (e.target.checked) handleAcceptConsent();
-                  }}
-                  className="mt-1 h-4 w-4 rounded border-border text-primary accent-primary"
+              <div className="mt-4 flex items-start gap-3">
+                <Checkbox
+                  id="consent-check"
+                  checked={consentChecked}
+                  onCheckedChange={(checked) => setConsentChecked(checked === true)}
                 />
-                <span className="text-sm">
+                <Label htmlFor="consent-check" className="text-sm cursor-pointer">
                   I accept the AI Terms & Conditions and consent to data collection.
-                </span>
-              </label>
+                </Label>
+              </div>
               <div className="mt-6 flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowConsent(false)}
-                >
+                <Button variant="outline" className="flex-1" onClick={() => setShowConsent(false)}>
                   Cancel
+                </Button>
+                <Button className="flex-1" disabled={!consentChecked} onClick={handleAcceptConsent}>
+                  Start Chatting
                 </Button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Lead form modal */}
+      <AnimatePresence>
+        {showLeadForm && isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-[calc(7rem+600px)] right-6 z-[55] w-[380px] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/20 bg-background/90 backdrop-blur-xl p-5 shadow-xl md:w-[400px]"
+          >
+            <h4 className="font-semibold text-sm">Let us reach out to you</h4>
+            <p className="text-xs text-muted-foreground mt-1">We'll get back to you shortly.</p>
+            <div className="mt-3 space-y-2">
+              <Input placeholder="Your name" value={leadName} onChange={e => setLeadName(e.target.value)} />
+              <Input placeholder="Your email" type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} />
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowLeadForm(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleLeadSubmit}>Submit</Button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -322,30 +408,33 @@ const ChatWidget = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-24 right-6 z-50 flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-primary/10 max-h-[min(600px,calc(100vh-8rem))] md:w-[400px]"
+            className="fixed bottom-24 right-6 z-50 flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-white/20 bg-background/60 backdrop-blur-xl shadow-2xl max-h-[min(600px,calc(100vh-8rem))] md:w-[400px]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between bg-primary px-5 py-4">
+            <div className="flex items-center justify-between bg-primary px-5 py-4" style={primaryColor ? { backgroundColor: primaryColor } : {}}>
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/20">
                   <Bot className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-primary-foreground">OVG Concierge</p>
-                  <p className="text-xs text-primary-foreground/70">Online now</p>
+                  <p className="text-sm font-semibold text-primary-foreground">AI Assistant</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                    <p className="text-xs text-primary-foreground/70">Online now</p>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setVoiceEnabled(!voiceEnabled)}
-                  className="rounded-lg p-1 text-primary-foreground/70 hover:bg-primary-foreground/10"
+                  className="rounded-lg p-1.5 text-primary-foreground/70 hover:bg-primary-foreground/10 transition-colors"
                   aria-label={voiceEnabled ? "Mute bot voice" : "Enable bot voice"}
                 >
                   {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                 </button>
                 <button
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-lg p-1 text-primary-foreground/70 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                  onClick={handleClose}
+                  className="rounded-lg p-1.5 text-primary-foreground/70 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -379,90 +468,54 @@ const ChatWidget = () => {
                   </div>
                 </motion.div>
               ))}
+              {isTyping && <TypingIndicator />}
               <div ref={messagesEndRef} />
             </div>
 
             {/* Input bar */}
-            <div className="border-t border-border px-4 py-3">
+            <div className="border-t border-border/50 px-4 py-3 bg-background/40">
               <div className="flex items-center gap-2">
                 <div
-                  className={`flex flex-1 items-center gap-2 rounded-xl bg-muted px-3 py-2.5 transition-all duration-300 ${
-                    isListening ? "border-2 border-primary animate-pulse-glow" : ""
-                  } ${micError ? "border-destructive" : ""}`}
+                  className={`flex flex-1 items-center gap-2 rounded-full bg-muted/80 px-4 py-2.5 transition-all duration-300 ${
+                    isListening ? "ring-2 ring-primary animate-pulse" : ""
+                  }`}
                 >
                   <input
                     ref={inputRef}
                     value={input}
-                    onChange={(e) => {
-                      setInput(e.target.value);
-                      setMicError(null);
-                    }}
+                    onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         handleSend();
                       }
                     }}
-                    placeholder={
-                      isListening
-                        ? "Listening... speak now"
-                        : micError
-                        ? "Mic issue - type instead"
-                        : "Type a message..."
-                    }
+                    placeholder={isListening ? "Listening... speak now" : "Type a message..."}
                     className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none"
-                    disabled={isAutoSending}
                   />
-
-                  {voiceSupported || micError ? (
-                    <button
-                      onClick={toggleMic}
-                      disabled={isAutoSending}
-                      className={`rounded-lg p-1.5 transition-colors ${
-                        isListening
-                          ? "text-primary animate-pulse"
-                          : micError
-                          ? "text-destructive hover:text-destructive/80"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                      aria-label={
-                        isListening ? "Stop listening" : micError ? "Mic error - click for details" : "Start voice input"
-                      }
-                      title={micError || undefined}
-                    >
-                      {isListening ? (
-                        <MicOff className="h-5 w-5" />
-                      ) : micError ? (
-                        <AlertCircle className="h-5 w-5" />
-                      ) : (
-                        <Mic className="h-5 w-5" />
-                      )}
-                    </button>
-                  ) : null}
+                  <button
+                    onClick={toggleListening}
+                    className={`rounded-full p-1.5 transition-colors ${
+                      isListening
+                        ? "text-primary bg-primary/10"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                    aria-label={isListening ? "Stop listening" : "Start voice input"}
+                  >
+                    {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                  </button>
                 </div>
 
                 <Button
                   size="icon"
-                  className="h-10 w-10 shrink-0 rounded-xl relative"
+                  className="h-10 w-10 shrink-0 rounded-full"
                   onClick={handleSend}
-                  disabled={!input.trim() || isAutoSending}
+                  disabled={!input.trim()}
+                  style={primaryColor ? { backgroundColor: primaryColor } : {}}
                 >
                   <Send className="h-4 w-4" />
-                  {isAutoSending && (
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full"
-                      />
-                    </span>
-                  )}
                 </Button>
               </div>
-
-              {micError && (
-                <p className="mt-2 text-xs text-destructive text-center">{micError}</p>
-              )}
             </div>
           </motion.div>
         )}
@@ -470,28 +523,19 @@ const ChatWidget = () => {
 
       {/* Floating bubble */}
       <motion.button
-        onClick={isOpen ? () => setIsOpen(false) : handleOpen}
+        onClick={isOpen ? handleClose : handleOpen}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg animate-pulse-glow"
+        style={bubbleStyle}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
-            <motion.div
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-            >
+            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
               <X className="h-6 w-6" />
             </motion.div>
           ) : (
-            <motion.div
-              key="chat"
-              initial={{ rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: -90, opacity: 0 }}
-            >
+            <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
               <MessageCircle className="h-6 w-6" />
             </motion.div>
           )}

@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = "EXAVITQu4vr4xnSDxMaL" } = await req.json();
+    const { text, voiceId = "21m00Tcm4TlvDq8ikWAM" } = await req.json();
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(
@@ -43,7 +43,7 @@ serve(async (req) => {
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.75,
-            style: 0.5,
+            style: 0.0,
             use_speaker_boost: true,
             speed: 1.0,
           },

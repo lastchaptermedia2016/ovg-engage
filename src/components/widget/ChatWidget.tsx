@@ -155,11 +155,12 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ text, voiceId: "EXAVITQu4vr4xnSDxMaL" }),
+          body: JSON.stringify({ text, voiceId: "21m00Tcm4TlvDq8ikWAM" }),
         }
       );
 
       if (!response.ok) {
+        console.log(`ElevenLabs failed: ${response.status}`);
         throw new Error(`TTS request failed: ${response.status}`);
       }
 
@@ -167,17 +168,22 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-      console.log("[TTS] Playing ElevenLabs audio");
       await audio.play();
+      console.log("ElevenLabs success");
     } catch (err) {
       console.warn("[TTS] ElevenLabs failed, falling back to browser TTS:", err);
-      // Fallback to browser SpeechSynthesis
       if (typeof window !== "undefined" && window.speechSynthesis) {
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(v =>
+          /natural|google|neural|wavenet|female/i.test(v.name)
+        ) || voices[0];
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1;
-        utterance.pitch = 1;
+        if (preferredVoice) utterance.voice = preferredVoice;
+        utterance.rate = 1.02;
+        utterance.pitch = 1.05;
+        utterance.volume = 0.92;
         window.speechSynthesis.speak(utterance);
-        console.log("[TTS] Browser fallback playing");
+        console.log("[TTS] Browser fallback playing with voice:", preferredVoice?.name);
       } else {
         toast({ title: "Voice Error", description: "Could not play voice response.", variant: "destructive" });
       }

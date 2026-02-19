@@ -170,8 +170,17 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
       console.log("[TTS] Playing ElevenLabs audio");
       await audio.play();
     } catch (err) {
-      console.error("[TTS] ElevenLabs failed:", err);
-      toast({ title: "Voice Error", description: "Could not play voice response.", variant: "destructive" });
+      console.warn("[TTS] ElevenLabs failed, falling back to browser TTS:", err);
+      // Fallback to browser SpeechSynthesis
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        window.speechSynthesis.speak(utterance);
+        console.log("[TTS] Browser fallback playing");
+      } else {
+        toast({ title: "Voice Error", description: "Could not play voice response.", variant: "destructive" });
+      }
     }
   }, [voiceEnabled, toast]);
 

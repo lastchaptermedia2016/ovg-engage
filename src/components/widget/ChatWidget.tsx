@@ -78,24 +78,12 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
 
   // TTS state
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const synthRef = useRef<SpeechSynthesis | null>(null);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ── TTS init ──
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    synthRef.current = window.speechSynthesis;
-    const loadVoices = () => {
-      const available = synthRef.current?.getVoices() ?? [];
-      if (available.length > 0) setVoices(available);
-    };
-    loadVoices();
-    if (synthRef.current) synthRef.current.onvoiceschanged = loadVoices;
-    return () => { if (synthRef.current) synthRef.current.cancel(); };
-  }, []);
+  // ── TTS init (no-op, ElevenLabs is fetch-based) ──
 
   // ── Speech Recognition init ──
   useEffect(() => {
@@ -146,21 +134,46 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
     return () => { recognition.abort(); };
   }, []);
 
-  // ── Speak function ──
-  const speak = useCallback((text: string) => {
-    if (!voiceEnabled || !synthRef.current || !text.trim()) return;
-    synthRef.current.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    const preferred = voices.find(v =>
-      v.lang.startsWith("en") && (v.name.includes("Natural") || v.name.includes("Neural") || v.name.includes("WaveNet") || v.name.includes("Female") || v.name.includes("Microsoft") || v.name.includes("Google"))
-    ) || voices.find(v => v.lang.startsWith("en")) || voices[0];
-    if (preferred) utterance.voice = preferred;
-    console.log("Speaking with voice:", preferred?.name);
-    utterance.rate = 1.02;
-    utterance.pitch = 1.05;
-    utterance.volume = 0.92;
-    synthRef.current.speak(utterance);
-  }, [voices, voiceEnabled]);
+  // ── Speak function (ElevenLabs TTS via edge function) ──
+  const speak = useCallback(async (text: string) => {
+    if (!voiceEnabled || !text.trim()) return;
+
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+
+    try {
+      console.log("[TTS] Requesting ElevenLabs TTS for:", text.slice(0, 50));
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text, voiceId: "EXAVITQu4vr4xnSDxMaL" }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`TTS request failed: ${response.status}`);
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      console.log("[TTS] Playing ElevenLabs audio");
+      await audio.play();
+    } catch (err) {
+      console.error("[TTS] ElevenLabs failed:", err);
+      toast({ title: "Voice Error", description: "Could not play voice response.", variant: "destructive" });
+    }
+  }, [voiceEnabled, toast]);
 
   // ── Persist messages ──
   useEffect(() => {
@@ -311,7 +324,7 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
     if (isListening) recognitionRef.current?.stop();
     setIsListening(false);
     if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-    if (synthRef.current) synthRef.current.cancel();
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
   }, [isListening]);
 
   const bubbleStyle = primaryColor ? { backgroundColor: primaryColor } : {};

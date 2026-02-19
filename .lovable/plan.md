@@ -1,120 +1,45 @@
 
+## Upgrade Chat Widget TTS to ElevenLabs with Rachel Voice
 
-# OVGweb Prototype – AI Concierge Overlay
+### Problem
+The ElevenLabs API returns 401 because the previous API key was on a free tier with "unusual activity" restrictions. The user has now connected ElevenLabs via workspace settings, so a valid `ELEVENLABS_API_KEY` secret exists. The widget currently falls back to robotic browser TTS.
 
-## Overview
-A full-stack embeddable AI chat widget that website owners can customize and deploy via a single script tag. Includes a marketing landing page, admin dashboard, and the widget itself with conversational lead capture.
+### Changes
 
----
+#### 1. Update Edge Function (`supabase/functions/elevenlabs-tts/index.ts`)
+- Change default voice ID from `EXAVITQu4vr4xnSDxMaL` (Sarah) to `21m00Tcm4TlvDq8ikWAM` (Rachel)
+- Add `style: 0.0` to voice settings (per user request)
+- Move `output_format` from URL path to query parameter (per ElevenLabs docs best practice)
 
-## Phase 1: Foundation & Landing Page
+#### 2. Update ChatWidget (`src/components/widget/ChatWidget.tsx`)
+- Change voice ID in the `speak` function from `EXAVITQu4vr4xnSDxMaL` to `21m00Tcm4TlvDq8ikWAM`
+- Add `console.log("ElevenLabs success")` on successful playback
+- Add `console.log("ElevenLabs failed: [status]")` on error with status code
+- Improve browser TTS fallback voice selection: prefer Natural/Google/Neural/WaveNet voices with `rate: 1.02`, `pitch: 1.05`, `volume: 0.92`
+- No other structural changes needed -- consent, input bar, mic, lead form, animations all remain as-is
 
-### Marketing Landing Page
-- Hero section: "Turn passive browsers into conversations" with animated widget preview mockup
-- Benefits section with stats (e.g., "3x more leads", "24/7 engagement")
-- How-it-works steps (Embed → Customize → Capture Leads)
-- "Get Started Free" CTA leading to sign-up
-- Indigo (#6366F1) accent color scheme, dark/light mode, elegant transparency effects
+### Technical Details
 
-### Authentication
-- Supabase Auth with email/password and Google OAuth
-- Login and signup pages with proper redirect handling
-- Protected routes for dashboard
+**Edge function voice settings:**
+```
+stability: 0.5
+similarity_boost: 0.75
+style: 0.0
+use_speaker_boost: true
+speed: 1.0
+```
 
----
+**Fallback voice selection logic:**
+```typescript
+const voices = window.speechSynthesis.getVoices();
+const preferred = voices.find(v => 
+  /natural|google|neural|wavenet|female/i.test(v.name)
+) || voices[0];
+```
 
-## Phase 2: Database & Backend Setup
-
-### Supabase Tables
-- **profiles** – user profile data (name, company)
-- **widgets** – id, user_id, domain, config JSON (colors, greeting text, promo text, logo URL)
-- **leads** – id, widget_id, name, email, phone, consent status + timestamp, transcript JSON, created_at
-- **user_roles** – role-based access (standard security pattern)
-
-### Row-Level Security
-- Widget owners can only CRUD their own widgets
-- Leads are scoped to widget owners
-- Storage bucket for logo uploads (public read, authenticated write)
-
----
-
-## Phase 3: Admin Dashboard
-
-### Dashboard Home
-- Overview stats cards (total leads, active widgets, conversations today)
-- Quick-access widget preview pane showing live preview of the chat bubble
-
-### Widget Customization Page
-- Color picker for primary/accent colors
-- Logo upload (Supabase Storage)
-- Welcome message editor
-- Promo text editor (e.g., "20% off first consultation")
-- Domain whitelist field
-- Live preview that updates as settings change
-
-### Leads Table
-- Sortable/filterable table showing captured leads
-- Columns: name, email, timestamp, last message snippet, consent status
-- Export placeholder (future CSV download)
-
-### Embed Code Page
-- Copy-to-clipboard script tag with the user's unique widget ID
-- Installation instructions
-
----
-
-## Phase 4: Embeddable Chat Widget
-
-### Floating Bubble
-- Bottom-right positioned animated chat/mic bubble
-- Pulsing animation to draw attention
-- Unread message indicator dot
-
-### Chat Overlay
-- Semi-transparent overlay with backdrop blur effect
-- AI avatar (animated circle placeholder)
-- Chat message bubbles (user vs AI styled differently)
-- Text input bar with send button
-- Mic button using Web Speech API (graceful fallback if denied)
-- Minimize button to collapse back to bubble
-- "Talk to Human" button (logs request as placeholder)
-- Fully responsive – full-screen on mobile
-
-### Proactive Greeting
-- After 2-3 seconds on page, AI auto-sends a customizable welcome message
-- Message appears as a toast/peek above the bubble before user opens
-
-### Consent Flow
-- On first interaction, modal overlay with AI Terms & Conditions
-- Checkbox required before proceeding
-- Consent stored in localStorage + synced to Supabase
-
-### Conversation Persistence
-- Messages stored in localStorage for cross-navigation continuity
-- Session synced to Supabase when lead is identified
-
-### Lead Capture
-- AI conversationally asks for name and email during natural flow
-- Stores with consent flag and timestamp
-- Mock AI responses with rule-based logic (with clear comments for future LLM integration)
-
----
-
-## Phase 5: Polish & Deployment Readiness
-
-### Design & UX
-- Indigo accent palette with dark/light mode throughout
-- Calm, trustworthy aesthetic with rounded corners, clean typography
-- Smooth animations (bubble expand, message slide-in, overlay fade)
-- Responsive across all breakpoints
-
-### Performance
-- Lazy-load the chat overlay (only load on bubble click)
-- Keep widget bundle minimal
-- Code-split dashboard pages
-
-### Error Handling
-- Toast notifications for all user actions (save, copy, errors)
-- Form validation with Zod on all inputs
-- Graceful fallbacks for voice API, network issues
-
+### Testing
+1. Open preview in a new tab, hard refresh (Ctrl+Shift+R)
+2. Click the floating bubble, accept consent
+3. Send any message and listen for a natural Rachel voice reply
+4. Open browser console and look for "ElevenLabs success" log
+5. If you see "ElevenLabs failed", check the status code in the log

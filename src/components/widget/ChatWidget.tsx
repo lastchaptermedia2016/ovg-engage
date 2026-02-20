@@ -145,22 +145,36 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
     }
 
     try {
-      console.log("[TTS] Requesting ElevenLabs TTS for:", text.slice(0, 50));
+      const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+      if (!apiKey) {
+        console.warn("[TTS] VITE_ELEVENLABS_API_KEY not set, using browser TTS");
+        throw new Error("Missing API key");
+      }
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream",
         {
           method: "POST",
           headers: {
+            "xi-api-key": apiKey,
             "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ text, voiceId: "21m00Tcm4TlvDq8ikWAM" }),
+          body: JSON.stringify({
+            text,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: 0.0,
+              use_speaker_boost: true,
+            },
+          }),
         }
       );
 
       if (!response.ok) {
-        console.log(`ElevenLabs failed: ${response.status}`);
+        const errBody = await response.text();
+        console.warn("ElevenLabs failed:", response.status, errBody);
         throw new Error(`TTS request failed: ${response.status}`);
       }
 
@@ -169,7 +183,7 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
       await audio.play();
-      console.log("ElevenLabs success");
+      console.log("ElevenLabs success - playing audio");
     } catch (err) {
       console.warn("[TTS] ElevenLabs failed, falling back to browser TTS:", err);
       if (typeof window !== "undefined" && window.speechSynthesis) {

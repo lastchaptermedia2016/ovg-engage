@@ -145,16 +145,30 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
     }
 
     try {
+      const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+      if (!apiKey) {
+        console.warn("[TTS] VITE_ELEVENLABS_API_KEY not set, falling back to browser TTS");
+        throw new Error("Missing API key");
+      }
+
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream",
         {
           method: "POST",
           headers: {
+            "xi-api-key": apiKey,
             "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ text, voiceId: "21m00Tcm4TlvDq8ikWAM" }),
+          body: JSON.stringify({
+            text,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: 0.0,
+              use_speaker_boost: true,
+            },
+          }),
         }
       );
 

@@ -26,9 +26,19 @@ const CONSENT_KEY = "ovgweb_consent";
 const VOICE_MUTE_KEY = "ovgweb_voice_mute";
 const PROACTIVE_DELAY = 3000;
 const AUTO_SEND_DELAY = 1000;
-const LEAD_KEYWORDS = ["human", "call", "price", "pricing", "cost", "agent", "speak", "person"];
+const LEAD_KEYWORDS = [
+  "human",
+  "call",
+  "price",
+  "pricing",
+  "cost",
+  "agent",
+  "speak",
+  "person",
+];
 
-const OVG_GREETING = "Welcome to OVG Concierge! ✨ I'm your personal beauty & wellness assistant. Whether you're looking to book a treatment, explore our services, or claim your exclusive 20% off first consultation — I'm here to help!";
+const OVG_GREETING = "POLLING TEST 888 – SHOULD SHOW AFTER SAVE!";
+ 
 
 const QUICK_REPLIES = [
   { label: "📅 Book now", message: "I'd like to book an appointment" },
@@ -101,7 +111,9 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
     }
   });
   const [input, setInput] = useState("");
-  const [hasConsent, setHasConsent] = useState(() => localStorage.getItem(CONSENT_KEY) === "true");
+  const [hasConsent, setHasConsent] = useState(
+    () => localStorage.getItem(CONSENT_KEY) === "true",
+  );
   const [showConsent, setShowConsent] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [showPeek, setShowPeek] = useState(false);
@@ -137,7 +149,9 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
   // ── Speech Recognition init ──
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SR) return;
 
     const recognition = new SR();
@@ -171,13 +185,16 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
       console.error("Speech recognition error:", event.error);
       setIsListening(false);
       const errorMessages: Record<string, string> = {
-        "not-allowed": "Microphone access denied. Please enable it in your browser settings.",
+        "not-allowed":
+          "Microphone access denied. Please enable it in your browser settings.",
         "no-speech": "No speech detected. Please try again.",
-        "network": "Network error. Please check your connection.",
+        network: "Network error. Please check your connection.",
       };
       toast({
         title: "Voice Input Error",
-        description: errorMessages[event.error] || `Could not process voice: ${event.error}`,
+        description:
+          errorMessages[event.error] ||
+          `Could not process voice: ${event.error}`,
         variant: "destructive",
       });
     };
@@ -187,77 +204,93 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
     };
 
     recognitionRef.current = recognition;
-    return () => { recognition.abort(); };
+    return () => {
+      recognition.abort();
+    };
   }, []);
 
   // ── Speak function (ElevenLabs TTS direct) ──
-  const speak = useCallback(async (text: string) => {
-    if (!voiceEnabled || !text.trim()) return;
+  const speak = useCallback(
+    async (text: string) => {
+      if (!voiceEnabled || !text.trim()) return;
 
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-
-    try {
-      const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
-      if (!apiKey) {
-        console.warn("[TTS] VITE_ELEVENLABS_API_KEY not set, falling back to browser TTS");
-        throw new Error("Missing API key");
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
 
-      const response = await fetch(
-        "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream",
-        {
-          method: "POST",
-          headers: {
-            "xi-api-key": apiKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            text,
-            model_id: "eleven_multilingual_v2",
-            voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.75,
-              style: 0.0,
-              use_speaker_boost: true,
-            },
-          }),
+      try {
+        const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+        if (!apiKey) {
+          console.warn(
+            "[TTS] VITE_ELEVENLABS_API_KEY not set, falling back to browser TTS",
+          );
+          throw new Error("Missing API key");
         }
-      );
 
-      if (!response.ok) {
-        const errBody = await response.text();
-        console.warn("ElevenLabs failed:", response.status, errBody);
-        throw new Error(`TTS request failed: ${response.status}`);
-      }
+        const response = await fetch(
+          "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream",
+          {
+            method: "POST",
+            headers: {
+              "xi-api-key": apiKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              text,
+              model_id: "eleven_multilingual_v2",
+              voice_settings: {
+                stability: 0.5,
+                similarity_boost: 0.75,
+                style: 0.0,
+                use_speaker_boost: true,
+              },
+            }),
+          },
+        );
 
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.onended = () => URL.revokeObjectURL(audioUrl);
-      await audio.play();
-      console.log("ElevenLabs success");
-    } catch (err) {
-      console.warn("[TTS] ElevenLabs failed, falling back to browser TTS:", err);
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v =>
-          /natural|google|neural|wavenet|female/i.test(v.name)
-        ) || voices[0];
-        const utterance = new SpeechSynthesisUtterance(text);
-        if (preferredVoice) utterance.voice = preferredVoice;
-        utterance.rate = 1.02;
-        utterance.pitch = 1.05;
-        utterance.volume = 0.92;
-        window.speechSynthesis.speak(utterance);
-      } else {
-        toast({ title: "Voice Unavailable", description: "Voice responses are temporarily unavailable. You can still chat normally.", variant: "destructive" });
+        if (!response.ok) {
+          const errBody = await response.text();
+          console.warn("ElevenLabs failed:", response.status, errBody);
+          throw new Error(`TTS request failed: ${response.status}`);
+        }
+
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => URL.revokeObjectURL(audioUrl);
+        await audio.play();
+        console.log("ElevenLabs success");
+      } catch (err) {
+        console.warn(
+          "[TTS] ElevenLabs failed, falling back to browser TTS:",
+          err,
+        );
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+          const voices = window.speechSynthesis.getVoices();
+          const preferredVoice =
+            voices.find((v) =>
+              /natural|google|neural|wavenet|female/i.test(v.name),
+            ) || voices[0];
+          const utterance = new SpeechSynthesisUtterance(text);
+          if (preferredVoice) utterance.voice = preferredVoice;
+          utterance.rate = 1.02;
+          utterance.pitch = 1.05;
+          utterance.volume = 0.92;
+          window.speechSynthesis.speak(utterance);
+        } else {
+          toast({
+            title: "Voice Unavailable",
+            description:
+              "Voice responses are temporarily unavailable. You can still chat normally.",
+            variant: "destructive",
+          });
+        }
       }
-    }
-  }, [voiceEnabled, toast]);
+    },
+    [voiceEnabled, toast],
+  );
 
   // ── Persist messages ──
   useEffect(() => {
@@ -282,51 +315,54 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
   // ── Check for lead keywords ──
   const checkLeadKeywords = useCallback((text: string) => {
     const lower = text.toLowerCase();
-    if (LEAD_KEYWORDS.some(kw => lower.includes(kw))) {
+    if (LEAD_KEYWORDS.some((kw) => lower.includes(kw))) {
       setShowLeadForm(true);
     }
   }, []);
 
   // ── Send message (direct) ──
-  const sendMessageDirect = useCallback((text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    setInput("");
+  const sendMessageDirect = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      setInput("");
 
-    checkLeadKeywords(trimmed);
+      checkLeadKeywords(trimmed);
 
-    const userMsg: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      text: trimmed,
-      timestamp: Date.now(),
-    };
+      const userMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "user",
+        text: trimmed,
+        timestamp: Date.now(),
+      };
 
-    setMessages(prev => {
-      const next = [...prev, userMsg];
-      setIsTyping(true);
-      // Realistic delay based on response length
-      const delay = 1200 + Math.random() * 800;
-      setTimeout(() => {
-        const aiText = generateMockAIResponse(trimmed, next);
-        const aiMsg: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: "ai",
-          text: aiText,
-          timestamp: Date.now(),
-        };
-        setMessages(p => [...p, aiMsg]);
-        setIsTyping(false);
-        speak(aiText);
-      }, delay);
-      return next;
-    });
+      setMessages((prev) => {
+        const next = [...prev, userMsg];
+        setIsTyping(true);
+        // Realistic delay based on response length
+        const delay = 1200 + Math.random() * 800;
+        setTimeout(() => {
+          const aiText = generateMockAIResponse(trimmed, next);
+          const aiMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: "ai",
+            text: aiText,
+            timestamp: Date.now(),
+          };
+          setMessages((p) => [...p, aiMsg]);
+          setIsTyping(false);
+          speak(aiText);
+        }, delay);
+        return next;
+      });
 
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    }
-  }, [speak, isListening, checkLeadKeywords]);
+      if (isListening) {
+        recognitionRef.current?.stop();
+        setIsListening(false);
+      }
+    },
+    [speak, isListening, checkLeadKeywords],
+  );
 
   // ── Send from input state ──
   const handleSend = useCallback(() => {
@@ -340,9 +376,15 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
       setIsListening(false);
       return;
     }
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SR) {
-      toast({ title: "Not Supported", description: "Voice input requires Chrome or Edge browser.", variant: "destructive" });
+      toast({
+        title: "Not Supported",
+        description: "Voice input requires Chrome or Edge browser.",
+        variant: "destructive",
+      });
       return;
     }
     try {
@@ -350,7 +392,12 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
       setIsListening(true);
     } catch (err) {
       console.error("[Mic] Start failed:", err);
-      toast({ title: "Microphone Error", description: "Could not access your microphone. Please check browser permissions.", variant: "destructive" });
+      toast({
+        title: "Microphone Error",
+        description:
+          "Could not access your microphone. Please check browser permissions.",
+        variant: "destructive",
+      });
     }
   }, [isListening, toast]);
 
@@ -365,11 +412,23 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
     } else {
       setIsOpen(true);
       if (messages.length === 0) {
-        setMessages([{ id: crypto.randomUUID(), role: "ai", text: greetText, timestamp: Date.now() }]);
+        setIsTyping(true);
+        setTimeout(() => {
+          setMessages([
+            {
+              id: crypto.randomUUID(),
+              role: "ai",
+              text: greetText,
+              timestamp: Date.now(),
+            },
+          ]);
+          setIsTyping(false);
+          speak(greetText);
+        }, 600);
       }
       setTimeout(() => inputRef.current?.focus(), 300);
     }
-  }, [hasConsent, messages.length, greetText]);
+  }, [hasConsent, messages.length, greetText, speak]);
 
   // ── Accept consent ──
   const handleAcceptConsent = useCallback(() => {
@@ -378,26 +437,54 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
     setShowConsent(false);
     setIsOpen(true);
     if (messages.length === 0) {
-      setMessages([{ id: crypto.randomUUID(), role: "ai", text: greetText, timestamp: Date.now() }]);
+      setIsTyping(true);
+      setTimeout(() => {
+        setMessages([
+          {
+            id: crypto.randomUUID(),
+            role: "ai",
+            text: greetText,
+            timestamp: Date.now(),
+          },
+        ]);
+        setIsTyping(false);
+        speak(greetText);
+      }, 600);
     }
-    toast({ title: "Welcome to OVG! ✨", description: "Your personal beauty concierge is ready." });
-  }, [messages.length, greetText, toast]);
+    toast({
+      title: "Welcome to OVG! ✨",
+      description: "Your personal beauty concierge is ready.",
+    });
+  }, [messages.length, greetText, toast, speak]);
 
   // ── Submit lead form ──
   const handleLeadSubmit = useCallback(() => {
     if (!leadName.trim() || !leadEmail.trim()) {
-      toast({ title: "Missing Info", description: "Please fill in both name and email.", variant: "destructive" });
+      toast({
+        title: "Missing Info",
+        description: "Please fill in both name and email.",
+        variant: "destructive",
+      });
       return;
     }
     console.log("Lead submitted:", { name: leadName, email: leadEmail });
-    toast({ title: "Thank you! 💜", description: `Our team will reach out to ${leadName} shortly.` });
+    toast({
+      title: "Thank you! 💜",
+      description: `Our team will reach out to ${leadName} shortly.`,
+    });
     setShowLeadForm(false);
     const name = leadName;
     setLeadName("");
     setLeadEmail("");
-    setMessages(prev => [...prev, {
-      id: crypto.randomUUID(), role: "ai", text: `Thanks ${name}! ✨ One of our beauty consultants will be in touch soon to help you find the perfect treatment. We can't wait to welcome you!`, timestamp: Date.now()
-    }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: "ai",
+        text: `Thanks ${name}! ✨ One of our beauty consultants will be in touch soon to help you find the perfect treatment. We can't wait to welcome you!`,
+        timestamp: Date.now(),
+      },
+    ]);
   }, [leadName, leadEmail, toast]);
 
   // ── Close chat ──
@@ -406,7 +493,10 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
     if (isListening) recognitionRef.current?.stop();
     setIsListening(false);
     if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
   }, [isListening]);
 
   // Show quick replies only after the initial greeting (1 AI message, 0 user messages)
@@ -425,13 +515,21 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border border-border bg-card p-4 shadow-xl"
           >
-            <button onClick={() => setShowPeek(false)} className="absolute right-2 top-2 text-muted-foreground hover:text-foreground">
+            <button
+              onClick={() => setShowPeek(false)}
+              className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+            >
               <X className="h-3 w-3" />
             </button>
             <p className="pr-4 text-sm">
-              Hey gorgeous! ✨ Curious about our treatments? Claim <span className="font-semibold text-primary">20% off</span> your first consultation today.
+              Hey gorgeous! ✨ Curious about our treatments? Claim{" "}
+              <span className="font-semibold text-primary">20% off</span> your
+              first consultation today.
             </p>
-            <button onClick={handleOpen} className="mt-2 text-sm font-medium text-primary hover:underline">
+            <button
+              onClick={handleOpen}
+              className="mt-2 text-sm font-medium text-primary hover:underline"
+            >
               Chat with us →
             </button>
           </motion.div>
@@ -455,25 +553,40 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
             >
               <h3 className="text-lg font-bold">OVG Concierge — Terms</h3>
               <p className="mt-3 text-sm text-muted-foreground">
-                By using the OVG Concierge, you agree to our terms of service and privacy policy.
-                Your conversation may be used to personalise your experience and improve our services.
+                By using the OVG Concierge, you agree to our terms of service
+                and privacy policy. Your conversation may be used to personalise
+                your experience and improve our services.
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <Checkbox
                   id="consent-check"
                   checked={consentChecked}
-                  onCheckedChange={(checked) => setConsentChecked(checked === true)}
+                  onCheckedChange={(checked) =>
+                    setConsentChecked(checked === true)
+                  }
                   className="h-5 w-5 shrink-0 border-2 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
-                <Label htmlFor="consent-check" className="text-sm cursor-pointer leading-snug">
-                  I accept the Terms & Conditions and consent to data collection.
+                <Label
+                  htmlFor="consent-check"
+                  className="text-sm cursor-pointer leading-snug"
+                >
+                  I accept the Terms & Conditions and consent to data
+                  collection.
                 </Label>
               </div>
               <div className="mt-6 flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setShowConsent(false)}>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowConsent(false)}
+                >
                   Cancel
                 </Button>
-                <Button className="flex-1" disabled={!consentChecked} onClick={handleAcceptConsent}>
+                <Button
+                  className="flex-1"
+                  disabled={!consentChecked}
+                  onClick={handleAcceptConsent}
+                >
                   Start Chatting ✨
                 </Button>
               </div>
@@ -491,15 +604,36 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
             exit={{ opacity: 0, y: 10 }}
             className="fixed bottom-[calc(7rem+600px)] right-6 z-[55] w-[380px] max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-background/95 backdrop-blur-xl p-5 shadow-xl md:w-[400px]"
           >
-            <h4 className="font-semibold text-sm">Let us connect you with a consultant 💜</h4>
-            <p className="text-xs text-muted-foreground mt-1">We'll reach out to arrange your personalised consultation.</p>
+            <h4 className="font-semibold text-sm">
+              Let us connect you with a consultant 💜
+            </h4>
+            <p className="text-xs text-muted-foreground mt-1">
+              We'll reach out to arrange your personalised consultation.
+            </p>
             <div className="mt-3 space-y-2">
-              <Input placeholder="Your name" value={leadName} onChange={e => setLeadName(e.target.value)} />
-              <Input placeholder="Your email" type="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} />
+              <Input
+                placeholder="Your name"
+                value={leadName}
+                onChange={(e) => setLeadName(e.target.value)}
+              />
+              <Input
+                placeholder="Your email"
+                type="email"
+                value={leadEmail}
+                onChange={(e) => setLeadEmail(e.target.value)}
+              />
             </div>
             <div className="mt-3 flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowLeadForm(false)}>Cancel</Button>
-              <Button size="sm" onClick={handleLeadSubmit}>Submit</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLeadForm(false)}
+              >
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleLeadSubmit}>
+                Submit
+              </Button>
             </div>
           </motion.div>
         )}
@@ -516,16 +650,23 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
             className="fixed bottom-24 right-6 z-50 flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur-xl shadow-2xl max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between bg-primary px-5 py-4" style={primaryColor ? { backgroundColor: primaryColor } : {}}>
+            <div
+              className="flex items-center justify-between bg-primary px-5 py-4"
+              style={primaryColor ? { backgroundColor: primaryColor } : {}}
+            >
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/20">
                   <Bot className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-primary-foreground">OVG Concierge</p>
+                  <p className="text-sm font-semibold text-primary-foreground">
+                    OVG Concierge
+                  </p>
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-                    <p className="text-xs text-primary-foreground/70">Online now</p>
+                    <p className="text-xs text-primary-foreground/70">
+                      Online now
+                    </p>
                   </div>
                 </div>
               </div>
@@ -535,7 +676,11 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
                   className="rounded-lg p-1.5 text-primary-foreground/70 hover:bg-primary-foreground/10 transition-colors"
                   aria-label={voiceEnabled ? "Mute voice" : "Enable voice"}
                 >
-                  {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                  {voiceEnabled ? (
+                    <Volume2 className="h-5 w-5" />
+                  ) : (
+                    <VolumeX className="h-5 w-5" />
+                  )}
                 </button>
                 <button
                   onClick={handleClose}
@@ -557,10 +702,16 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
                 >
                   <div
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                      msg.role === "ai" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                      msg.role === "ai"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
-                    {msg.role === "ai" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                    {msg.role === "ai" ? (
+                      <Bot className="h-4 w-4" />
+                    ) : (
+                      <User className="h-4 w-4" />
+                    )}
                   </div>
                   <div
                     className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
@@ -598,7 +749,11 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
                         handleSend();
                       }
                     }}
-                    placeholder={isListening ? "Listening… speak now" : "Ask about treatments, pricing…"}
+                    placeholder={
+                      isListening
+                        ? "Listening… speak now"
+                        : "Ask about treatments, pricing…"
+                    }
                     className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground/60 focus:outline-none"
                   />
                   <button
@@ -608,9 +763,15 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
                         ? "text-primary bg-primary/10 animate-pulse"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
-                    aria-label={isListening ? "Stop listening" : "Start voice input"}
+                    aria-label={
+                      isListening ? "Stop listening" : "Start voice input"
+                    }
                   >
-                    {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    {isListening ? (
+                      <MicOff className="h-5 w-5" />
+                    ) : (
+                      <Mic className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
 
@@ -639,11 +800,21 @@ const ChatWidget = ({ primaryColor, greeting }: ChatWidgetProps = {}) => {
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
-            <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+            <motion.div
+              key="close"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+            >
               <X className="h-6 w-6" />
             </motion.div>
           ) : (
-            <motion.div key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+            <motion.div
+              key="chat"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+            >
               <MessageCircle className="h-6 w-6" />
             </motion.div>
           )}

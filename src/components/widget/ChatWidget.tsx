@@ -38,7 +38,7 @@ const LEAD_KEYWORDS = [
 ];
 
 const OVG_GREETING =
-"HMR FIXED – VITE NOW SEES MY SAVE!";
+"Hello Dona, you gorgeous, how can i help you today?";
 
 const QUICK_REPLIES = [
   { label: "📅 Book now", message: "I'd like to book an appointment" },

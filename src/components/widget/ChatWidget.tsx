@@ -37,8 +37,8 @@ const LEAD_KEYWORDS = [
   "person",
 ];
 
-const OVG_GREETING = "POLLING TEST 888 – SHOULD SHOW AFTER SAVE!";
- 
+const OVG_GREETING =
+"HMR FIXED – VITE NOW SEES MY SAVE!";
 
 const QUICK_REPLIES = [
   { label: "📅 Book now", message: "I'd like to book an appointment" },

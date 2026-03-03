@@ -29,6 +29,14 @@ body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Subtle noise texture for premium feel */
+  background-image: 
+    url('/noise.png'),
+    linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #111111 100%);
+  background-blend-mode: overlay;
+  background-attachment: fixed;
+  background-size: cover;
 }
 
 /* Subtle gold-tinted dark overlay for depth & readability */
@@ -41,24 +49,18 @@ body::before {
   z-index: -1;
 }
 
-/* Optional subtle noise/grain texture for premium feel (download free PNG from textures.com, save as public/noise.png) */
-/*
-body {
-  background-image: 
-    url('/noise.png'),
-    linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #111111 100%);
-  background-blend-mode: overlay;
-  background-attachment: fixed;
-}
-*/
-
 /* ====================
    GOLD ACCENT STYLES
    ==================== */
 
-/* Buttons – luxurious gold gradient */
+/* Buttons – luxurious gold gradient + BLACK TEXT */
 button, .btn {
   @apply relative overflow-hidden rounded-lg bg-gradient-to-r from-gold-dark to-gold-primary px-6 py-3 text-black font-medium shadow-gold-dark transition-all duration-300 hover:from-gold-primary hover:to-gold-dark hover:shadow-gold-primary hover:scale-105 active:scale-95;
+}
+
+/* Force black text on all button children (safety layer) */
+button *, .btn * {
+  color: black !important;
 }
 
 /* Outline buttons */
@@ -66,19 +68,11 @@ button, .btn {
   @apply border-2 border-gold-primary bg-transparent text-gold-primary hover:bg-gold-primary/10 hover:border-gold-dark;
 }
 
-/* Text accents – fixed (direct CSS, no circular @apply) */
-.text-gold {
-  color: var(--gold-primary);
-}
-.text-gold-dark {
-  color: var(--gold-dark);
-}
-.text-primary {
-  color: var(--gold-primary);
-}
-.text-muted {
-  @apply text-slate-400;
-}
+/* Text accents */
+.text-gold { color: var(--gold-primary); }
+.text-gold-dark { color: var(--gold-dark); }
+.text-primary { color: var(--gold-primary); }
+.text-muted { @apply text-slate-400; }
 
 /* Links */
 a {

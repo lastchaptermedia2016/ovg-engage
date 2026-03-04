@@ -1,13 +1,18 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import App from './App.tsx' // or './AppNew.tsx' if you still have that name
+import './index.css'
 
-// Import your renamed component (adjust if the file name is different)
-import AppNew from './AppNew.tsx'
+const root = ReactDOM.createRoot(document.getElementById('root')!)
 
-import './index.css' // ← your global styles (Tailwind, etc.)
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <AppNew />
-  </React.StrictMode>
-)
+if (import.meta.env.DEV) {
+  // StrictMode only in development (prevents ghost duplicates in prod)
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  )
+} else {
+  // No StrictMode in production = no double render = no ghost chat
+  root.render(<App />)
+}

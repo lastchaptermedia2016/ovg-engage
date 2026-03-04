@@ -3,16 +3,16 @@ import ReactDOM from 'react-dom/client'
 import App from './AppNew.tsx'
 import './index.css'
 
-const rootElement = document.getElementById('root')!
+const root = ReactDOM.createRoot(document.getElementById('root')!)
 
 if (import.meta.env.DEV) {
-  // StrictMode ONLY in development (helps catch bugs locally)
-  ReactDOM.createRoot(rootElement).render(
+  // StrictMode only in local dev (catches bugs)
+  root.render(
     <React.StrictMode>
       <App />
     </React.StrictMode>
   )
 } else {
   // No StrictMode in production = no ghost/duplicates on Vercel
-  ReactDOM.createRoot(rootElement).render(<App />)
+  root.render(<App />)
 }

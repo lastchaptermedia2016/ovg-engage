@@ -6,20 +6,34 @@ import WidgetMockup from "./WidgetMockup";
 const HeroSection = () => {
   return (
     <section className="relative h-screen min-h-[600px] w-full overflow-hidden">
-      {/* Background Video Layer */}
-      <div className="absolute inset-0 z-0 bg-black">
+      {/* Background Video Layer – sole visible background */}
+      <div className="absolute inset-0 z-0">
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="h-full w-full object-cover opacity-60"
+          preload="auto"
+          className="h-full w-full object-cover" // removed opacity-60 → full brightness
+          onLoadedMetadata={(e) => {
+            const video = e.currentTarget;
+            video.loop = true;
+            video.muted = true;
+            video.play().catch(() => {
+              // Fallback: play on first user interaction if autoplay blocked
+              document.addEventListener('click', () => video.play(), { once: true });
+            });
+          }}
         >
           <source src="/video-bg.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
         </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-background" />
       </div>
 
+      {/* Optional: extremely subtle top darkening only (comment out if you want pure video) */}
+      {/* <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent pointer-events-none z-10" /> */}
+
+      {/* Main content */}
       <div className="container relative z-20 flex h-full items-center">
         <div className="grid w-full items-center gap-16 lg:grid-cols-2">
           {/* Left: Copy */}
@@ -39,9 +53,7 @@ const HeroSection = () => {
               </span>
             </h1>
             <p className="mt-6 max-w-lg text-lg text-muted-foreground">
-              Deploy an AI concierge on your website in 60 seconds. Greet
-              visitors, answer questions, and capture leads—24/7, without
-              lifting a finger.
+              Deploy an AI concierge on your website in 60 seconds. Greet visitors, answer questions, and capture leads—24/7, without lifting a finger.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Button size="lg" className="gap-2 shadow-lg shadow-primary/25">

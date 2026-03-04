@@ -5,36 +5,30 @@ import WidgetMockup from "./WidgetMockup";
 
 const HeroSection = () => {
   return (
-    <section className="relative h-screen min-h-[600px] w-full overflow-hidden">
-      {/* Background Video Layer – sole visible background */}
-      <div className="absolute inset-0 z-0">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="h-full w-full object-cover" // removed opacity-60 → full brightness
-          onLoadedMetadata={(e) => {
-            const video = e.currentTarget;
-            video.loop = true;
-            video.muted = true;
-            video.play().catch(() => {
-              // Fallback: play on first user interaction if autoplay blocked
-              document.addEventListener('click', () => video.play(), { once: true });
-            });
-          }}
-        >
-          <source src="/video-bg.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      </div>
-
-      {/* Optional: extremely subtle top darkening only (comment out if you want pure video) */}
-      {/* <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent pointer-events-none z-10" /> */}
+    <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
+      {/* Video as the only background – no overlays */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+        onLoadedMetadata={(e) => {
+          const video = e.currentTarget;
+          video.loop = true;
+          video.muted = true;
+          video.play().catch(() => {
+            document.addEventListener('click', () => video.play(), { once: true });
+          });
+        }}
+      >
+        <source src="/videos/video-bg.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
 
       {/* Main content */}
-      <div className="container relative z-20 flex h-full items-center">
+      <div className="relative z-10 container mx-auto px-6 flex h-full items-center">
         <div className="grid w-full items-center gap-16 lg:grid-cols-2">
           {/* Left: Copy */}
           <motion.div
@@ -46,7 +40,7 @@ const HeroSection = () => {
               <Play className="h-3 w-3 fill-current" />
               AI-Powered Engagement
             </div>
-            <h1 className="font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
+            <h1 className="font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl text-white">
               Turn passive browsers into{" "}
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 conversations
@@ -65,24 +59,15 @@ const HeroSection = () => {
             </div>
             <div className="mt-10 flex items-center gap-8 text-sm text-muted-foreground">
               <div>
-                <span className="font-display text-2xl font-bold text-foreground">
-                  3×
-                </span>{" "}
-                more leads
+                <span className="font-display text-2xl font-bold text-white">3×</span> more leads
               </div>
               <div className="h-8 w-px bg-border" />
               <div>
-                <span className="font-display text-2xl font-bold text-foreground">
-                  24/7
-                </span>{" "}
-                engagement
+                <span className="font-display text-2xl font-bold text-white">24/7</span> engagement
               </div>
               <div className="h-8 w-px bg-border" />
               <div>
-                <span className="font-display text-2xl font-bold text-foreground">
-                  60s
-                </span>{" "}
-                setup
+                <span className="font-display text-2xl font-bold text-white">60s</span> setup
               </div>
             </div>
           </motion.div>

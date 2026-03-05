@@ -5,11 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-// import ChatWidget from "./components/widget/ChatWidget";  // ← commented out to test for ghost duplicate
+import ChatWidget from "./components/widget/ChatWidget";  // ← uncommented
 
 const queryClient = new QueryClient();
 
-const App = () => (
+const AppNew = () => (
   <div className="relative min-h-screen text-white">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -22,10 +22,10 @@ const App = () => (
           </Routes>
         </BrowserRouter>
 
-        {/* <ChatWidget />  // ← commented out to test if ghost chat window disappears */}
+        <ChatWidget />  // ← uncommented - this is the single root instance
       </TooltipProvider>
     </QueryClientProvider>
   </div>
 );
 
-export default App;
+export default AppNew;

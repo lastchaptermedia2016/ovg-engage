@@ -1,125 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ====================
-   ROOT VARIABLES – Elite black + gold theme
-   ==================== */
-:root {
-  --background: 0 0% 4%;           /* near-black base */
-  --foreground: 0 0% 98%;          /* bright white text */
-  --gold-primary: 45 100% 70%;     /* vibrant gold #FFD700 */
-  --gold-dark: 45 80% 55%;         /* deeper luxurious gold #D4AF37 */
-  --muted: 0 0% 12%;
-  --muted-foreground: 0 0% 70%;
-  --accent: 45 100% 60%;           /* lighter gold accent */
-  --border: 45 60% 30%;
-  --ring: 45 100% 70%;
+@layer base {
+  :root {
+    --primary: 45 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --background: 0 0% 0%;
+    --foreground: 45 100% 50%;
+    --card: 0 0% 5%;
+    --card-foreground: 45 100% 50%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 45 100% 50%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 45 100% 30%;
+    --accent: 45 100% 10%;
+    --accent-foreground: 45 100% 50%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 45 100% 50%;
+    --radius: 0.5rem;
+    --indigo-glow: 239 84% 67%;
+    --gradient-primary: linear-gradient(135deg, hsl(239 84% 67%), hsl(262 83% 58%));
+    --shadow-glow: 0 0 40px -10px hsl(239 84% 67% / 0.4);
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5% 10%;
+    --sidebar-primary: 258 89% 66%;
+    --sidebar-primary-foreground: 250 100% 97%;
+    --sidebar-accent: 240 5% 33%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 4% 83%;
+    --sidebar-ring: 258 89% 66%;
+    --chart-1: 255 91% 76%;
+    --chart-2: 270 95% 75%;
+    --chart-3: 234 89% 73%;
+    --chart-4: 258 89% 66%;
+    --chart-5: 240 3% 46%;
+    --sidebar: 0 0% 98%;
+    --font-sans: 'Montserrat', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-serif: 'Cormorant Garamond', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+  }
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 45 100% 50%;
+    --card: 0 0% 5%;
+    --card-foreground: 45 100% 50%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 45 100% 50%;
+    --primary: 45 100% 50%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 45 100% 50%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 45 100% 30%;
+    --accent: 45 100% 10%;
+    --accent-foreground: 45 100% 50%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 45 100% 50%;
+    --shadow-glow: 0 0 40px -10px hsl(45 100% 50% / 0.3);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 255 91% 76%;
+    --sidebar-primary-foreground: 261 72% 22%;
+    --sidebar-accent: 270 95% 75%;
+    --sidebar-accent-foreground: 273 86% 20%;
+    --sidebar-border: 240 5% 33%;
+    --sidebar-ring: 255 91% 76%;
+    --chart-1: 252 94% 85%;
+    --chart-2: 269 97% 85%;
+    --chart-3: 229 93% 81%;
+    --chart-4: 255 91% 76%;
+    --chart-5: 240 3% 46%;
+    --sidebar: 240 3% 15%;
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  }
 }
 
-/* ====================
-   GLOBAL BASE STYLES
-   ==================== */
-body {
-  margin: 0;
-  padding: 0;
-  background: linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #111111 100%);
-  color: hsl(var(--foreground));
-  min-height: 100vh;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  /* Subtle noise texture for premium feel */
-  background-image: 
-    url('/noise.png'),
-    linear-gradient(135deg, #000000 0%, #0a0a0a 50%, #111111 100%);
-  background-blend-mode: overlay;
-  background-attachment: fixed;
-  background-size: cover;
-}
-
-/* Subtle gold-tinted dark overlay for depth & readability */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(to bottom right, rgba(0, 0, 0, 0.75), rgba(212, 175, 55, 0.08));
-  pointer-events: none;
-  z-index: -1;
-}
-
-/* ====================
-   GOLD ACCENT STYLES
-   ==================== */
-
-/* Buttons – luxurious gold gradient + BLACK TEXT */
-button, .btn {
-  @apply relative overflow-hidden rounded-lg bg-gradient-to-r from-gold-dark to-gold-primary px-6 py-3 text-black font-medium shadow-gold-dark transition-all duration-300 hover:from-gold-primary hover:to-gold-dark hover:shadow-gold-primary hover:scale-105 active:scale-95;
-}
-
-/* Force black text on all button children (safety layer) */
-button *, .btn * {
-  color: black !important;
-}
-
-/* Outline buttons */
-.btn-outline {
-  @apply border-2 border-gold-primary bg-transparent text-gold-primary hover:bg-gold-primary/10 hover:border-gold-dark;
-}
-
-/* Text accents */
-.text-gold { color: var(--gold-primary); }
-.text-gold-dark { color: var(--gold-dark); }
-.text-primary { color: var(--gold-primary); }
-.text-muted { @apply text-slate-400; }
-
-/* Links */
-a {
-  @apply text-gold-primary hover:text-gold-dark transition-colors;
-}
-
-/* Headings – gold highlights */
-h1, h2, h3, h4, h5, h6 {
-  @apply font-bold tracking-tight;
-}
-
-h1, h2 {
-  @apply text-gold-primary;
-}
-
-/* Glassmorphism with gold border */
-.glass {
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(212, 175, 55, 0.25); /* gold border */
-  border-radius: 1rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-}
-
-/* Scrollbar – gold */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.5);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(212, 175, 55, 0.5);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(212, 175, 55, 0.8);
-}
-
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Focus ring – gold */
-:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.5);
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
 }

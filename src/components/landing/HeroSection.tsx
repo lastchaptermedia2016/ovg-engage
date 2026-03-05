@@ -1,12 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
 import { motion } from "framer-motion";
-import WidgetMockup from "./WidgetMockup";
 
 const HeroSection = () => {
   return (
     <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-      {/* Video as the only background – no overlays */}
+      {/* Video as sole background */}
       <video
         autoPlay
         muted
@@ -72,15 +71,8 @@ const HeroSection = () => {
             </div>
           </motion.div>
 
-          {/* Right: Widget mockup */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-            className="flex justify-center lg:justify-end"
-          >
-            <WidgetMockup />
-          </motion.div>
+          {/* Right side spacer — keeps layout balanced without mockup */}
+          <div className="hidden lg:block" /> {/* empty div maintains grid column */}
         </div>
       </div>
     </section>

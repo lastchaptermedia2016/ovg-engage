@@ -396,49 +396,49 @@ const ChatWidget = () => {
           key="ovg-chat-window-final"
           className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-teal-500/30 bg-gradient-to-br from-slate-900 to-indigo-950 backdrop-blur-xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
         >
-          {/* Header – Luxe Med Spa logo + text + buttons */}
-          <div className="flex items-center justify-between bg-gradient-to-r from-teal-900 to-indigo-900 px-5 py-4 rounded-t-2xl">
-            <div className="flex items-center gap-3">
-              <img
-                src="/images/luxemedspa.svg"
-                alt="Luxe Med Spa Concierge"
-                className="h-9 w-9 rounded-full object-cover"
-              />
-              <div>
-                <p className="text-sm font-semibold text-teal-100">
-                  Luxe Med Spa Concierge
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
-                  <p className="text-xs text-teal-200/80">Online now</p>
-                </div>
-              </div>
-            </div>
+{/* Header – full Luxe Med Spa logo + text + buttons */}
+<div className="flex items-center justify-between bg-gradient-to-r from-teal-900 to-indigo-900 px-5 py-4 rounded-t-2xl">
+  <div className="flex items-center gap-3">
+    <img
+      src="/images/luxemedspa.svg"
+      alt="Luxe Med Spa Concierge"
+      className="h-12 w-auto object-contain"  // w-auto + object-contain shows full logo
+    />
+    <div>
+      <p className="text-sm font-semibold text-teal-100">
+        Luxe Med Spa Concierge
+      </p>
+      <div className="flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
+        <p className="text-xs text-teal-200/80">Online now</p>
+      </div>
+    </div>
+  </div>
 
-            {/* Right buttons – volume/mute, reset chat, close */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setVoiceEnabled(!voiceEnabled)}
-                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
-                aria-label={voiceEnabled ? "Mute voice" : "Enable voice"}
-              >
-                {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-              </button>
-              <button
-                onClick={resetChat}
-                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
-                title="Reset chat history"
-              >
-                <RefreshCw className="h-5 w-5" />
-              </button>
-              <button
-                onClick={handleClose}
-                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
+  {/* Right buttons */}
+  <div className="flex items-center gap-2">
+    <button
+      onClick={() => setVoiceEnabled(!voiceEnabled)}
+      className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+      aria-label={voiceEnabled ? "Mute voice" : "Enable voice"}
+    >
+      {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+    </button>
+    <button
+      onClick={resetChat}
+      className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+      title="Reset chat history"
+    >
+      <RefreshCw className="h-5 w-5" />
+    </button>
+    <button
+      onClick={handleClose}
+      className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+    >
+      <X className="h-5 w-5" />
+    </button>
+  </div>
+</div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-slate-900/80 to-indigo-950/80">
@@ -544,16 +544,16 @@ const ChatWidget = () => {
         </div>
       )}
 
-      {/* Floating bubble – pink gradient + black icon */}
-      {!isOpen && (
-        <button
-          key="ovg-chat-bubble-final-single"
-          onClick={handleOpen}
-          className="fixed bottom-6 right-6 z-[10000] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#C71585] to-[#FF69B4] text-black shadow-2xl hover:scale-110 transition-transform duration-200 animate-pulse-glow"
-        >
-          <MessageCircle className="h-6 w-6" />
-        </button>
-      )}
+     {/* Floating bubble – faded/muted pink gradient + black icon */}
+{!isOpen && (
+  <button
+    key="ovg-chat-bubble-final-single"
+    onClick={handleOpen}
+    className="fixed bottom-6 right-6 z-[10000] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#D46A8C] to-[#FFB6C1] text-black shadow-2xl hover:scale-110 transition-transform duration-200 animate-pulse-glow"
+  >
+    <MessageCircle className="h-6 w-6" />
+  </button>
+)}
     </>
   );
 };

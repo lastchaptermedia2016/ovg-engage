@@ -77,15 +77,18 @@ const WidgetMockup = () => {
         </div>
       </motion.div>
 
-      {/* Floating bubble */}
-      <motion.div
-        className="absolute -bottom-4 -right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg animate-pulse-glow"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 0.8, type: "spring" }}
-      >
-        <MessageCircle className="h-6 w-6 text-primary-foreground" />
-      </motion.div>
+     {/* Floating bubble – soft breathe + sparkle */}
+<motion.div
+  className="absolute -bottom-4 -right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg animate-breathe-sparkle relative"
+  initial={{ scale: 0 }}
+  animate={{ scale: 1 }}
+  transition={{ delay: 0.8, type: "spring" }}
+>
+  <MessageCircle className="h-6 w-6 text-primary-foreground" />
+
+  {/* Tiny diamond sparkle dot */}
+  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-white/70 animate-sparkle-dot pointer-events-none" />
+</motion.div>
     </div>
   );
 };

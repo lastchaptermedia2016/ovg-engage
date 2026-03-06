@@ -402,7 +402,7 @@ const ChatWidget = () => {
               <img
                 src="/images/luxemedspa.svg"
                 alt="Luxe Med Spa Concierge"
-                className="h-9 w-9 rounded-full object-cover"
+                className="h-12 w-auto object-contain"  // full logo, no cropping
               />
               <div>
                 <p className="text-sm font-semibold text-teal-100">

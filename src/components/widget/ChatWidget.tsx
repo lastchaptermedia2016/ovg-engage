@@ -25,12 +25,12 @@ const PROACTIVE_DELAY = 3000;
 const AUTO_SEND_DELAY = 1000;
 const LEAD_KEYWORDS = ["human", "call", "price", "pricing", "cost", "agent", "speak", "person"];
 
-const OVG_GREETING = "Welcome to OVG Concierge! ✨ I'm your personal beauty & wellness assistant. Whether you're looking to book a treatment, explore our services, or claim your exclusive 20% off first consultation — I'm here to help!";
+const OVG_GREETING = "Welcome to the Luxe Med Spa in New Haven Concierge! I'm your personal beauty & wellness assistant. Whether you're looking to book a treatment, explore our services, or claim your exclusive VIP discount off first consultation — I'm here to help!";
 
 const QUICK_REPLIES = [
   { label: "📅 Book now", message: "I'd like to book an appointment" },
   { label: "💎 See prices", message: "What are your prices?" },
-  { label: "📞 Speak to human", message: "I'd like to speak to a human" },
+  { label: "📞 Speak to Jill", message: "I'd like to speak to Jill" },
 ];
 
 const ChatWidget = () => {
@@ -330,19 +330,25 @@ const ChatWidget = () => {
   return (
     <>
       {/* Peek teaser */}
-      {showPeek && !isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border bg-background/80 backdrop-blur-md p-4 shadow-xl">
-          <button onClick={() => setShowPeek(false)} className="absolute right-2 top-2 text-muted-foreground">
-            <X className="h-3 w-3" />
-          </button>
-          <p className="text-sm">
-            Hey gorgeous! ✨ Claim <span className="font-semibold text-primary">20% off</span> your first consultation.
-          </p>
-          <button onClick={handleOpen} className="mt-2 text-sm font-medium text-primary hover:underline">
-            Chat with us →
-          </button>
-        </div>
-      )}
+{showPeek && !isOpen && (
+  <div className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border-2 border-pink-400/70 bg-transparent p-5 shadow-2xl">
+    <button 
+      onClick={() => setShowPeek(false)} 
+      className="absolute right-3 top-3 text-white/70 hover:text-white transition-colors"
+    >
+      <X className="h-4 w-4" />
+    </button>
+    <p className="text-sm text-pink-300 leading-relaxed pr-6">
+      Hey Gorgeous! Welcome to Luxe Med Spa in New Haven, how can I help?
+    </p>
+    <button 
+      onClick={handleOpen} 
+      className="mt-3 text-sm font-medium text-white hover:text-pink-200 transition-colors"
+    >
+      Chat with us →
+    </button>
+  </div>
+)}
 
       {/* Consent modal */}
       {showConsent && (

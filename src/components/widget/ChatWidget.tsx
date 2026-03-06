@@ -338,15 +338,19 @@ const ChatWidget = () => {
     >
       <X className="h-4 w-4" />
     </button>
-    <p className="text-sm text-pink-300 leading-relaxed pr-6">
-      Hey Gorgeous! Welcome to Luxe Med Spa in New Haven, how can I help?
-    </p>
-    <button 
-      onClick={handleOpen} 
-      className="mt-3 text-sm font-medium text-white hover:text-pink-200 transition-colors"
-    >
-      Chat with us →
-    </button>
+    
+    {/* Subtle dark scrim behind text for readability */}
+    <div className="relative rounded-xl bg-black/30 backdrop-blur-sm p-4">
+      <p className="text-sm text-pink-300 leading-relaxed">
+        Hey Gorgeous! Welcome to Luxe Med Spa, how can I help?
+      </p>
+      <button 
+        onClick={handleOpen} 
+        className="mt-3 text-sm font-medium text-white hover:text-pink-200 transition-colors"
+      >
+        Chat with us →
+      </button>
+    </div>
   </div>
 )}
 

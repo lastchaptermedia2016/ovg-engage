@@ -25,10 +25,7 @@ const PROACTIVE_DELAY = 3000;
 const AUTO_SEND_DELAY = 1000;
 const LEAD_KEYWORDS = ["human", "call", "price", "pricing", "cost", "agent", "speak", "person"];
 
-// ── Client-specific values (hardcoded for Luxe Med Spa) ──
-const clientName = "Luxe Med Spa";
-const peekTeaser = `Hey gorgeous! ✨ Ready for your glow-up at ${clientName}? Claim 20% off your first treatment.`;
-const greeting = `Hi there! I'm your ${clientName} concierge ✨ How can I help you book the perfect treatment today?`;
+const OVG_GREETING = "Welcome to OVG Concierge! ✨ I'm your personal beauty & wellness assistant. Whether you're looking to book a treatment, explore our services, or claim your exclusive 20% off first consultation — I'm here to help!";
 
 const QUICK_REPLIES = [
   { label: "📅 Book now", message: "I'd like to book an appointment" },
@@ -241,6 +238,8 @@ const ChatWidget = () => {
     }
   };
 
+  const greetText = OVG_GREETING;
+
   const handleOpen = () => {
     setShowPeek(false);
     if (!hasConsent) {
@@ -256,13 +255,13 @@ const ChatWidget = () => {
       const greetingMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "ai",
-        text: greeting,
+        text: greetText,
         timestamp: Date.now(),
       };
       setMessages([greetingMsg]);
       setTimeout(() => {
         console.log("Speaking auto greeting");
-        speak(greeting);
+        speak(greetText);
       }, 800);
     } else {
       console.log("Chat has messages – no auto greeting");
@@ -282,17 +281,17 @@ const ChatWidget = () => {
       const greetingMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "ai",
-        text: greeting,
+        text: greetText,
         timestamp: Date.now(),
       };
       setMessages([greetingMsg]);
       setTimeout(() => {
         console.log("Speaking greeting after consent");
-        speak(greeting);
+        speak(greetText);
       }, 800);
     }
 
-    toast({ title: "Welcome to Luxe Med Spa! ✨", description: "Your personal concierge is ready." });
+    toast({ title: "Welcome to OVG! ✨", description: "Your personal beauty concierge is ready." });
   };
 
   const handleLeadSubmit = () => {
@@ -337,7 +336,7 @@ const ChatWidget = () => {
             <X className="h-3 w-3" />
           </button>
           <p className="text-sm">
-            {peekTeaser}
+            Hey gorgeous! ✨ Claim <span className="font-semibold text-primary">20% off</span> your first consultation.
           </p>
           <button onClick={handleOpen} className="mt-2 text-sm font-medium text-primary hover:underline">
             Chat with us →
@@ -403,7 +402,7 @@ const ChatWidget = () => {
               <img
                 src="/images/luxemedspa.svg"
                 alt="Luxe Med Spa Concierge"
-                className="h-9 w-9 rounded-full object-cover"
+                className="h-12 w-auto object-contain"  // full logo, no cropping
               />
               <div>
                 <p className="text-sm font-semibold text-teal-100">
@@ -441,8 +440,8 @@ const ChatWidget = () => {
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-slate-900/80 to-indigo-950/80">
+          {/* Messages – faded pink background */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-[#FFB6C1] to-[#FFE4E9]">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -451,7 +450,7 @@ const ChatWidget = () => {
                 <div className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                   <div
                     className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                      msg.role === "ai" ? "bg-teal-500/20 text-teal-300" : "bg-slate-700 text-slate-200"
+                      msg.role === "ai" ? "bg-pink-200 text-pink-800" : "bg-pink-300 text-pink-900"
                     }`}
                   >
                     {msg.role === "ai" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
@@ -459,14 +458,14 @@ const ChatWidget = () => {
                   <div
                     className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                       msg.role === "user"
-                        ? "rounded-br-md bg-teal-600/80 text-white"
-                        : "rounded-bl-md bg-slate-800/80 text-slate-100"
+                        ? "rounded-br-md bg-pink-300 text-pink-900"
+                        : "rounded-bl-md bg-pink-100 text-pink-800"
                     }`}
                   >
                     {msg.text}
                   </div>
                 </div>
-                <div className="text-xs text-slate-400 mt-1 opacity-80">
+                <div className="text-xs text-pink-700 mt-1 opacity-80">
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
@@ -477,7 +476,7 @@ const ChatWidget = () => {
                   <button
                     key={qr.label}
                     onClick={() => sendMessageDirect(qr.message)}
-                    className="rounded-full border border-teal-500/30 bg-teal-950/50 px-3 py-1.5 text-xs font-medium text-teal-300 hover:bg-teal-800/50"
+                    className="rounded-full border border-pink-300 bg-pink-100 px-3 py-1.5 text-xs font-medium text-pink-800 hover:bg-pink-200"
                   >
                     {qr.label}
                   </button>
@@ -486,15 +485,15 @@ const ChatWidget = () => {
             )}
             {isTyping && (
               <div className="flex items-end gap-2">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-500/20 text-teal-300">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pink-200 text-pink-800">
                   <Bot className="h-4 w-4" />
                 </div>
-                <div className="rounded-2xl rounded-bl-md bg-slate-800/80 px-4 py-3">
+                <div className="rounded-2xl rounded-bl-md bg-pink-100 px-4 py-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: "0s" }} />
-                    <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: "0.2s" }} />
-                    <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: "0.4s" }} />
-                    <span className="ml-1.5 text-xs text-teal-200/60">typing</span>
+                    <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0s" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0.2s" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0.4s" }} />
+                    <span className="ml-1.5 text-xs text-pink-700/60">typing</span>
                   </div>
                 </div>
               </div>
@@ -502,12 +501,12 @@ const ChatWidget = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input bar */}
-          <div className="border-t border-teal-500/20 px-4 py-3 bg-gradient-to-t from-slate-950/90 to-transparent backdrop-blur-sm">
+          {/* Input bar – faded pink */}
+          <div className="border-t border-pink-200 px-4 py-3 bg-gradient-to-t from-[#FFE4E9] to-[#FFB6C1]">
             <div className="flex items-center gap-2">
               <div
-                className={`flex flex-1 items-center gap-2 rounded-full bg-slate-800/80 px-4 py-2.5 transition-all duration-300 ${
-                  isListening ? "ring-2 ring-teal-400 animate-pulse" : ""
+                className={`flex flex-1 items-center gap-2 rounded-full bg-white/80 px-4 py-2.5 transition-all duration-300 border border-pink-200 ${
+                  isListening ? "ring-2 ring-pink-400 animate-pulse" : ""
                 }`}
               >
                 <input
@@ -521,12 +520,12 @@ const ChatWidget = () => {
                     }
                   }}
                   placeholder={isListening ? "Listening… speak now" : "Ask about treatments, pricing…"}
-                  className="flex-1 bg-transparent text-sm placeholder:text-slate-400 focus:outline-none text-white"
+                  className="flex-1 bg-transparent text-sm placeholder:text-pink-600 focus:outline-none text-black"
                 />
                 <button
                   onClick={toggleListening}
                   className={`rounded-full p-1.5 transition-colors ${
-                    isListening ? "text-teal-400 bg-teal-500/20 animate-pulse" : "text-slate-400 hover:text-teal-300 hover:bg-slate-700/50"
+                    isListening ? "text-pink-500 bg-pink-200 animate-pulse" : "text-pink-500 hover:text-pink-600 hover:bg-pink-100"
                   }`}
                 >
                   {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -534,7 +533,7 @@ const ChatWidget = () => {
               </div>
               <Button
                 size="icon"
-                className="h-10 w-10 shrink-0 rounded-full bg-teal-600 hover:bg-teal-500 text-white"
+                className="h-10 w-10 shrink-0 rounded-full bg-pink-400 hover:bg-pink-500 text-white"
                 onClick={handleSend}
                 disabled={!input.trim()}
               >
@@ -545,12 +544,12 @@ const ChatWidget = () => {
         </div>
       )}
 
-      {/* Floating bubble – pink gradient + black icon */}
+      {/* Floating bubble – faded pink gradient + black icon */}
       {!isOpen && (
         <button
           key="ovg-chat-bubble-final-single"
           onClick={handleOpen}
-          className="fixed bottom-6 right-6 z-[10000] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#C71585] to-[#FF69B4] text-black shadow-2xl hover:scale-110 transition-transform duration-200 animate-pulse-glow"
+          className="fixed bottom-6 right-6 z-[10000] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#D46A8C] to-[#FFB6C1] text-black shadow-2xl hover:scale-110 transition-transform duration-200 animate-pulse-glow"
         >
           <MessageCircle className="h-6 w-6" />
         </button>

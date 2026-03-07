@@ -342,7 +342,7 @@ const ChatWidget = () => {
     {/* Subtle dark scrim behind text for readability */}
     <div className="relative rounded-xl bg-black/30 backdrop-blur-sm p-4">
       <p className="text-sm text-pink-300 leading-relaxed">
-        Hey Gorgeous! Welcome to Luxe Med Spa, how can I help?
+        Hey Gorgeous! Welcome to Luxe Med Spa in New Haven, how can I assist you?
       </p>
       <button 
         onClick={handleOpen} 
@@ -360,7 +360,7 @@ const ChatWidget = () => {
           <div className="w-full max-w-md rounded-2xl border bg-background/95 backdrop-blur-xl p-6 shadow-2xl">
             <h3 className="text-lg font-bold">OVG Concierge — Terms</h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              By using OVG Concierge, you agree to our terms and privacy policy.
+              By using The Luxe Med Spa, you agree to our terms and privacy policy. Your information will be used to provide personalized beauty recommendations and may be stored for quality and training purposes. You can opt out at any time. For more details, please visit our website.
             </p>
             <div className="mt-4 flex items-center gap-3">
               <Checkbox

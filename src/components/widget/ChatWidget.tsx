@@ -404,54 +404,53 @@ const ChatWidget = () => {
 {isOpen && (
   <div
     key="ovg-chat-window-final"
-    className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border-2 border-pink-400/70 bg-transparent backdrop-blur-2xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
+    className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-teal-500/30 bg-gradient-to-br from-slate-900 to-indigo-950 backdrop-blur-xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
   >
- {/* Header – full Luxe Med Spa logo + text + buttons */}
-<div className="flex items-center justify-between bg-gradient-to-r from-teal-900 to-indigo-900 px-5 py-4 rounded-t-2xl">
-  <div className="flex items-center gap-3">
-    <img
-      src="/images/luxemedspa.svg"
-      alt="Luxe Med Spa Concierge"
-      className="h-14 w-auto object-contain"  // full logo: w-auto + object-contain prevents cropping
-    />
-    <div>
-      <p className="text-sm font-semibold text-teal-100">
-        Luxe Med Spa Concierge
-      </p>
-      <div className="flex items-center gap-1.5">
-        <span className="h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
-        <p className="text-xs text-teal-200/80">Online now</p>
+    {/* Header */}
+    <div className="flex items-center justify-between bg-gradient-to-r from-teal-900 to-indigo-900 px-5 py-4 rounded-t-2xl">
+      <div className="flex items-center gap-3">
+        <img
+          src="/images/luxemedspa.svg"
+          alt="Luxe Med Spa Concierge"
+          className="h-12 w-auto object-contain"
+        />
+        <div>
+          <p className="text-sm font-semibold text-teal-100">
+            Luxe Med Spa Concierge
+          </p>
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
+            <p className="text-xs text-teal-200/80">Online now</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setVoiceEnabled(!voiceEnabled)}
+          className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+          aria-label={voiceEnabled ? "Mute voice" : "Enable voice"}
+        >
+          {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+        </button>
+        <button
+          onClick={resetChat}
+          className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+          title="Reset chat history"
+        >
+          <RefreshCw className="h-5 w-5" />
+        </button>
+        <button
+          onClick={handleClose}
+          className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
     </div>
-  </div>
 
-  {/* Right buttons */}
-  <div className="flex items-center gap-2">
-    <button
-      onClick={() => setVoiceEnabled(!voiceEnabled)}
-      className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
-      aria-label={voiceEnabled ? "Mute voice" : "Enable voice"}
-    >
-      {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-    </button>
-    <button
-      onClick={resetChat}
-      className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
-      title="Reset chat history"
-    >
-      <RefreshCw className="h-5 w-5" />
-    </button>
-    <button
-      onClick={handleClose}
-      className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
-    >
-      <X className="h-5 w-5" />
-    </button>
-  </div>
-</div>
-
-    {/* Messages – keep faded pink for readability */}
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-[#FFB6C1] to-[#FFE4E9]">
+    {/* Messages */}
+    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-slate-900/80 to-indigo-950/80">
       {messages.map((msg) => (
         <div
           key={msg.id}
@@ -460,7 +459,7 @@ const ChatWidget = () => {
           <div className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
             <div
               className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                msg.role === "ai" ? "bg-pink-200 text-pink-800" : "bg-pink-300 text-pink-900"
+                msg.role === "ai" ? "bg-teal-500/20 text-teal-300" : "bg-slate-700 text-slate-200"
               }`}
             >
               {msg.role === "ai" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
@@ -468,14 +467,14 @@ const ChatWidget = () => {
             <div
               className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 msg.role === "user"
-                  ? "rounded-br-md bg-pink-300 text-pink-900"
-                  : "rounded-bl-md bg-pink-100 text-pink-800"
+                  ? "rounded-br-md bg-teal-600/80 text-white"
+                  : "rounded-bl-md bg-slate-800/80 text-slate-100"
               }`}
             >
               {msg.text}
             </div>
           </div>
-          <div className="text-xs text-pink-700 mt-1 opacity-80">
+          <div className="text-xs text-slate-400 mt-1 opacity-80">
             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
@@ -486,7 +485,7 @@ const ChatWidget = () => {
             <button
               key={qr.label}
               onClick={() => sendMessageDirect(qr.message)}
-              className="rounded-full border border-pink-300 bg-pink-100 px-3 py-1.5 text-xs font-medium text-pink-800 hover:bg-pink-200"
+              className="rounded-full border border-teal-500/30 bg-teal-950/50 px-3 py-1.5 text-xs font-medium text-teal-300 hover:bg-teal-800/50"
             >
               {qr.label}
             </button>
@@ -495,15 +494,15 @@ const ChatWidget = () => {
       )}
       {isTyping && (
         <div className="flex items-end gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pink-200 text-pink-800">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-500/20 text-teal-300">
             <Bot className="h-4 w-4" />
           </div>
-          <div className="rounded-2xl rounded-bl-md bg-pink-100 px-4 py-3">
+          <div className="rounded-2xl rounded-bl-md bg-slate-800/80 px-4 py-3">
             <div className="flex items-center gap-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0s" }} />
-              <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0.2s" }} />
-              <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0.4s" }} />
-              <span className="ml-1.5 text-xs text-pink-700/60">typing</span>
+              <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: "0s" }} />
+              <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: "0.2s" }} />
+              <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: "0.4s" }} />
+              <span className="ml-1.5 text-xs text-teal-200/60">typing</span>
             </div>
           </div>
         </div>
@@ -511,12 +510,12 @@ const ChatWidget = () => {
       <div ref={messagesEndRef} />
     </div>
 
-    {/* Input bar – keep faded pink */}
-    <div className="border-t border-pink-200 px-4 py-3 bg-gradient-to-t from-[#FFE4E9] to-[#FFB6C1]">
+    {/* Input bar */}
+    <div className="border-t border-teal-500/20 px-4 py-3 bg-gradient-to-t from-slate-950/90 to-transparent backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <div
-          className={`flex flex-1 items-center gap-2 rounded-full bg-white/80 px-4 py-2.5 transition-all duration-300 border border-pink-200 ${
-            isListening ? "ring-2 ring-pink-400 animate-pulse" : ""
+          className={`flex flex-1 items-center gap-2 rounded-full bg-slate-800/80 px-4 py-2.5 transition-all duration-300 ${
+            isListening ? "ring-2 ring-teal-400 animate-pulse" : ""
           }`}
         >
           <input
@@ -530,12 +529,12 @@ const ChatWidget = () => {
               }
             }}
             placeholder={isListening ? "Listening… speak now" : "Ask about treatments, pricing…"}
-            className="flex-1 bg-transparent text-sm placeholder:text-pink-600 focus:outline-none text-black"
+            className="flex-1 bg-transparent text-sm placeholder:text-slate-400 focus:outline-none text-white"
           />
           <button
             onClick={toggleListening}
             className={`rounded-full p-1.5 transition-colors ${
-              isListening ? "text-pink-500 bg-pink-200 animate-pulse" : "text-pink-500 hover:text-pink-600 hover:bg-pink-100"
+              isListening ? "text-teal-400 bg-teal-500/20 animate-pulse" : "text-slate-400 hover:text-teal-300 hover:bg-slate-700/50"
             }`}
           >
             {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -543,7 +542,7 @@ const ChatWidget = () => {
         </div>
         <Button
           size="icon"
-          className="h-10 w-10 shrink-0 rounded-full bg-pink-400 hover:bg-pink-500 text-white"
+          className="h-10 w-10 shrink-0 rounded-full bg-teal-600 hover:bg-teal-500 text-white"
           onClick={handleSend}
           disabled={!input.trim()}
         >

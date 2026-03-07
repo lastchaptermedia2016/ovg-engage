@@ -25,7 +25,7 @@ const PROACTIVE_DELAY = 3000;
 const AUTO_SEND_DELAY = 1000;
 const LEAD_KEYWORDS = ["human", "call", "price", "pricing", "cost", "agent", "speak", "person"];
 
-const OVG_GREETING = "Welcome to OVG Concierge! ✨ I'm your personal beauty & wellness assistant. Whether you're looking to book a treatment, explore our services, or claim your exclusive 20% off first consultation — I'm here to help!";
+const greeting = "Hi there! I'm your Luxe Med Spa concierge ✨ How can I help you book the perfect treatment today?";
 
 const QUICK_REPLIES = [
   { label: "📅 Book now", message: "I'd like to book an appointment" },
@@ -138,7 +138,7 @@ const ChatWidget = () => {
 
       const preferredVoice = voices.find(v => 
         (v.name.includes("Aria") || v.name.includes("Zira") || v.name.includes("Jenny")) && v.lang === "en-US"
-      ) || voices.find(v => v.lang === "en-US" && v.gender === "female") || voices.find(v => v.lang === "en-US") || voices[0];
+      ) || voices.find(v => v.lang === "en-US") || voices[0];
 
       if (preferredVoice) {
         utterance.voice = preferredVoice;
@@ -238,8 +238,6 @@ const ChatWidget = () => {
     }
   };
 
-  const greetText = OVG_GREETING;
-
   const handleOpen = () => {
     setShowPeek(false);
     if (!hasConsent) {
@@ -249,22 +247,17 @@ const ChatWidget = () => {
 
     setIsOpen(true);
 
-    console.log("handleOpen called – messages length:", messages.length);
     if (messages.length === 0) {
-      console.log("Adding auto greeting");
       const greetingMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "ai",
-        text: greetText,
+        text: greeting,
         timestamp: Date.now(),
       };
       setMessages([greetingMsg]);
       setTimeout(() => {
-        console.log("Speaking auto greeting");
-        speak(greetText);
+        speak(greeting);
       }, 800);
-    } else {
-      console.log("Chat has messages – no auto greeting");
     }
 
     setTimeout(() => inputRef.current?.focus(), 800);
@@ -276,22 +269,20 @@ const ChatWidget = () => {
     setShowConsent(false);
     setIsOpen(true);
 
-    console.log("Consent accepted – adding greeting");
     if (messages.length === 0) {
       const greetingMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "ai",
-        text: greetText,
+        text: greeting,
         timestamp: Date.now(),
       };
       setMessages([greetingMsg]);
       setTimeout(() => {
-        console.log("Speaking greeting after consent");
-        speak(greetText);
+        speak(greeting);
       }, 800);
     }
 
-    toast({ title: "Welcome to OVG! ✨", description: "Your personal beauty concierge is ready." });
+    toast({ title: "Welcome to Luxe Med Spa! ✨", description: "Your personal concierge is ready." });
   };
 
   const handleLeadSubmit = () => {
@@ -330,29 +321,29 @@ const ChatWidget = () => {
   return (
     <>
       {/* Peek teaser */}
-{showPeek && !isOpen && (
-  <div className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border-2 border-pink-400/70 bg-transparent p-5 shadow-2xl">
-    <button 
-      onClick={() => setShowPeek(false)} 
-      className="absolute right-3 top-3 text-white/70 hover:text-white transition-colors"
-    >
-      <X className="h-4 w-4" />
-    </button>
-    
-    {/* Subtle dark scrim behind text for readability */}
-    <div className="relative rounded-xl bg-black/30 backdrop-blur-sm p-4">
-      <p className="text-sm text-pink-300 leading-relaxed">
-        Hey Gorgeous! Welcome to Luxe Med Spa in New Haven, how can I assist you?
-      </p>
-      <button 
-        onClick={handleOpen} 
-        className="mt-3 text-sm font-medium text-white hover:text-pink-200 transition-colors"
-      >
-        Chat with us →
-      </button>
-    </div>
-  </div>
-)}
+      {showPeek && !isOpen && (
+        <div className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border-2 border-pink-400/70 bg-transparent p-5 shadow-2xl">
+          <button 
+            onClick={() => setShowPeek(false)} 
+            className="absolute right-3 top-3 text-white/70 hover:text-white transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          
+          {/* Subtle dark scrim behind text for readability */}
+          <div className="relative rounded-xl bg-black/30 backdrop-blur-sm p-4">
+            <p className="text-sm text-pink-300 leading-relaxed">
+              Hey Gorgeous! Welcome to Luxe Med Spa in New Haven, how can I assist you?
+            </p>
+            <button 
+              onClick={handleOpen} 
+              className="mt-3 text-sm font-medium text-white hover:text-pink-200 transition-colors"
+            >
+              Chat with us →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Consent modal */}
       {showConsent && (
@@ -402,17 +393,17 @@ const ChatWidget = () => {
 
       {/* Chat window */}
       {isOpen && (
-       <div
-  key="ovg-chat-window-final"
-  className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border-2 border-pink-400/70 bg-transparent backdrop-blur-2xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
->
+        <div
+          key="ovg-chat-window-final"
+          className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border-2 border-pink-400/70 bg-transparent backdrop-blur-2xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
+        >
           {/* Header */}
           <div className="flex items-center justify-between bg-gradient-to-r from-teal-900 to-indigo-900 px-5 py-4 rounded-t-2xl">
             <div className="flex items-center gap-3">
               <img
                 src="/images/luxemedspa.svg"
                 alt="Luxe Med Spa Concierge"
-                className="h-12 w-auto object-contain"  // full logo, no cropping
+                className="h-12 w-auto object-contain"
               />
               <div>
                 <p className="text-sm font-semibold text-teal-100">
@@ -425,7 +416,6 @@ const ChatWidget = () => {
               </div>
             </div>
 
-            {/* Right buttons */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setVoiceEnabled(!voiceEnabled)}
@@ -450,7 +440,7 @@ const ChatWidget = () => {
             </div>
           </div>
 
-          {/* Messages – faded pink background */}
+          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-[#FFB6C1]/80 to-[#FFE4E9]/80">
             {messages.map((msg) => (
               <div
@@ -511,8 +501,8 @@ const ChatWidget = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input bar – faded pink */}
-          <div className="border-t border-pink-200 px-4 py-3 bg-gradient-to-t from-[#FFE4E9] to-[#FFB6C1]">
+          {/* Input bar */}
+          <div className="border-t border-pink-200 px-4 py-3 bg-gradient-to-t from-[#FFE4E9]/80 to-[#FFB6C1]/80">
             <div className="flex items-center gap-2">
               <div
                 className={`flex flex-1 items-center gap-2 rounded-full bg-white/80 px-4 py-2.5 transition-all duration-300 border border-pink-200 ${
@@ -554,7 +544,7 @@ const ChatWidget = () => {
         </div>
       )}
 
-      {/* Floating bubble – faded pink gradient + black icon */}
+      {/* Floating bubble */}
       {!isOpen && (
         <button
           key="ovg-chat-bubble-final-single"

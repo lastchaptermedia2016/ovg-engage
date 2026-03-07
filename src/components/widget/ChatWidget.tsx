@@ -402,10 +402,10 @@ const ChatWidget = () => {
 
       {/* Chat window */}
       {isOpen && (
-        <div
-          key="ovg-chat-window-final"
-          className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-teal-500/30 bg-gradient-to-br from-slate-900 to-indigo-950 backdrop-blur-xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
-        >
+       <div
+  key="ovg-chat-window-final"
+  className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border-2 border-pink-400/70 bg-transparent backdrop-blur-2xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
+>
           {/* Header */}
           <div className="flex items-center justify-between bg-gradient-to-r from-teal-900 to-indigo-900 px-5 py-4 rounded-t-2xl">
             <div className="flex items-center gap-3">

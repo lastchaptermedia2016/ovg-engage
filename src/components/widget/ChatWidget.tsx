@@ -358,7 +358,7 @@ const ChatWidget = () => {
       {showConsent && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl border bg-background/95 backdrop-blur-xl p-6 shadow-2xl">
-            <h3 className="text-lg font-bold">OVG Concierge — Terms</h3>
+            <h3 className="text-lg font-bold">The Luxe Med Spa in New Haven — Terms</h3>
             <p className="mt-3 text-sm text-muted-foreground">
               By using The Luxe Med Spa, you agree to our terms and privacy policy. Your information will be used to provide personalized beauty recommendations and may be stored for quality and training purposes. You can opt out at any time. For more details, please visit our website.
             </p>

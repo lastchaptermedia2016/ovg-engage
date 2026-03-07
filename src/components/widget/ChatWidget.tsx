@@ -25,12 +25,12 @@ const PROACTIVE_DELAY = 3000;
 const AUTO_SEND_DELAY = 1000;
 const LEAD_KEYWORDS = ["human", "call", "price", "pricing", "cost", "agent", "speak", "person"];
 
-const OVG_GREETING = "Welcome to the Luxe Med Spa in New Haven Concierge! I'm your personal beauty & wellness assistant. Whether you're looking to book a treatment, explore our services, or claim your exclusive VIP discount off first consultation — I'm here to help!";
+const OVG_GREETING = "Welcome to OVG Concierge! ✨ I'm your personal beauty & wellness assistant. Whether you're looking to book a treatment, explore our services, or claim your exclusive 20% off first consultation — I'm here to help!";
 
 const QUICK_REPLIES = [
   { label: "📅 Book now", message: "I'd like to book an appointment" },
   { label: "💎 See prices", message: "What are your prices?" },
-  { label: "📞 Speak to Jill", message: "I'd like to speak to Jill" },
+  { label: "📞 Speak to human", message: "I'd like to speak to a human" },
 ];
 
 const ChatWidget = () => {
@@ -330,37 +330,27 @@ const ChatWidget = () => {
   return (
     <>
       {/* Peek teaser */}
-{showPeek && !isOpen && (
-  <div className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border-2 border-pink-400/70 bg-transparent p-5 shadow-2xl">
-    <button 
-      onClick={() => setShowPeek(false)} 
-      className="absolute right-3 top-3 text-white/70 hover:text-white transition-colors"
-    >
-      <X className="h-4 w-4" />
-    </button>
-    
-    {/* Subtle dark scrim behind text for readability */}
-    <div className="relative rounded-xl bg-black/30 backdrop-blur-sm p-4">
-      <p className="text-sm text-pink-300 leading-relaxed">
-        Hey Gorgeous! Welcome to Luxe Med Spa, how can I help?
-      </p>
-      <button 
-        onClick={handleOpen} 
-        className="mt-3 text-sm font-medium text-white hover:text-pink-200 transition-colors"
-      >
-        Chat with us →
-      </button>
-    </div>
-  </div>
-)}
+      {showPeek && !isOpen && (
+        <div className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border bg-background/80 backdrop-blur-md p-4 shadow-xl">
+          <button onClick={() => setShowPeek(false)} className="absolute right-2 top-2 text-muted-foreground">
+            <X className="h-3 w-3" />
+          </button>
+          <p className="text-sm">
+            Hey gorgeous! ✨ Claim <span className="font-semibold text-primary">20% off</span> your first consultation.
+          </p>
+          <button onClick={handleOpen} className="mt-2 text-sm font-medium text-primary hover:underline">
+            Chat with us →
+          </button>
+        </div>
+      )}
 
       {/* Consent modal */}
       {showConsent && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl border bg-background/95 backdrop-blur-xl p-6 shadow-2xl">
-            <h3 className="text-lg font-bold">Luxe Med Spa — Terms</h3>
+            <h3 className="text-lg font-bold">OVG Concierge — Terms</h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              By using the Luxe Med Spa Concierge, you agree to our terms and privacy policy.
+              By using OVG Concierge, you agree to our terms and privacy policy.
             </p>
             <div className="mt-4 flex items-center gap-3">
               <Checkbox
@@ -401,157 +391,158 @@ const ChatWidget = () => {
       )}
 
       {/* Chat window */}
-{isOpen && (
-  <div
-    key="ovg-chat-window-final"
-    className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-teal-500/30 bg-gradient-to-br from-slate-900 to-indigo-950 backdrop-blur-xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
-  >
-    {/* Header */}
-    <div className="flex items-center justify-between bg-gradient-to-r from-teal-900 to-indigo-900 px-5 py-4 rounded-t-2xl">
-      <div className="flex items-center gap-3">
-        <img
-          src="/images/luxemedspa.svg"
-          alt="Luxe Med Spa Concierge"
-          className="h-12 w-auto object-contain"
-        />
-        <div>
-          <p className="text-sm font-semibold text-teal-100">
-            Luxe Med Spa Concierge
-          </p>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
-            <p className="text-xs text-teal-200/80">Online now</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setVoiceEnabled(!voiceEnabled)}
-          className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
-          aria-label={voiceEnabled ? "Mute voice" : "Enable voice"}
-        >
-          {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-        </button>
-        <button
-          onClick={resetChat}
-          className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
-          title="Reset chat history"
-        >
-          <RefreshCw className="h-5 w-5" />
-        </button>
-        <button
-          onClick={handleClose}
-          className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-    </div>
-
-    {/* Messages */}
-    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-slate-900/80 to-indigo-950/80">
-      {messages.map((msg) => (
+      {isOpen && (
         <div
-          key={msg.id}
-          className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+          key="ovg-chat-window-final"
+          className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-teal-500/30 bg-gradient-to-br from-slate-900 to-indigo-950 backdrop-blur-xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
         >
-          <div className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-            <div
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                msg.role === "ai" ? "bg-teal-500/20 text-teal-300" : "bg-slate-700 text-slate-200"
-              }`}
-            >
-              {msg.role === "ai" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+          {/* Header */}
+          <div className="flex items-center justify-between bg-gradient-to-r from-teal-900 to-indigo-900 px-5 py-4 rounded-t-2xl">
+            <div className="flex items-center gap-3">
+              <img
+                src="/images/luxemedspa.svg"
+                alt="Luxe Med Spa Concierge"
+                className="h-12 w-auto object-contain"  // full logo, no cropping
+              />
+              <div>
+                <p className="text-sm font-semibold text-teal-100">
+                  Luxe Med Spa Concierge
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
+                  <p className="text-xs text-teal-200/80">Online now</p>
+                </div>
+              </div>
             </div>
-            <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                msg.role === "user"
-                  ? "rounded-br-md bg-teal-600/80 text-white"
-                  : "rounded-bl-md bg-slate-800/80 text-slate-100"
-              }`}
-            >
-              {msg.text}
+
+            {/* Right buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+                aria-label={voiceEnabled ? "Mute voice" : "Enable voice"}
+              >
+                {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+              </button>
+              <button
+                onClick={resetChat}
+                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+                title="Reset chat history"
+              >
+                <RefreshCw className="h-5 w-5" />
+              </button>
+              <button
+                onClick={handleClose}
+                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
           </div>
-          <div className="text-xs text-slate-400 mt-1 opacity-80">
-            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
+          {/* Messages – faded pink background */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-[#FFB6C1] to-[#FFE4E9]">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+              >
+                <div className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                  <div
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                      msg.role === "ai" ? "bg-pink-200 text-pink-800" : "bg-pink-300 text-pink-900"
+                    }`}
+                  >
+                    {msg.role === "ai" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                  </div>
+                  <div
+                    className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "rounded-br-md bg-pink-300 text-pink-900"
+                        : "rounded-bl-md bg-pink-100 text-pink-800"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+                <div className="text-xs text-pink-700 mt-1 opacity-80">
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            ))}
+            {showQuickReplies && !isTyping && (
+              <div className="flex flex-wrap gap-2 px-1 pt-2">
+                {QUICK_REPLIES.map((qr) => (
+                  <button
+                    key={qr.label}
+                    onClick={() => sendMessageDirect(qr.message)}
+                    className="rounded-full border border-pink-300 bg-pink-100 px-3 py-1.5 text-xs font-medium text-pink-800 hover:bg-pink-200"
+                  >
+                    {qr.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {isTyping && (
+              <div className="flex items-end gap-2">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pink-200 text-pink-800">
+                  <Bot className="h-4 w-4" />
+                </div>
+                <div className="rounded-2xl rounded-bl-md bg-pink-100 px-4 py-3">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0s" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0.2s" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0.4s" }} />
+                    <span className="ml-1.5 text-xs text-pink-700/60">typing</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        </div>
-      ))}
-      {showQuickReplies && !isTyping && (
-        <div className="flex flex-wrap gap-2 px-1 pt-2">
-          {QUICK_REPLIES.map((qr) => (
-            <button
-              key={qr.label}
-              onClick={() => sendMessageDirect(qr.message)}
-              className="rounded-full border border-teal-500/30 bg-teal-950/50 px-3 py-1.5 text-xs font-medium text-teal-300 hover:bg-teal-800/50"
-            >
-              {qr.label}
-            </button>
-          ))}
+
+          {/* Input bar – faded pink */}
+          <div className="border-t border-pink-200 px-4 py-3 bg-gradient-to-t from-[#FFE4E9] to-[#FFB6C1]">
+            <div className="flex items-center gap-2">
+              <div
+                className={`flex flex-1 items-center gap-2 rounded-full bg-white/80 px-4 py-2.5 transition-all duration-300 border border-pink-200 ${
+                  isListening ? "ring-2 ring-pink-400 animate-pulse" : ""
+                }`}
+              >
+                <input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder={isListening ? "Listening… speak now" : "Ask about treatments, pricing…"}
+                  className="flex-1 bg-transparent text-sm placeholder:text-pink-600 focus:outline-none text-black"
+                />
+                <button
+                  onClick={toggleListening}
+                  className={`rounded-full p-1.5 transition-colors ${
+                    isListening ? "text-pink-500 bg-pink-200 animate-pulse" : "text-pink-500 hover:text-pink-600 hover:bg-pink-100"
+                  }`}
+                >
+                  {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                </button>
+              </div>
+              <Button
+                size="icon"
+                className="h-10 w-10 shrink-0 rounded-full bg-pink-400 hover:bg-pink-500 text-white"
+                onClick={handleSend}
+                disabled={!input.trim()}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
-      {isTyping && (
-        <div className="flex items-end gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-500/20 text-teal-300">
-            <Bot className="h-4 w-4" />
-          </div>
-          <div className="rounded-2xl rounded-bl-md bg-slate-800/80 px-4 py-3">
-            <div className="flex items-center gap-1.5">
-              <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: "0s" }} />
-              <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: "0.2s" }} />
-              <div className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: "0.4s" }} />
-              <span className="ml-1.5 text-xs text-teal-200/60">typing</span>
-            </div>
-          </div>
-        </div>
-      )}
-      <div ref={messagesEndRef} />
-    </div>
-
-    {/* Input bar */}
-    <div className="border-t border-teal-500/20 px-4 py-3 bg-gradient-to-t from-slate-950/90 to-transparent backdrop-blur-sm">
-      <div className="flex items-center gap-2">
-        <div
-          className={`flex flex-1 items-center gap-2 rounded-full bg-slate-800/80 px-4 py-2.5 transition-all duration-300 ${
-            isListening ? "ring-2 ring-teal-400 animate-pulse" : ""
-          }`}
-        >
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder={isListening ? "Listening… speak now" : "Ask about treatments, pricing…"}
-            className="flex-1 bg-transparent text-sm placeholder:text-slate-400 focus:outline-none text-white"
-          />
-          <button
-            onClick={toggleListening}
-            className={`rounded-full p-1.5 transition-colors ${
-              isListening ? "text-teal-400 bg-teal-500/20 animate-pulse" : "text-slate-400 hover:text-teal-300 hover:bg-slate-700/50"
-            }`}
-          >
-            {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          </button>
-        </div>
-        <Button
-          size="icon"
-          className="h-10 w-10 shrink-0 rounded-full bg-teal-600 hover:bg-teal-500 text-white"
-          onClick={handleSend}
-          disabled={!input.trim()}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  </div>
-)}
 
       {/* Floating bubble – faded pink gradient + black icon */}
       {!isOpen && (

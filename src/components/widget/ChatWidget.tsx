@@ -115,52 +115,125 @@ const ChatWidget = () => {
     return () => recognition.abort();
   }, []);
 
-  const speak = useCallback(async (text: string) => {
-    if (!voiceEnabled || !text.trim()) return;
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
+const speak = useCallback(async (text: string) => {
+  if (!voiceEnabled || !text.trim()) return;
+
+  // Stop any playing audio first
+  if (audioRef.current) {
+    audioRef.current.pause();
+    audioRef.current = null;
+  }
+
+  // Level 1: Try ElevenLabs (primary - via Supabase edge function)
+  try {
+    // IMPORTANT: Replace the fetch URL/params below with your ACTUAL ElevenLabs call from the old code
+    // If it's calling Supabase edge: e.g. fetch('/api/elevenlabs-tts' or 'https://your-supabase-project.supabase.co/functions/v1/elevenlabs-tts', ...)
+    // If direct ElevenLabs: fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream', ...)
+    // Example placeholder (adjust to match your existing setup):
+    const response = await fetch(
+      // ← Your real Supabase or ElevenLabs URL here
+      '/.supabase/functions/v1/elevenlabs-tts',  // or whatever your edge function endpoint is
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`ElevenLabs HTTP ${response.status}`);
     }
-    try {
-      let voices = window.speechSynthesis.getVoices();
-      if (voices.length === 0) {
-        await new Promise(resolve => {
-          window.speechSynthesis.onvoiceschanged = resolve;
-          setTimeout(resolve, 800);
-        });
-        voices = window.speechSynthesis.getVoices();
-      }
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
+    // Handle response as audio stream/blob (your existing playback logic)
+    // Example for stream/blob:
+    const audioBlob = await response.blob();  // or handle stream if /stream endpoint
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+    audio.play().catch(e => console.warn("Playback issue:", e));
 
-      const preferredVoice = voices.find(v => 
-        (v.name.includes("Aria") || v.name.includes("Zira") || v.name.includes("Jenny")) && v.lang === "en-US"
-      ) || voices.find(v => v.lang === "en-US") || voices[0];
+    console.log("ElevenLabs success (Rachel voice)");
+    return;  // Success → done
+  } catch (err) {
+    console.error("ElevenLabs failed:", err);
+  }
 
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-        console.log("TTS using voice:", preferredVoice.name);
-      } else {
-        console.log("No preferred voice found, using default");
-      }
+  // Level 2: Fallback to xAI Grok TTS
+  try {
+    const apiKey = import.meta.env.VITE_GROK_API_KEY;
 
-      window.speechSynthesis.speak(utterance);
-    } catch (err) {
-      console.error("TTS failed:", err);
-      toast({
-        title: "Voice Issue",
-        description: "Could not play the response.",
-        variant: "destructive",
+    if (!apiKey) {
+      throw new Error("xAI API key missing in .env");
+    }
+
+    const response = await fetch("https://api.x.ai/v1/tts", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text: text,
+        voice_id: "eve",  // Upbeat/energetic female as fallback to Rachel
+        // Optional: output_format: { codec: "mp3" } if needed
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      throw new Error(`xAI TTS ${response.status}: ${errorBody}`);
+    }
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+    audio.play().catch(e => console.warn("xAI playback:", e));
+
+    console.log("xAI Grok TTS success (Eve voice)");
+    return;  // Success → done
+  } catch (err) {
+    console.error("xAI fallback failed:", err);
+  }
+
+  // Level 3: Browser mock fallback (your original code, kept intact)
+  try {
+    let voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      await new Promise(resolve => {
+        window.speechSynthesis.onvoiceschanged = resolve;
+        setTimeout(resolve, 800);
       });
+      voices = window.speechSynthesis.getVoices();
     }
-  }, [voiceEnabled, toast]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
-  }, [messages]);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    const preferredVoice = voices.find(v => 
+      (v.name.includes("Aria") || v.name.includes("Zira") || v.name.includes("Jenny")) && v.lang === "en-US"
+    ) || voices.find(v => v.lang === "en-US") || voices[0];
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+      console.log("Browser TTS using voice:", preferredVoice.name);
+    } else {
+      console.log("No preferred voice found, using default browser TTS");
+    }
+
+    window.speechSynthesis.speak(utterance);
+    console.log("Browser mock fallback used");
+  } catch (err) {
+    console.error("Browser TTS failed:", err);
+    toast({
+      title: "Voice Issue",
+      description: "Could not play the response.",
+      variant: "destructive",
+    });
+  }
+}, [voiceEnabled, toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

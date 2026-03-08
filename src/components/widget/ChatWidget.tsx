@@ -124,39 +124,48 @@ const speak = useCallback(async (text: string) => {
     audioRef.current = null;
   }
 
-  // Level 1: Try ElevenLabs (primary - via Supabase edge function)
-  try {
-    // IMPORTANT: Replace the fetch URL/params below with your ACTUAL ElevenLabs call from the old code
-    // If it's calling Supabase edge: e.g. fetch('/api/elevenlabs-tts' or 'https://your-supabase-project.supabase.co/functions/v1/elevenlabs-tts', ...)
-    // If direct ElevenLabs: fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream', ...)
-    // Example placeholder (adjust to match your existing setup):
-    const response = await fetch(
-      // ← Your real Supabase or ElevenLabs URL here
-      '/.supabase/functions/v1/elevenlabs-tts',  // or whatever your edge function endpoint is
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      }
-    );
+ // Inside the speak function, replace the ElevenLabs try block with:
+try {
+  const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+  if (!apiKey) throw new Error("ElevenLabs key missing");
 
-    if (!response.ok) {
-      throw new Error(`ElevenLabs HTTP ${response.status}`);
+  const response = await fetch(
+    "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream",
+    {
+      method: "POST",
+      headers: {
+        "Accept": "audio/mpeg",
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+          style: 0.0,
+          use_speaker_boost: true,
+          speed: 1.0,
+        },
+      }),
     }
+  );
 
-    // Handle response as audio stream/blob (your existing playback logic)
-    // Example for stream/blob:
-    const audioBlob = await response.blob();  // or handle stream if /stream endpoint
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    audioRef.current = audio;
-    audio.play().catch(e => console.warn("Playback issue:", e));
-
-    console.log("ElevenLabs success (Rachel voice)");
-    return;  // Success → done
-  } catch (err) {
-    console.error("ElevenLabs failed:", err);
+  if (!response.ok) {
+    throw new Error(`ElevenLabs HTTP ${response.status}`);
   }
+
+  const audioBlob = await response.blob();
+  const audioUrl = URL.createObjectURL(audioBlob);
+  audioRef.current = new Audio(audioUrl);
+  audioRef.current.play().catch(e => console.warn("ElevenLabs play error:", e));
+
+  console.log("ElevenLabs success (Rachel)");
+  return;
+} catch (err) {
+  console.error("ElevenLabs failed:", err);
+}
 
   // Level 2: Fallback to xAI Grok TTS
   try {

@@ -69,11 +69,22 @@ const ChatWidget = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // NEW: Speaking indicator state
-  const [isSpeaking, setIsSpeaking] = useState(false);
+const [isSpeaking, setIsSpeaking] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem(VOICE_MUTE_KEY, voiceEnabled ? "false" : "true");
-  }, [voiceEnabled]);
+const [selectedVoice, setSelectedVoice] = useState<string>(() => {
+  const saved = localStorage.getItem("selectedVoice");
+  return saved || "rachel"; // Default to Rachel (ElevenLabs primary)
+});
+
+// Save mute preference
+useEffect(() => {
+  localStorage.setItem(VOICE_MUTE_KEY, voiceEnabled ? "false" : "true");
+}, [voiceEnabled]);
+
+// NEW: Save selected voice preference whenever it changes
+useEffect(() => {
+  localStorage.setItem("selectedVoice", selectedVoice);
+}, [selectedVoice]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

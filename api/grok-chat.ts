@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-       model: 'grok-2',  // or 'grok-1.5' — check https://api.x.ai/docs/models for latest
+       model: 'grok-beta', // try this first — or check xAI console for latest
         messages,
         temperature: 0.7,
         max_tokens: 400,

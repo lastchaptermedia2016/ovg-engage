@@ -167,43 +167,29 @@ try {
   console.error("ElevenLabs failed:", err);
 }
 
-  // Level 2: Fallback to xAI Grok TTS
-  try {
-    const apiKey = import.meta.env.VITE_GROK_API_KEY;
+// Level 2: xAI fallback via Vercel proxy (no CORS)
+try {
+  const response = await fetch("/api/xai-tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
 
-    if (!apiKey) {
-      throw new Error("xAI API key missing in .env");
-    }
-
-    const response = await fetch("https://api.x.ai/v1/tts", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: text,
-        voice_id: "eve",  // Upbeat/energetic female as fallback to Rachel
-        // Optional: output_format: { codec: "mp3" } if needed
-      }),
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => '');
-      throw new Error(`xAI TTS ${response.status}: ${errorBody}`);
-    }
-
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    audioRef.current = audio;
-    audio.play().catch(e => console.warn("xAI playback:", e));
-
-    console.log("xAI Grok TTS success (Eve voice)");
-    return;  // Success → done
-  } catch (err) {
-    console.error("xAI fallback failed:", err);
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '');
+    throw new Error(`xAI proxy ${response.status}: ${errorText}`);
   }
+
+  const audioBlob = await response.blob();
+  const audioUrl = URL.createObjectURL(audioBlob);
+  audioRef.current = new Audio(audioUrl);
+  audioRef.current.play().catch(e => console.warn("xAI play error:", e));
+
+  console.log("xAI Grok TTS success (Eve voice)");
+  return;
+} catch (err) {
+  console.error("xAI fallback failed:", err);
+}
 
   // Level 3: Browser mock fallback (your original code, kept intact)
   try {

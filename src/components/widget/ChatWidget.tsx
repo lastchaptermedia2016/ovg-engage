@@ -300,24 +300,36 @@ useEffect(() => {
       text: trimmed,
       timestamp: Date.now(),
     };
-    setMessages(prev => {
-      const next = [...prev, userMsg];
-      setIsTyping(true);
-      const delay = 1200 + Math.random() * 800;
-      setTimeout(() => {
-        const aiText = generateMockAIResponse(trimmed, next);
-        const aiMsg: ChatMessage = {
-          id: crypto.randomUUID(),
-          role: "ai",
-          text: aiText,
-          timestamp: Date.now(),
-        };
-        setMessages(p => [...p, aiMsg]);
-        setIsTyping(false);
-        speak(aiText);
-      }, delay);
-      return next;
-    });
+setMessages(prev => {
+  const next = [...prev, userMsg];
+  setIsTyping(true);
+
+  const delay = 1200 + Math.random() * 800;
+  setTimeout(async () => {  // ← make this async
+    try {
+      const aiText = await generateMockAIResponse(trimmed, next);  // ← await here
+      const aiMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "ai",
+        text: aiText,
+        timestamp: Date.now(),
+      };
+      setMessages(p => [...p, aiMsg]);
+      setIsTyping(false);
+      speak(aiText);
+    } catch (err) {
+      console.error("AI response failed:", err);
+      setIsTyping(false);
+      toast({
+        title: "Response Error",
+        description: "Could not generate a reply. Try again.",
+        variant: "destructive",
+      });
+    }
+  }, delay);
+
+  return next;
+});
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);

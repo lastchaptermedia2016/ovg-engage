@@ -9,8 +9,7 @@ export interface ChatMessage {
  * OVG Concierge AI response engine — beauty/wellness focused.
  * Tries real Grok first, falls back to scripted responses if API fails.
  */
-export async function generateMockAIResponse(userMessage: string, conversationHistory: ChatMessage[]): Promise<string> {
-  // Build conversation history for real Grok (last 10 messages + system prompt)
+export async function generateMockAIResponse(userText: string, conversationHistory: ChatMessage[]): Promise<string> {
   const messages = [
     {
       role: "system",
@@ -20,7 +19,7 @@ export async function generateMockAIResponse(userMessage: string, conversationHi
       role: msg.role === "user" ? "user" : "assistant",
       content: msg.text,
     })),
-    { role: "user", content: userMessage },
+    { role: "user", content: userText },
   ];
 
   try {
@@ -35,12 +34,18 @@ export async function generateMockAIResponse(userMessage: string, conversationHi
     }
 
     const data = await response.json();
-    return data.reply || "Hmm... something went wrong. Try again?";
+
+    // Safety check: make sure we have a valid reply string
+    if (data && typeof data.reply === "string" && data.reply.trim()) {
+      return data.reply.trim();
+    } else {
+      throw new Error("Invalid reply from Grok");
+    }
   } catch (err) {
     console.error("Real Grok failed:", err);
 
-    // Your original scripted fallback
-    const msg = userMessage.toLowerCase();
+    // Your original scripted fallback (unchanged)
+    const msg = userText.toLowerCase();
 
     const hasAskedName = conversationHistory.some(
       (m) => m.role === "ai" && m.text.includes("your name")

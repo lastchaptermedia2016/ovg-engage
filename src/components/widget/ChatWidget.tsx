@@ -68,6 +68,9 @@ const ChatWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // NEW: Speaking indicator state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
   useEffect(() => {
     localStorage.setItem(VOICE_MUTE_KEY, voiceEnabled ? "false" : "true");
   }, [voiceEnabled]);
@@ -115,120 +118,145 @@ const ChatWidget = () => {
     return () => recognition.abort();
   }, []);
 
-const speak = useCallback(async (text: string) => {
-  if (!voiceEnabled || !text.trim()) return;
+  const speak = useCallback(async (text: string) => {
+    if (!voiceEnabled || !text.trim()) return;
 
-  // Stop any playing audio first
-  if (audioRef.current) {
-    audioRef.current.pause();
-    audioRef.current = null;
-  }
-
- // Inside the speak function, replace the ElevenLabs try block with:
-try {
-  const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
-  if (!apiKey) throw new Error("ElevenLabs key missing");
-
-  const response = await fetch(
-    "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream",
-    {
-      method: "POST",
-      headers: {
-        "Accept": "audio/mpeg",
-        "xi-api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.0,
-          use_speaker_boost: true,
-          speed: 1.0,
-        },
-      }),
+    // Stop any playing audio first
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
     }
-  );
 
-  if (!response.ok) {
-    throw new Error(`ElevenLabs HTTP ${response.status}`);
-  }
+    setIsSpeaking(true); // Start indicator for all attempts
 
-  const audioBlob = await response.blob();
-  const audioUrl = URL.createObjectURL(audioBlob);
-  audioRef.current = new Audio(audioUrl);
-  audioRef.current.play().catch(e => console.warn("ElevenLabs play error:", e));
+    // Level 1: ElevenLabs direct (Rachel primary)
+    try {
+      const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+      if (!apiKey) throw new Error("ElevenLabs key missing");
 
-  console.log("ElevenLabs success (Rachel)");
-  return;
-} catch (err) {
-  console.error("ElevenLabs failed:", err);
-}
+      const response = await fetch(
+        "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream",
+        {
+          method: "POST",
+          headers: {
+            "Accept": "audio/mpeg",
+            "xi-api-key": apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              style: 0.0,
+              use_speaker_boost: true,
+              speed: 1.0,
+            },
+          }),
+        }
+      );
 
-// Level 2: xAI fallback via Vercel proxy (no CORS)
-try {
-  const response = await fetch("/api/xai-tts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
+      if (!response.ok) {
+        throw new Error(`ElevenLabs HTTP ${response.status}`);
+      }
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '');
-    throw new Error(`xAI proxy ${response.status}: ${errorText}`);
-  }
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.play().catch(e => console.warn("ElevenLabs play error:", e));
 
-  const audioBlob = await response.blob();
-  const audioUrl = URL.createObjectURL(audioBlob);
-  audioRef.current = new Audio(audioUrl);
-  audioRef.current.play().catch(e => console.warn("xAI play error:", e));
+      // Stop indicator when audio ends
+      audioRef.current.onended = () => setIsSpeaking(false);
 
-  console.log("xAI Grok TTS success (Eve voice)");
-  return;
-} catch (err) {
-  console.error("xAI fallback failed:", err);
-}
+      console.log("ElevenLabs success (Rachel)");
+      return;
+    } catch (err) {
+      console.error("ElevenLabs failed:", err);
+    }
 
-  // Level 3: Browser mock fallback (your original code, kept intact)
-  try {
-    let voices = window.speechSynthesis.getVoices();
-    if (voices.length === 0) {
-      await new Promise(resolve => {
-        window.speechSynthesis.onvoiceschanged = resolve;
-        setTimeout(resolve, 800);
+    // Level 2: xAI fallback via Vercel proxy (no CORS)
+    try {
+      const response = await fetch("/api/xai-tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
       });
-      voices = window.speechSynthesis.getVoices();
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        throw new Error(`xAI proxy ${response.status}: ${errorText}`);
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      audioRef.current = new Audio(audioUrl);
+      audioRef.current.play().catch(e => console.warn("xAI play error:", e));
+
+      // Stop indicator when audio ends
+      audioRef.current.onended = () => setIsSpeaking(false);
+
+      console.log("xAI Grok TTS success (Eve voice)");
+      return;
+    } catch (err) {
+      console.error("xAI fallback failed:", err);
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
+    // Level 3: Browser mock fallback (with UX polish)
+    try {
+      let voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        await new Promise(resolve => {
+          window.speechSynthesis.onvoiceschanged = resolve;
+          setTimeout(resolve, 800);
+        });
+        voices = window.speechSynthesis.getVoices();
+      }
 
-    const preferredVoice = voices.find(v => 
-      (v.name.includes("Aria") || v.name.includes("Zira") || v.name.includes("Jenny")) && v.lang === "en-US"
-    ) || voices.find(v => v.lang === "en-US") || voices[0];
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
 
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-      console.log("Browser TTS using voice:", preferredVoice.name);
-    } else {
-      console.log("No preferred voice found, using default browser TTS");
+      const preferredVoice = voices.find(v => 
+        (v.name.includes("Aria") || v.name.includes("Zira") || v.name.includes("Jenny")) && v.lang === "en-US"
+      ) || voices.find(v => v.lang === "en-US") || voices[0];
+
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+        console.log("Browser TTS using voice:", preferredVoice.name);
+      } else {
+        console.log("No preferred voice found, using default");
+      }
+
+      utterance.onend = () => {
+        setIsSpeaking(false);
+      };
+
+      utterance.onerror = (e) => {
+        setIsSpeaking(false);
+        console.error("Browser TTS error:", e);
+      };
+
+      window.speechSynthesis.speak(utterance);
+      console.log("Browser mock fallback used");
+
+      toast({
+        title: "Voice Mode",
+        description: "Real AI voice is temporarily unavailable. Using browser fallback for now.",
+        variant: "default",
+        duration: 6000,
+      });
+    } catch (err) {
+      setIsSpeaking(false);
+      console.error("Browser TTS failed:", err);
+      toast({
+        title: "Voice Issue",
+        description: "Could not play the response.",
+        variant: "destructive",
+      });
     }
-
-    window.speechSynthesis.speak(utterance);
-    console.log("Browser mock fallback used");
-  } catch (err) {
-    console.error("Browser TTS failed:", err);
-    toast({
-      title: "Voice Issue",
-      description: "Could not play the response.",
-      variant: "destructive",
-    });
-  }
-}, [voiceEnabled, toast]);
+  }, [voiceEnabled, toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -566,6 +594,17 @@ try {
                 </div>
               </div>
             )}
+
+            {/* NEW: Speaking indicator */}
+            {isSpeaking && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2 animate-pulse">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                Speaking...
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
 

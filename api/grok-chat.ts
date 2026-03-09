@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const apiKey = process.env.XAI_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: 'xAI API key not configured' });
+      return res.status(500).json({ error: 'xAI API key not configured in Vercel' });
     }
 
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'grok-beta', // or 'grok-2' if available — check https://api.x.ai/docs
+        model: 'grok-beta', // or 'grok-2' if available — check xAI console/docs
         messages,
         temperature: 0.7,
         max_tokens: 400,

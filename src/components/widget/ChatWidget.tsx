@@ -466,7 +466,7 @@ setMessages(prev => {
 
       {/* Consent modal */}
       {showConsent && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-bg-transparent p-5 shadow-2xl">
           <div className="w-full max-w-md rounded-2xl border bg-background/95 backdrop-blur-xl p-6 shadow-2xl">
             <h3 className="text-lg font-bold">The Luxe Med Spa in New Haven — Terms</h3>
             <p className="mt-3 text-sm text-muted-foreground">
@@ -512,12 +512,11 @@ setMessages(prev => {
 
       {/* Chat window */}
       {isOpen && (
-        <div
-          key="ovg-chat-window-final"
-          className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border-2 border-pink-400/70 bg-transparent backdrop-blur-2xl shadow-2xl text-white max-h-[min(600px,calc(100dvh-8rem))] md:w-[400px] pointer-events-auto isolate"
-        >
+       <div
+  key="ovg-chat-window-final"
+  className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border-2 border-pink-500 bg-transparent max-h-[min(680px,calc(100dvh-8rem))] md:w-[440px] pointer-events-auto isolate transition-all duration-300 hover:shadow-[0_25px_70px_-15px_rgba(255,105,180,0.15)] font-candara">
           {/* Header */}
-          <div className="flex items-center justify-between bg-gradient-to-r from-teal-900 to-indigo-900 px-5 py-4 rounded-t-2xl">
+          <div className="flex items-center justify-between bg-transparent px-5 py-5 rounded-t-2xl">
             <div className="flex items-center gap-3">
               <img
                 src="/images/luxemedspa.svg"
@@ -525,12 +524,12 @@ setMessages(prev => {
                 className="h-12 w-auto object-contain"
               />
               <div>
-                <p className="text-sm font-semibold text-teal-100">
+                <p className="text-sm font-semibold text-grey-500">
                   Luxe Med Spa Concierge
                 </p>
                 <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
-                  <p className="text-xs text-teal-200/80">Online now</p>
+                  <span className="h-2 w-2 rounded-full bg-green-600 animate-pulse" />
+                  <p className="text-xs text- dark grey-200/80">Online now</p>
                 </div>
               </div>
             </div>
@@ -538,21 +537,21 @@ setMessages(prev => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setVoiceEnabled(!voiceEnabled)}
-                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-transparent"
                 aria-label={voiceEnabled ? "Mute voice" : "Enable voice"}
               >
                 {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
               </button>
               <button
                 onClick={resetChat}
-                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-transparent"
                 title="Reset chat history"
               >
                 <RefreshCw className="h-5 w-5" />
               </button>
               <button
                 onClick={handleClose}
-                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-teal-500/10"
+                className="rounded-lg p-1.5 text-teal-200/70 hover:bg-transparent"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -560,34 +559,41 @@ setMessages(prev => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-[#FFB6C1]/80 to-[#FFE4E9]/80">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent text-pink-400 text-2xs">
             {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
-              >
-                <div className={`flex items-end gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                  <div
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                      msg.role === "ai" ? "bg-pink-200 text-pink-800" : "bg-pink-300 text-pink-900"
-                    }`}
-                  >
-                    {msg.role === "ai" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                  </div>
-                  <div
-                    className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                      msg.role === "user"
-                        ? "rounded-br-md bg-pink-300 text-pink-900"
-                        : "rounded-bl-md bg-pink-100 text-pink-800"
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
-                <div className="text-xs text-pink-700 mt-1 opacity-80">
-                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
+<div
+  key={msg.id}
+  className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"} animate-fade-in-up`}
+>
+  <div className={`flex items-end gap-4 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+    {/* Avatar – softer, larger, glass-like glow */}
+    <div
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-lg ring-1 ring-white/20 backdrop-blur-sm transition-all duration-300 hover:ring-white/40 hover:scale-105 ${
+        msg.role === "ai"
+          ? "bg-transparent text-pink-400"
+          : "bg-transparent text-pink-400"
+      }`}
+    >
+      {msg.role === "ai" ? <Bot className="h-6 w-6" /> : <User className="h-6 w-6" />}
+    </div>
+
+    {/* Message bubble – softer, glassmorphic, elegant */}
+    <div
+      className={`max-w-[80%] rounded-3xl px-6 py-4 text-base leading-relaxed shadow-lg backdrop-blur-md transition-all duration-300 hover:shadow-xl hover:scale-[1.015] ${
+        msg.role === "user"
+          ? "rounded-br-2xl bg-white/92 text-pink-400 border border-pink/60"
+          : "rounded-bl-2xl bg-white/88 text-pink-400 border border-pink/30"
+      }`}
+    >
+      {msg.text}
+    </div>
+  </div>
+
+  {/* Timestamp – subtle and classy */}
+  <div className="text-xs text-pink-200/70 mt-2 opacity-85 px-3 font-light">
+    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+  </div>
+</div>
             ))}
             {showQuickReplies && !isTyping && (
               <div className="flex flex-wrap gap-2 px-1 pt-2">
@@ -595,7 +601,7 @@ setMessages(prev => {
                   <button
                     key={qr.label}
                     onClick={() => sendMessageDirect(qr.message)}
-                    className="rounded-full border border-pink-300 bg-pink-100 px-3 py-1.5 text-xs font-medium text-pink-800 hover:bg-pink-200"
+                    className="rounded-full border border-pink-300 bg-transparent-100 px-3 py-1.5 text-xs font-medium text-pink-800 hover:bg-pink-200"
                   >
                     {qr.label}
                   </button>
@@ -604,14 +610,14 @@ setMessages(prev => {
             )}
             {isTyping && (
               <div className="flex items-end gap-2">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pink-200 text-pink-800">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-transparent-200 text-pink-800">
                   <Bot className="h-4 w-4" />
                 </div>
-                <div className="rounded-2xl rounded-bl-md bg-pink-100 px-4 py-3">
+                <div className="rounded-2xl rounded-bl-md bg-transparent-100 px-4 py-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0s" }} />
-                    <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0.2s" }} />
-                    <div className="h-1.5 w-1.5 rounded-full bg-pink-600 animate-bounce" style={{ animationDelay: "0.4s" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-transparent-600 animate-bounce" style={{ animationDelay: "0s" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-transparent-600 animate-bounce" style={{ animationDelay: "0.2s" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-transparent-600 animate-bounce" style={{ animationDelay: "0.4s" }} />
                     <span className="ml-1.5 text-xs text-pink-700/60">typing</span>
                   </div>
                 </div>
@@ -620,7 +626,7 @@ setMessages(prev => {
 
             {/* NEW: Speaking indicator */}
             {isSpeaking && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2 animate-pulse">
+              <div className="flex items-center justify-center gap-2.5 text-sm text-pink-400 mt-4 animate-pulse font-medium">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
@@ -632,10 +638,10 @@ setMessages(prev => {
           </div>
 
           {/* Input bar */}
-          <div className="border-t border-pink-200 px-4 py-3 bg-gradient-to-t from-[#FFE4E9]/80 to-[#FFB6C1]/80">
+          <div className="border-t border-pink-200 px-4 py-3 bg-transparent">
             <div className="flex items-center gap-2">
               <div
-                className={`flex flex-1 items-center gap-2 rounded-full bg-white/80 px-4 py-2.5 transition-all duration-300 border border-pink-200 ${
+                className={`flex flex-1 items-center gap-2 rounded-full bg-transparent/80 px-4 py-2.5 transition-all duration-300 border border-pink-200 ${
                   isListening ? "ring-2 ring-pink-400 animate-pulse" : ""
                 }`}
               >
@@ -655,7 +661,7 @@ setMessages(prev => {
                 <button
                   onClick={toggleListening}
                   className={`rounded-full p-1.5 transition-colors ${
-                    isListening ? "text-pink-500 bg-pink-200 animate-pulse" : "text-pink-500 hover:text-pink-600 hover:bg-pink-100"
+                    isListening ? "text-pink-500 bg-transparent animate-pulse" : "text-pink-500 hover:text-pink-600 hover:bg-pink-100"
                   }`}
                 >
                   {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -663,7 +669,7 @@ setMessages(prev => {
               </div>
               <Button
                 size="icon"
-                className="h-10 w-10 shrink-0 rounded-full bg-pink-400 hover:bg-pink-500 text-white"
+                className="h-10 w-10 shrink-0 rounded-full bg-transparent hover:bg-transparent text-white"
                 onClick={handleSend}
                 disabled={!input.trim()}
               >

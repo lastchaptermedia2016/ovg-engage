@@ -7,7 +7,7 @@ const WidgetMockup = () => {
       {/* Chat window */}
       <motion.div
         className="rounded-2xl border border-border shadow-2xl shadow-primary/10 overflow-hidden"
-        style={{ backgroundColor: 'hsla(340, 30%, 85%, 0.75)', backdropFilter: 'blur(8px)' }}
+        style={{ backgroundColor: 'hsla(340, 40%, 80%, 0.6)', backdropFilter: 'blur(4px)' }}
         animate={{ y: [0, -6, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       >

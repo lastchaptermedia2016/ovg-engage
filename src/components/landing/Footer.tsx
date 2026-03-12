@@ -9,7 +9,7 @@ const Footer = () => {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <MessageCircle className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-display text-lg font-bold">OVGweb</span>
+            <span className="font-display text-lg font-bold">OVG AI</span>
           </div>
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Omniverge Global. All rights reserved.

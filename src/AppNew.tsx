@@ -22,7 +22,7 @@ const AppNew = () => (
           </Routes>
         </BrowserRouter>
 
-        <ChatWidget />  // ← uncommented - this is the single root instance
+        <ChatWidget /> 
       </TooltipProvider>
     </QueryClientProvider>
   </div>

@@ -25,12 +25,12 @@ const PROACTIVE_DELAY = 3000;
 const AUTO_SEND_DELAY = 1000;
 const LEAD_KEYWORDS = ["human", "call", "price", "pricing", "cost", "agent", "speak", "person"];
 
-const greeting = "Hi there! I'm your Luxe Med Spa concierge ✨ How can I help you book the perfect treatment today?";
+const greeting = "Hi there! I'm your The Luxe Med Spa in New Haven concierge, How can I help you book the perfect treatment today?";
 
 const QUICK_REPLIES = [
-  { label: "📅 Book now", message: "I'd like to book an appointment" },
-  { label: "💎 See prices", message: "What are your prices?" },
-  { label: "📞 Speak to human", message: "I'd like to speak to a human" },
+  { label: "📅 Book an appointment now!", message: "I'd like to book an appointment" },
+  { label: "💎 See our prices?", message: "What are your prices?" },
+  { label: "📞 Speak to a consultant", message: "I'd like to speak to a consultant" },
 ];
 
 const ChatWidget = () => {
@@ -401,7 +401,7 @@ setMessages(prev => {
       }, 800);
     }
 
-    toast({ title: "Welcome to Luxe Med Spa! ✨", description: "Your personal concierge is ready." });
+    toast({ title: "Welcome to The Luxe Med Spa in New Haven! ✨", description: "Your personal concierge is ready." });
   };
 
   const handleLeadSubmit = () => {
@@ -470,7 +470,7 @@ setMessages(prev => {
           <div className="w-full max-w-md rounded-2xl border bg-background/95 backdrop-blur-xl p-6 shadow-2xl">
             <h3 className="text-lg font-bold">The Luxe Med Spa in New Haven — Terms</h3>
             <p className="mt-3 text-sm text-muted-foreground">
-              By using The Luxe Med Spa concierge, you agree to our terms and privacy policy. Your information will be used to provide personalized beauty recommendations and may be stored for quality and training purposes. You can opt out at any time. For more details, please visit our website.
+              By using The Luxe Med Spa in New Haven concierge, you agree to our terms and privacy policy. Your information will solely be used to provide personalized beauty recommendations and may be stored for quality and training purposes. You can opt out at any time. For more details, please visit our website.
             </p>
             <div className="mt-4 flex items-center gap-3">
               <Checkbox

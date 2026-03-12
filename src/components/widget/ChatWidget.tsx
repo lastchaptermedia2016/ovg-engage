@@ -559,7 +559,7 @@ setMessages(prev => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-pink-200/40 text-pink-400 text-2xs">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-pink-300/30 text-pink-400 text-2xs">
             {messages.map((msg) => (
 <div
   key={msg.id}

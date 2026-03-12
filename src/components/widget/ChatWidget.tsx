@@ -514,9 +514,9 @@ setMessages(prev => {
       {isOpen && (
        <div
   key="ovg-chat-window-final"
-  className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border-2 border-pink-500 bg-transparent max-h-[min(680px,calc(100dvh-8rem))] md:w-[440px] pointer-events-auto isolate transition-all duration-300 hover:shadow-[0_25px_70px_-15px_rgba(255,105,180,0.15)] font-candara">
+  className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border-2 border-pink-500 bg-pink-300/50 backdrop-blur-sm max-h-[min(680px,calc(100dvh-8rem))] md:w-[440px] pointer-events-auto isolate transition-all duration-300 hover:shadow-[0_25px_70px_-15px_rgba(255,105,180,0.15)] font-candara">
           {/* Header */}
-          <div className="flex items-center justify-between bg-transparent px-5 py-5 rounded-t-2xl">
+          <div className="flex items-center justify-between bg-gradient-to-b from-gray-200 to-gray-400 px-5 py-5 rounded-t-2xl">
             <div className="flex items-center gap-3">
               <img
                 src="/images/luxemedspa.svg"
@@ -638,7 +638,7 @@ setMessages(prev => {
           </div>
 
           {/* Input bar */}
-          <div className="border-t border-pink-200 px-4 py-3 bg-transparent">
+          <div className="border-t border-pink-200 px-4 py-3 bg-gradient-to-b from-gray-300 to-gray-500">
             <div className="flex items-center gap-2">
               <div
                 className={`flex flex-1 items-center gap-2 rounded-full bg-transparent/80 px-4 py-2.5 transition-all duration-300 border border-pink-200 ${

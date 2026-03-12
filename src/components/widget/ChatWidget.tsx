@@ -514,7 +514,7 @@ setMessages(prev => {
       {isOpen && (
        <div
   key="ovg-chat-window-final"
-  className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border-2 border-pink-500 bg-transparent max-h-[min(680px,calc(100dvh-8rem))] md:w-[440px] pointer-events-auto isolate transition-all duration-300 hover:shadow-[0_25px_70px_-15px_rgba(255,105,180,0.15)] font-candara">
+  className="fixed bottom-24 right-6 z-[9999] flex w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl border-2 border-pink-500 bg-pink-300/50 backdrop-blur-sm max-h-[min(680px,calc(100dvh-8rem))] md:w-[440px] pointer-events-auto isolate transition-all duration-300 hover:shadow-[0_25px_70px_-15px_rgba(255,105,180,0.15)] font-candara">
           {/* Header */}
           <div className="flex items-center justify-between bg-transparent px-5 py-5 rounded-t-2xl">
             <div className="flex items-center gap-3">
@@ -559,7 +559,7 @@ setMessages(prev => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-pink-200/40 text-pink-400 text-2xs">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-pink-300/30 text-pink-400 text-2xs">
             {messages.map((msg) => (
 <div
   key={msg.id}

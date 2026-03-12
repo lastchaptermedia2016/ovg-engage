@@ -638,7 +638,7 @@ setMessages(prev => {
           </div>
 
           {/* Input bar */}
-          <div className="border-t border-pink-200 px-4 py-3 bg-transparent">
+          <div className="border-t border-pink-200 px-4 py-3 bg-gradient-to-b from-gray-300 to-gray-500">
             <div className="flex items-center gap-2">
               <div
                 className={`flex flex-1 items-center gap-2 rounded-full bg-transparent/80 px-4 py-2.5 transition-all duration-300 border border-pink-200 ${

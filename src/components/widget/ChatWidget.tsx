@@ -182,16 +182,23 @@ const ChatWidget = () => {
     }
   }, [isOpen, messages.length, hasGreeted, speak, hasConsent, config.greeting]);
 
+  // Show peek teaser after 3s if chat not open
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+    if (!isOpen && !showPeek) {
+      const timer = setTimeout(() => setShowPeek(true), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, showPeek]);
 
-  const updatePrimaryColor = (color: string) => {
-    setConfig(prev => ({ ...prev, primaryColor: color }));
-    localStorage.setItem("ovg_primaryColor", color);
+  // Handle opening chat — show consent if not yet accepted
+  const handleOpenChat = () => {
+    setShowPeek(false);
+    if (!hasConsent) {
+      setShowConsent(true);
+    } else {
+      setIsOpen(true);
+    }
   };
-
-  const colorPresets = ["#E91E63", "#C026D3", "#7C3AED", "#0EA5E9", "#14B8A6", "#F59E0B"];
 
   return (
     <>

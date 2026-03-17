@@ -354,18 +354,40 @@ const ChatWidget = () => {
 
           {/* Input / Footer */}
           <div className="p-4 border-t border-gray-300 bg-gradient-to-b from-gray-300 to-gray-500">
-            <div className="flex gap-3">
+            <div className="flex gap-2 items-center">
               <Input
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Type your message..."
+                value={isListening ? transcript || input : input}
+                onChange={e => { if (!isListening) setInput(e.target.value); }}
+                placeholder={isListening ? "Listening..." : "Type your message..."}
                 className="flex-1 bg-white/90 border border-gray-300 text-black placeholder:text-gray-500 focus:border-pink-400"
-                onKeyDown={e => e.key === "Enter" && sendMessageDirect(input)}
+                onKeyDown={e => e.key === "Enter" && !isListening && sendMessageDirect(input)}
               />
+              {isSupported && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (isListening) {
+                      stopListening();
+                      const text = transcript.trim();
+                      if (text) {
+                        setInput(text);
+                        resetTranscript();
+                        sendMessageDirect(text);
+                      }
+                    } else {
+                      startListening();
+                    }
+                  }}
+                  className={`shrink-0 ${isListening ? "text-red-500 animate-pulse" : "text-gray-600"}`}
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+              )}
               <Button 
                 onClick={() => sendMessageDirect(input)}
                 style={{ backgroundColor: config.primaryColor }}
-                className="text-white px-6"
+                className="text-white px-4 shrink-0"
               >
                 <Send className="h-4 w-4" />
               </Button>

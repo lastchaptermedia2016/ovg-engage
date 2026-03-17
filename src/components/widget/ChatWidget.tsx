@@ -27,7 +27,7 @@ const defaultConfig: WidgetConfig = {
 
 const ChatWidget = () => {
   const { toast } = useToast();
-
+  const { isListening, transcript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
   const [config, setConfig] = useState<WidgetConfig>(() => {
     const saved = (window as any).ovgConfig || {};
     return { ...defaultConfig, ...saved };

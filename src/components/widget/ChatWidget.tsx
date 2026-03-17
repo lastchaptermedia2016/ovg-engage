@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { generateMockAIResponse, type ChatMessage } from "@/lib/mock-ai";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 interface WidgetConfig {
   logo?: string;
@@ -26,7 +27,7 @@ const defaultConfig: WidgetConfig = {
 
 const ChatWidget = () => {
   const { toast } = useToast();
-
+  const { isListening, transcript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
   const [config, setConfig] = useState<WidgetConfig>(() => {
     const saved = (window as any).ovgConfig || {};
     return { ...defaultConfig, ...saved };
@@ -43,7 +44,7 @@ const ChatWidget = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);        // ← Fixed: now declared
-  const [isListening, setIsListening] = useState(false);
+  // isListening now comes from useSpeechRecognition hook
   const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem("ovgweb_voice_mute") !== "true");
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -299,7 +300,16 @@ const ChatWidget = () => {
           <div className="p-5 flex justify-between items-center bg-gradient-to-b from-gray-200 to-gray-400">
             <div className="flex items-center gap-3">
               <img src={config.logo} alt={config.brandName} className="h-10 w-auto" />
-              <h3 className="font-semibold text-gray-800 text-sm">{config.brandName}</h3>
+              <div>
+                <h3 className="font-semibold text-gray-800 text-sm">{config.brandName}</h3>
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <span className="text-[11px] text-gray-500 font-medium">Online now</span>
+                </div>
+              </div>
             </div>
 
             {/* Controls */}
@@ -344,18 +354,40 @@ const ChatWidget = () => {
 
           {/* Input / Footer */}
           <div className="p-4 border-t border-gray-300 bg-gradient-to-b from-gray-300 to-gray-500">
-            <div className="flex gap-3">
+            <div className="flex gap-2 items-center">
               <Input
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Type your message..."
+                value={isListening ? transcript || input : input}
+                onChange={e => { if (!isListening) setInput(e.target.value); }}
+                placeholder={isListening ? "Listening..." : "Type your message..."}
                 className="flex-1 bg-white/90 border border-gray-300 text-black placeholder:text-gray-500 focus:border-pink-400"
-                onKeyDown={e => e.key === "Enter" && sendMessageDirect(input)}
+                onKeyDown={e => e.key === "Enter" && !isListening && sendMessageDirect(input)}
               />
+              {isSupported && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    if (isListening) {
+                      stopListening();
+                      const text = transcript.trim();
+                      if (text) {
+                        setInput(text);
+                        resetTranscript();
+                        sendMessageDirect(text);
+                      }
+                    } else {
+                      startListening();
+                    }
+                  }}
+                  className={`shrink-0 ${isListening ? "text-red-500 animate-pulse" : "text-gray-600"}`}
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+              )}
               <Button 
                 onClick={() => sendMessageDirect(input)}
                 style={{ backgroundColor: config.primaryColor }}
-                className="text-white px-6"
+                className="text-white px-4 shrink-0"
               >
                 <Send className="h-4 w-4" />
               </Button>

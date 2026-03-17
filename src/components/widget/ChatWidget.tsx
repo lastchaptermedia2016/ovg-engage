@@ -35,6 +35,7 @@ const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [hasConsent, setHasConsent] = useState(() => localStorage.getItem("ovgweb_ai_consent") === "true");
+  const [showPeek, setShowPeek] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try { return JSON.parse(localStorage.getItem("ovgweb_chat_messages") || "[]"); } catch { return []; }

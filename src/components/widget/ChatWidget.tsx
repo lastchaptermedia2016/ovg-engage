@@ -293,7 +293,7 @@ const ChatWidget = () => {
       {/* ===== MAIN CHAT WINDOW ===== */}
       {isOpen && (
         <div 
-          className="fixed bottom-24 right-6 z-[9999] w-[380px] md:w-[420px] rounded-3xl border-2 overflow-hidden shadow-2xl bg-pink-300/50 backdrop-blur-sm"
+          className="fixed bottom-24 right-6 z-[9999] w-[380px] md:w-[420px] rounded-3xl border-2 overflow-hidden shadow-2xl bg-pink-200/85 backdrop-blur-sm"
           style={{ borderColor: config.primaryColor }}
         >
           {/* Header */}

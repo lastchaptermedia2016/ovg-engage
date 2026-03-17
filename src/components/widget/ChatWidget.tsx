@@ -44,7 +44,7 @@ const ChatWidget = () => {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);        // ← Fixed: now declared
-  const [isListening, setIsListening] = useState(false);
+  // isListening now comes from useSpeechRecognition hook
   const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem("ovgweb_voice_mute") !== "true");
   const [showColorPicker, setShowColorPicker] = useState(false);
 

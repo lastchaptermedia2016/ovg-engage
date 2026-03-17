@@ -202,55 +202,122 @@ const ChatWidget = () => {
 
   return (
     <>
-      {/* Peek Teaser */}
-      {!isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 max-w-xs rounded-2xl border border-white/30 bg-black/20 backdrop-blur-2xl p-5 text-white shadow-2xl">
-          <p className="text-sm">{config.peekText}</p>
-          <button onClick={() => setIsOpen(true)} className="mt-3 text-pink-400 hover:text-pink-300 font-medium">
-            Chat with us →
-          </button>
-        </div>
-      )}
+      {/* ===== PEEK TEASER ===== */}
+      <AnimatePresence>
+        {!isOpen && !showConsent && showPeek && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 24 }}
+            className="fixed bottom-24 right-6 z-[9998] max-w-[280px] rounded-2xl border border-pink-300/40 bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl p-5 shadow-2xl"
+          >
+            <button
+              onClick={() => setShowPeek(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+            <p className="text-sm text-white/90 leading-relaxed">{config.peekText}</p>
+            <button
+              onClick={handleOpenChat}
+              className="mt-3 text-sm font-semibold hover:opacity-80 transition-opacity"
+              style={{ color: config.primaryColor }}
+            >
+              Chat with us →
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* MAIN CHAT WINDOW */}
+      {/* ===== CONSENT MODAL ===== */}
+      <AnimatePresence>
+        {showConsent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 350, damping: 28 }}
+              className="mx-4 w-full max-w-sm rounded-2xl bg-gradient-to-b from-gray-800 to-gray-900 border border-gray-700 p-6 shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  className="h-10 w-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: config.primaryColor }}
+                >
+                  <ShieldCheck className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white">Before we chat…</h3>
+              </div>
+
+              <p className="text-sm text-gray-300 leading-relaxed mb-2">
+                This AI concierge is powered by artificial intelligence. By continuing you agree to our:
+              </p>
+              <ul className="text-xs text-gray-400 space-y-1 mb-5 ml-4 list-disc">
+                <li>Terms &amp; Conditions</li>
+                <li>Privacy Policy</li>
+                <li>AI-generated responses disclaimer</li>
+              </ul>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  onClick={() => setShowConsent(false)}
+                >
+                  Decline
+                </Button>
+                <Button
+                  className="flex-1 text-white font-semibold"
+                  style={{ backgroundColor: config.primaryColor }}
+                  onClick={() => {
+                    handleAcceptConsent();
+                    setIsOpen(true);
+                  }}
+                >
+                  I Agree ✨
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== MAIN CHAT WINDOW ===== */}
       {isOpen && (
         <div 
-          className="fixed bottom-24 right-6 z-[9999] w-[380px] md:w-[420px] rounded-3xl border-2 overflow-hidden shadow-2xl bg-black/10 backdrop-blur-2xl"
+          className="fixed bottom-24 right-6 z-[9999] w-[380px] md:w-[420px] rounded-3xl border-2 overflow-hidden shadow-2xl bg-pink-300/50 backdrop-blur-sm"
           style={{ borderColor: config.primaryColor }}
         >
           {/* Header */}
-          <div 
-            className="p-5 flex justify-between items-center"
-            style={{ background: `linear-gradient(to right, ${config.primaryColor}, #1f2937)` }}
-          >
+          <div className="p-5 flex justify-between items-center bg-gradient-to-b from-gray-200 to-gray-400">
             <div className="flex items-center gap-3">
               <img src={config.logo} alt={config.brandName} className="h-10 w-auto" />
-              <h3 className="font-semibold text-white text-sm">{config.brandName}</h3>
+              <h3 className="font-semibold text-gray-800 text-sm">{config.brandName}</h3>
             </div>
-
-            {/* Color Picker */}
-            <div 
-              onClick={() => setShowColorPicker(!showColorPicker)}
-              className="w-8 h-8 rounded-full border-2 border-white/50 cursor-pointer shadow-inner"
-              style={{ backgroundColor: config.primaryColor }}
-            />
 
             {/* Controls */}
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" onClick={() => setVoiceEnabled(!voiceEnabled)}>
-                {voiceEnabled ? <Volume2 className="h-4 w-4 text-white" /> : <VolumeX className="h-4 w-4 text-white" />}
+                {voiceEnabled ? <Volume2 className="h-4 w-4 text-gray-700" /> : <VolumeX className="h-4 w-4 text-gray-700" />}
               </Button>
               <Button variant="ghost" size="icon" onClick={resetChat}>
-                <RefreshCw className="h-4 w-4 text-white" />
+                <RefreshCw className="h-4 w-4 text-gray-700" />
               </Button>
               <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                <X className="h-4 w-4 text-white" />
+                <X className="h-4 w-4 text-gray-700" />
               </Button>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-black/20 backdrop-blur-md min-h-[300px]">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-pink-300/30 min-h-[300px]">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[80%] px-5 py-3.5 rounded-2xl text-sm leading-relaxed ${msg.role === "user" ? "bg-white text-black" : "bg-white/90 text-gray-900"}`}>
@@ -258,18 +325,18 @@ const ChatWidget = () => {
                 </div>
               </div>
             ))}
-            {isTyping && <div className="text-pink-400 text-sm animate-pulse">Concierge is typing...</div>}
+            {isTyping && <div className="text-pink-500 text-sm animate-pulse">Concierge is typing...</div>}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <div className="p-4 border-t border-white/20 bg-black/30 backdrop-blur-md">
+          {/* Input / Footer */}
+          <div className="p-4 border-t border-gray-300 bg-gradient-to-b from-gray-300 to-gray-500">
             <div className="flex gap-3">
               <Input
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 placeholder="Type your message..."
-                className="flex-1 bg-white/90 border border-white/30 text-black placeholder:text-gray-500 focus:border-pink-400"
+                className="flex-1 bg-white/90 border border-gray-300 text-black placeholder:text-gray-500 focus:border-pink-400"
                 onKeyDown={e => e.key === "Enter" && sendMessageDirect(input)}
               />
               <Button 
@@ -284,10 +351,10 @@ const ChatWidget = () => {
         </div>
       )}
 
-      {/* Floating Bubble */}
-      {!isOpen && (
+      {/* ===== FLOATING BUBBLE ===== */}
+      {!isOpen && !showConsent && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={handleOpenChat}
           className="fixed bottom-6 right-6 z-[10000] h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-all flex items-center justify-center"
           style={{ background: `linear-gradient(to bottom right, ${config.primaryColor}, #ff69b4)` }}
         >

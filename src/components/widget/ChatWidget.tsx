@@ -300,7 +300,16 @@ const ChatWidget = () => {
           <div className="p-5 flex justify-between items-center bg-gradient-to-b from-gray-200 to-gray-400">
             <div className="flex items-center gap-3">
               <img src={config.logo} alt={config.brandName} className="h-10 w-auto" />
-              <h3 className="font-semibold text-gray-800 text-sm">{config.brandName}</h3>
+              <div>
+                <h3 className="font-semibold text-gray-800 text-sm">{config.brandName}</h3>
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <span className="text-[11px] text-gray-500 font-medium">Online now</span>
+                </div>
+              </div>
             </div>
 
             {/* Controls */}

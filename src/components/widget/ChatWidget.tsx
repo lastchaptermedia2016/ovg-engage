@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { generateMockAIResponse, type ChatMessage } from "@/lib/mock-ai";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 interface WidgetConfig {
   logo?: string;

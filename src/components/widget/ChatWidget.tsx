@@ -293,7 +293,7 @@ const ChatWidget = () => {
       {/* ===== MAIN CHAT WINDOW ===== */}
       {isOpen && (
         <div 
-          className="fixed bottom-24 right-6 z-[9999] w-[380px] md:w-[420px] rounded-3xl border-2 overflow-hidden shadow-2xl bg-pink-300/50 backdrop-blur-sm"
+          className="fixed bottom-24 right-6 z-[9999] w-[380px] md:w-[420px] rounded-3xl border-2 overflow-hidden shadow-2xl bg-pink-200/85 backdrop-blur-sm"
           style={{ borderColor: config.primaryColor }}
         >
           {/* Header */}
@@ -327,7 +327,7 @@ const ChatWidget = () => {
           </div>
 
           {/* Messages */}
-          <div className="overflow-y-auto p-4 space-y-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZTVkZGQ1Ii8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMC41IiBmaWxsPSIjZDBjOGMwIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI2EpIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiLz48L3N2Zz4=')] bg-pink-200/40 h-[320px]">
+          <div className="overflow-y-auto p-4 space-y-2 bg-pink-100/80 h-[320px]">
             {messages.map((msg) => {
               const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
               const isUser = msg.role === "user";

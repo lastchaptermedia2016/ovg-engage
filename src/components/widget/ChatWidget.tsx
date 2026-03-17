@@ -317,15 +317,28 @@ const ChatWidget = () => {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-pink-300/30 min-h-[300px]">
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] px-5 py-3.5 rounded-2xl text-sm leading-relaxed ${msg.role === "user" ? "bg-white text-black" : "bg-white/90 text-gray-900"}`}>
-                  {msg.text}
+          <div className="overflow-y-auto p-4 space-y-2 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZTVkZGQ1Ii8+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMC41IiBmaWxsPSIjZDBjOGMwIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI2EpIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiLz48L3N2Zz4=')] bg-pink-200/40 h-[320px]">
+            {messages.map((msg) => {
+              const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              const isUser = msg.role === "user";
+              return (
+                <div key={msg.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`relative max-w-[75%] px-3 py-2 rounded-lg text-sm leading-relaxed shadow-sm ${
+                      isUser
+                        ? "bg-[#dcf8c6] text-gray-900 rounded-tr-none"
+                        : "bg-white text-gray-900 rounded-tl-none"
+                    }`}
+                  >
+                    <span>{msg.text}</span>
+                    <span className="ml-2 inline-flex items-end float-right text-[10px] text-gray-500 mt-1 pl-2 leading-none whitespace-nowrap">
+                      {time}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {isTyping && <div className="text-pink-500 text-sm animate-pulse">Concierge is typing...</div>}
+              );
+            })}
+            {isTyping && <div className="text-pink-500 text-sm animate-pulse px-2">Concierge is typing...</div>}
             <div ref={messagesEndRef} />
           </div>
 

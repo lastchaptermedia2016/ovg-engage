@@ -345,7 +345,7 @@ const ChatWidget = () => {
               return (
                 <div key={msg.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`relative max-w-[75%] px-3 py-2 rounded-lg text-sm leading-relaxed shadow-sm backdrop-blur-sm border border-pink-400/60 ${
+                    className={`relative max-w-[75%] px-3 py-2 rounded-lg text-sm leading-relaxed shadow-sm backdrop-blur-sm border-2 border-pink-400/70 ${
                       isUser
                         ? "bg-[#dcf8c6]/90 text-pink-900 rounded-tr-none"
                         : "bg-white/85 text-pink-900 rounded-tl-none"

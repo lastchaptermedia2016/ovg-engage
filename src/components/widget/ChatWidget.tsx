@@ -34,6 +34,7 @@ const ChatWidget = () => {
   });
 
   const [isOpen, setIsOpen] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [hasConsent, setHasConsent] = useState(() => localStorage.getItem("ovgweb_ai_consent") === "true");
   const [showPeek, setShowPeek] = useState(false);

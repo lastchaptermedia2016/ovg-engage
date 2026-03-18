@@ -314,7 +314,18 @@ const ChatWidget = () => {
 
             {/* Controls */}
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => setVoiceEnabled(!voiceEnabled)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  const next = !voiceEnabled;
+                  setVoiceEnabled(next);
+                  localStorage.setItem("ovgweb_voice_mute", next ? "" : "true");
+                  if (!next && audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+                  if (!next) window.speechSynthesis.cancel();
+                  toast({ title: next ? "Voice On" : "Voice Off", description: next ? "AI responses will be spoken aloud." : "AI voice muted." });
+                }}
+              >
                 {voiceEnabled ? <Volume2 className="h-4 w-4 text-gray-700" /> : <VolumeX className="h-4 w-4 text-gray-700" />}
               </Button>
               <Button variant="ghost" size="icon" onClick={resetChat}>

@@ -314,7 +314,18 @@ const ChatWidget = () => {
 
             {/* Controls */}
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => setVoiceEnabled(!voiceEnabled)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  const next = !voiceEnabled;
+                  setVoiceEnabled(next);
+                  localStorage.setItem("ovgweb_voice_mute", next ? "" : "true");
+                  if (!next && audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+                  if (!next) window.speechSynthesis.cancel();
+                  toast({ title: next ? "Voice On" : "Voice Off", description: next ? "AI responses will be spoken aloud." : "AI voice muted." });
+                }}
+              >
                 {voiceEnabled ? <Volume2 className="h-4 w-4 text-gray-700" /> : <VolumeX className="h-4 w-4 text-gray-700" />}
               </Button>
               <Button variant="ghost" size="icon" onClick={resetChat}>
@@ -349,6 +360,20 @@ const ChatWidget = () => {
               );
             })}
             {isTyping && <div className="text-pink-500 text-sm animate-pulse px-2">Concierge is typing...</div>}
+            {/* Quick-reply buttons */}
+            {messages.length <= 1 && !isTyping && (
+              <div className="flex flex-wrap gap-2 px-1 pt-2">
+                {["Book a treatment", "I need prices", "Can I speak to a consultant"].map((label) => (
+                  <button
+                    key={label}
+                    onClick={() => sendMessageDirect(label)}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-pink-300/60 bg-white/70 backdrop-blur-sm text-gray-800 hover:bg-pink-200/80 transition-colors shadow-sm"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 

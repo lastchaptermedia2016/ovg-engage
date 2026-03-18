@@ -328,13 +328,13 @@ const ChatWidget = () => {
                   toast({ title: next ? "Voice On" : "Voice Off", description: next ? "AI responses will be spoken aloud." : "AI voice muted." });
                 }}
               >
-                {voiceEnabled ? <Volume2 className="h-4 w-4 text-gray-700" /> : <VolumeX className="h-4 w-4 text-gray-700" />}
+                {voiceEnabled ? <Volume2 className="h-4 w-4" style={{ color: config.primaryColor }} /> : <VolumeX className="h-4 w-4" style={{ color: config.primaryColor }} />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={resetChat}>
-                <RefreshCw className="h-4 w-4 text-gray-700" />
+              <Button variant="ghost" size="icon" onClick={() => setShowResetConfirm(true)}>
+                <RefreshCw className="h-4 w-4" style={{ color: config.primaryColor }} />
               </Button>
               <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                <X className="h-4 w-4 text-gray-700" />
+                <X className="h-4 w-4" style={{ color: config.primaryColor }} />
               </Button>
             </div>
           </div>

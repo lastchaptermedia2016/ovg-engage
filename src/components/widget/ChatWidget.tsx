@@ -233,6 +233,42 @@ const ChatWidget = () => {
         )}
       </AnimatePresence>
 
+      {/* ===== RESET CONFIRM POPUP ===== */}
+      <AnimatePresence>
+        {showResetConfirm && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 24 }}
+            className="fixed bottom-24 right-6 z-[10002] max-w-[280px] rounded-2xl border border-pink-300/40 bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl p-5 shadow-2xl"
+          >
+            <button
+              onClick={() => setShowResetConfirm(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+            <p className="text-sm text-white/90 leading-relaxed">Are you sure you want to reset the chat? This will clear all messages.</p>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={resetChat}
+                className="text-sm font-semibold hover:opacity-80 transition-opacity"
+                style={{ color: config.primaryColor }}
+              >
+                Reset Chat →
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ===== CONSENT MODAL ===== */}
       <AnimatePresence>
         {showConsent && (

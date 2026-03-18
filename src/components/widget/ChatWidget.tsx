@@ -138,6 +138,7 @@ const ChatWidget = () => {
   const resetChat = () => {
     setMessages([]);
     localStorage.removeItem("ovgweb_chat_messages");
+    setShowResetConfirm(false);
     toast({ title: "Chat Reset", description: "History cleared successfully." });
   };
 

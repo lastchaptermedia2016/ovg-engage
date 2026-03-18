@@ -360,6 +360,20 @@ const ChatWidget = () => {
               );
             })}
             {isTyping && <div className="text-pink-500 text-sm animate-pulse px-2">Concierge is typing...</div>}
+            {/* Quick-reply buttons */}
+            {messages.length <= 1 && !isTyping && (
+              <div className="flex flex-wrap gap-2 px-1 pt-2">
+                {["Book a treatment", "I need prices", "Can I speak to a consultant"].map((label) => (
+                  <button
+                    key={label}
+                    onClick={() => sendMessageDirect(label)}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-pink-300/60 bg-white/70 backdrop-blur-sm text-gray-800 hover:bg-pink-200/80 transition-colors shadow-sm"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 

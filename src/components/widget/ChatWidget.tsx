@@ -293,7 +293,7 @@ const ChatWidget = () => {
       {/* ===== MAIN CHAT WINDOW ===== */}
       {isOpen && (
         <div 
-          className="fixed bottom-24 right-6 z-[9999] w-[380px] md:w-[420px] rounded-3xl border-2 overflow-hidden shadow-2xl bg-pink-200/85 backdrop-blur-sm"
+          className="fixed bottom-24 right-6 z-[9999] w-[380px] md:w-[420px] rounded-3xl border-2 overflow-hidden shadow-2xl bg-black/20 backdrop-blur-md"
           style={{ borderColor: config.primaryColor }}
         >
           {/* Header */}
@@ -327,17 +327,17 @@ const ChatWidget = () => {
           </div>
 
           {/* Messages */}
-          <div className="overflow-y-auto p-4 space-y-2 bg-pink-100/80 h-[320px]">
+          <div className="overflow-y-auto p-4 space-y-2 bg-transparent h-[320px]">
             {messages.map((msg) => {
               const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
               const isUser = msg.role === "user";
               return (
                 <div key={msg.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`relative max-w-[75%] px-3 py-2 rounded-lg text-sm leading-relaxed shadow-sm ${
+                    className={`relative max-w-[75%] px-3 py-2 rounded-lg text-sm leading-relaxed shadow-sm backdrop-blur-sm ${
                       isUser
-                        ? "bg-[#dcf8c6] text-gray-900 rounded-tr-none"
-                        : "bg-white text-gray-900 rounded-tl-none"
+                        ? "bg-[#dcf8c6]/90 text-gray-900 rounded-tr-none"
+                        : "bg-white/85 text-gray-900 rounded-tl-none"
                     }`}
                   >
                     <span>{msg.text}</span>

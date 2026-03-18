@@ -334,10 +334,10 @@ const ChatWidget = () => {
               return (
                 <div key={msg.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`relative max-w-[75%] px-3 py-2 rounded-lg text-sm leading-relaxed shadow-sm ${
+                    className={`relative max-w-[75%] px-3 py-2 rounded-lg text-sm leading-relaxed shadow-sm backdrop-blur-sm ${
                       isUser
-                        ? "bg-[#dcf8c6] text-gray-900 rounded-tr-none"
-                        : "bg-white text-gray-900 rounded-tl-none"
+                        ? "bg-[#dcf8c6]/90 text-gray-900 rounded-tr-none"
+                        : "bg-white/85 text-gray-900 rounded-tl-none"
                     }`}
                   >
                     <span>{msg.text}</span>

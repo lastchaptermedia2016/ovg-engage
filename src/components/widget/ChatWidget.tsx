@@ -327,7 +327,7 @@ const ChatWidget = () => {
           </div>
 
           {/* Messages */}
-          <div className="overflow-y-auto p-4 space-y-2 bg-pink-100/80 h-[320px]">
+          <div className="overflow-y-auto p-4 space-y-2 bg-transparent h-[320px]">
             {messages.map((msg) => {
               const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
               const isUser = msg.role === "user";

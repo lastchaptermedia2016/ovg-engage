@@ -432,6 +432,11 @@ const ChatWidget = () => {
 
           {/* Input / Footer */}
           <div className="p-4 border-t border-gray-300/50" style={{ background: 'linear-gradient(to right, rgb(209,213,219) 0%, rgb(209,213,219) 50%, rgba(209,213,219,0.15) 100%)' }}>
+            {isSupported && !isListening && messages.length <= 1 && (
+              <p className="text-xs text-center mb-2" style={{ color: config.primaryColor }}>
+                🎙️ Please click the mic icon to speak to us
+              </p>
+            )}
             <div className="flex gap-2 items-center">
               <Input
                 value={isListening ? transcript || input : input}
@@ -451,9 +456,10 @@ const ChatWidget = () => {
                       startListening();
                     }
                   }}
-                  className={`shrink-0 ${isListening ? "text-red-500 animate-pulse" : "text-gray-600"}`}
+                  className={`shrink-0 ${isListening ? "animate-pulse" : ""}`}
+                  style={{ color: config.primaryColor }}
                 >
-                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                 </Button>
               )}
               <Button 

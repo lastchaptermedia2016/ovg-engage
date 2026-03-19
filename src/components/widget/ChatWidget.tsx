@@ -185,6 +185,16 @@ const ChatWidget = () => {
     }
   }, [isOpen, messages.length, hasGreeted, speak, hasConsent, config.greeting]);
 
+  // Auto-send when speech recognition stops and there's a transcript
+  const prevListeningRef = useRef(false);
+  useEffect(() => {
+    if (prevListeningRef.current && !isListening && transcript.trim()) {
+      sendMessageDirect(transcript.trim());
+      resetTranscript();
+    }
+    prevListeningRef.current = isListening;
+  }, [isListening, transcript]);
+
   // Show peek teaser after 3s if chat not open
   useEffect(() => {
     if (!isOpen && !showPeek) {

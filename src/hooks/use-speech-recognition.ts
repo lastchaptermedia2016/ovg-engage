@@ -30,7 +30,7 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;          // Keep listening across pauses (better for chat)
+    recognition.continuous = false;         // Stop after natural pause for auto-send
     recognition.interimResults = true;      // Enable live partial results
     recognition.lang = "en-US";
 

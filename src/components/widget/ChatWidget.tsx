@@ -66,7 +66,7 @@ const ChatWidget = () => {
   // --- WHATSAPP HELPER ---
   const openWhatsApp = useCallback((phone: string, message: string) => {
     const cleanPhone = phone.replace(/\D/g, ""); 
-    const url = `https://wa.me{cleanPhone}?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me{27670330046}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   }, []);
 
@@ -143,7 +143,7 @@ const ChatWidget = () => {
   }, [voiceEnabled]);
 
   // --- SEND MESSAGE (Fixes Error 402, 426, 446) ---
-  const sendMessageDirect = async (userInputText: string) => {
+    const sendMessageDirect = async (userInputText: string) => {
     if (!userInputText.trim()) return;
     const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", text: userInputText, timestamp: Date.now() };
     const newMsgs = [...messages, userMsg];
@@ -153,18 +153,35 @@ const ChatWidget = () => {
     setIsTyping(true);
 
     try {
+      // GEKORRIGEER: Gebruik 'generateAIResponse' (sonder 'Mock')
       const response = await generateAIResponse(userInputText, newMsgs);
-      const aiMsg: ChatMessage = { id: (Date.now() + 1).toString(), role: "ai", text: response, timestamp: Date.now() };
+      
+      const aiMsg: ChatMessage = { 
+        id: (Date.now() + 1).toString(), 
+        role: "ai", 
+        text: response, 
+        timestamp: Date.now() 
+      };
+      
       const finalMsgs = [...newMsgs, aiMsg];
       setMessages(finalMsgs);
       localStorage.setItem("ovgweb_chat_messages", JSON.stringify(finalMsgs));
+      
+      // Roep die spraak-funksie
       speak(response);
+      
     } catch (e) {
-      toast({ title: "Concierge Error", variant: "destructive" });
+      console.error("AI Error:", e);
+      toast({ 
+        title: "Concierge Error", 
+        description: "I'm having trouble connecting. Please try again.", 
+        variant: "destructive" 
+      });
     } finally {
       setIsTyping(false);
     }
   };
+
 
   const handleAcceptConsent = () => {
     setHasConsent(true);

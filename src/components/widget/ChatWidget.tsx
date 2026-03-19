@@ -350,7 +350,7 @@ const ChatWidget = () => {
           style={{ borderColor: config.primaryColor }}
         >
           {/* Header */}
-          <div className="p-5 flex justify-between items-center bg-gradient-to-r from-gray-300/80 to-transparent">
+          <div className="p-5 flex justify-between items-center" style={{ background: 'linear-gradient(to right, rgb(209,213,219) 0%, rgb(209,213,219) 50%, rgba(209,213,219,0.15) 100%)' }}>
             <div className="flex items-center gap-3">
               <img src={config.logo} alt={config.brandName} className="h-10 w-auto" />
               <div>

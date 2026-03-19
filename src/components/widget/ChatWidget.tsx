@@ -431,7 +431,7 @@ const ChatWidget = () => {
           </div>
 
           {/* Input / Footer */}
-          <div className="p-4 border-t border-gray-300/50 bg-gradient-to-r from-gray-300/80 to-transparent">
+          <div className="p-4 border-t border-gray-300/50" style={{ background: 'linear-gradient(to right, rgb(209,213,219) 0%, rgb(209,213,219) 50%, rgba(209,213,219,0.15) 100%)' }}>
             <div className="flex gap-2 items-center">
               <Input
                 value={isListening ? transcript || input : input}

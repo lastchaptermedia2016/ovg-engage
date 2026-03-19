@@ -18,6 +18,7 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
+  const finalTranscriptRef = useRef("");
 
   const SpeechRecognition =
     typeof window !== "undefined"
@@ -30,37 +31,28 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;         // Stop after natural pause for auto-send
-    recognition.interimResults = true;      // Enable live partial results
+    recognition.continuous = false;
+    recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    let interimTranscript = ""; // Local var to build current phrase
-
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      interimTranscript = ""; // Reset interim each time
+      let interim = "";
+      let final = "";
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
-        const currentTranscript = result[0].transcript;
-
         if (result.isFinal) {
-          // Final result → append to main transcript
-          setTranscript((prev) => prev + currentTranscript + " ");
-          interimTranscript = ""; // Clear interim after final
+          final += result[0].transcript;
         } else {
-          // Interim (partial) → show live in state
-          interimTranscript += currentTranscript;
+          interim += result[0].transcript;
         }
       }
 
-      // Always show the current interim if present (live preview)
-      if (interimTranscript) {
-        setTranscript((prev) => {
-          // Replace the last unfinished part with current interim
-          const lastSpaceIndex = prev.lastIndexOf(" ");
-          const base = lastSpaceIndex >= 0 ? prev.slice(0, lastSpaceIndex + 1) : "";
-          return base + interimTranscript;
-        });
+      if (final) {
+        finalTranscriptRef.current = final;
+        setTranscript(final);
+      } else if (interim) {
+        setTranscript(interim);
       }
     };
 
@@ -71,8 +63,6 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
 
     recognition.onend = () => {
       setIsListening(false);
-      // Optional: Auto-restart if you want continuous listening
-      // if (isListening) recognition.start();
     };
 
     recognitionRef.current = recognition;
@@ -84,7 +74,8 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || isListening) return;
-    setTranscript(""); // Clear previous
+    setTranscript("");
+    finalTranscriptRef.current = "";
     try {
       recognitionRef.current.start();
       setIsListening(true);
@@ -101,6 +92,7 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
 
   const resetTranscript = useCallback(() => {
     setTranscript("");
+    finalTranscriptRef.current = "";
   }, []);
 
   return { isListening, transcript, isSupported, startListening, stopListening, resetTranscript };

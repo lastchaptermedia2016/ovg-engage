@@ -195,6 +195,11 @@ const ChatWidget = () => {
     prevListeningRef.current = isListening;
   }, [isListening, transcript]);
 
+  // Auto-scroll to newest messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
+
   // Show peek teaser after 3s if chat not open
   useEffect(() => {
     if (!isOpen && !showPeek) {

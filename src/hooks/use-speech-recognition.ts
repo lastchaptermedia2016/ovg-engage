@@ -74,7 +74,8 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current || isListening) return;
-    setTranscript(""); // Clear previous
+    setTranscript("");
+    finalTranscriptRef.current = "";
     try {
       recognitionRef.current.start();
       setIsListening(true);
@@ -91,6 +92,7 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
 
   const resetTranscript = useCallback(() => {
     setTranscript("");
+    finalTranscriptRef.current = "";
   }, []);
 
   return { isListening, transcript, isSupported, startListening, stopListening, resetTranscript };

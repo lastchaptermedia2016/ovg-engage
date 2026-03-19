@@ -442,12 +442,6 @@ const ChatWidget = () => {
                   onClick={() => {
                     if (isListening) {
                       stopListening();
-                      const text = transcript.trim();
-                      if (text) {
-                        setInput(text);
-                        resetTranscript();
-                        sendMessageDirect(text);
-                      }
                     } else {
                       startListening();
                     }

@@ -54,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     ];
 
-    const response = await fetch('https://api.groq.com', {
+    const response = await fetch('https://api.groq.com/openai/v1/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -65,12 +65,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           { 
             role: "system", 
-            content: "You are the Luxe Med Spa Concierge. BOTOX IS OUR #1 SERVICE. FACT: We offer Botox, Fillers, and HydraFacials. MANDATORY: If a user says 'Botox', you MUST say 'Yes we have that' and IMMEDIATELY call 'check_availability'. DO NOT suggest alternatives. Temperature is set low for accuracy." 
+            // HIER IS JOU CONTENT REËL:
+            content: "You are the Luxe Med Spa Concierge. BOTOX IS OUR #1 SERVICE. MANDATORY: If a user mentions a treatment and ANY time-related word (Tuesday, morning, afternoon, 2pm), you MUST call 'check_availability' first. Do not suggest your own times. Use the tool results (10:00 AM, 02:00 PM, 04:00 PM) only." 
           },
           ...messages.slice(-4)
         ],
         tools,
-        tool_choice: "auto",
+        // HIER IS DIE "FORCE TOOL" KONFIGURASIE:
+        tool_choice: { type: "function", function: { name: "check_availability" } },
         temperature: 0.1,
         max_tokens: 500,
         stream: false,

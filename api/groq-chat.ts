@@ -15,18 +15,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const apiKey = process.env.GROQ_API_KEY;
-
     if (!apiKey) {
-      return res.status(500).json({ error: 'groq API key not configured in Vercel' });
+      return res.status(500).json({ error: 'Groq API key not configured' });
     }
 
-    // --- 1. DEFINIEER DIE TOOLS VIR THE LUXE MED SPA ---
     const tools = [
       {
         type: "function",
         function: {
           name: "check_availability",
-          description: "Kyk vir oop tye in die Luxe Med Spa kalender vir 'n spesifieke behandeling.",
+          description: "Kyk vir oop tye in die Luxe Med Spa kalender.",
           parameters: {
             type: "object",
             properties: {
@@ -56,8 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     ];
 
-    // --- 2. DIE AI ROEP (MET DIE VOLLEDIGE KNOWLEDGE BASE) ---
-    const response = await fetch('https://api.groq.com/openai/v1/completions', {
+    const response = await fetch('https://api.groq.com', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -68,23 +65,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           { 
             role: "system", 
-            content: `You are the Luxe Med Spa Concierge in New Haven. You have studied our clinic and know these facts:
-            1. CLINIC: The Luxe Med Spa, New Haven. Owned by Jill Johnson, RN BSN.
-            2. MEDICAL DIRECTOR: Dr. Marwan Mustaklem.
-            3. SERVICES: We DO offer Botox, Fillers, Secret RF, TruSculpt, and HydraFacial. 
-            4. RULES: 
-               - Botox IS our top service. Never say we don't have it.
-               - When a treatment and date are mentioned, you MUST CALL 'check_availability' IMMEDIATELY.
-               - Use the results (10:00 AM, 2:00 PM, 4:00 PM) to confirm slots.
-               - Tone: Elite, sophisticated, New Haven luxury.
-               - After booking, confirm that a luxury voice note (TTS) is being sent via WhatsApp.`
+            content: "You are the Luxe Med Spa Concierge. BOTOX IS OUR #1 SERVICE. FACT: We offer Botox, Fillers, and HydraFacials. MANDATORY: If a user says 'Botox', you MUST say 'Yes we have that' and IMMEDIATELY call 'check_availability'. DO NOT suggest alternatives. Temperature is set low for accuracy." 
           },
-          ...messages
+          ...messages.slice(-4)
         ],
         tools,
-        tool_choice: "auto", 
-        temperature: 0.6,
-        max_tokens: 600,
+        tool_choice: "auto",
+        temperature: 0.1,
+        max_tokens: 500,
         stream: false,
       }),
     });
@@ -97,7 +85,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await response.json();
     const message = data.choices[0].message;
 
-    // --- 3. HANTERING VAN TOOLS ---
     if (message.tool_calls) {
       const toolCall = message.tool_calls[0];
       const args = JSON.parse(toolCall.function.arguments);
@@ -105,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (toolCall.function.name === "check_availability") {
         const dummySlots = ["10:00 AM", "02:00 PM", "04:00 PM"];
         return res.status(200).json({ 
-          reply: `I've checked our New Haven calendar for ${args.treatment} on ${args.date}. We have openings at ${dummySlots.join(", ")}. Which one works best for you?`,
+          reply: `I've checked our calendar for ${args.treatment} on ${args.date}. We have openings at ${dummySlots.join(", ")}. Which one works best for you?`,
           toolUsed: "check_availability" 
         });
       }
@@ -119,9 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // JOU OORSPRONKLIKE ANTWOORD-LOGIKA
-    const aiReply = message.content.trim();
-    res.status(200).json({ reply: aiReply });
+    res.status(200).json({ reply: message.content.trim() });
 
   } catch (err: any) {
     console.error('Groq proxy error:', err);

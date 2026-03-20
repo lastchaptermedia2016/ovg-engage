@@ -15,13 +15,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Groq API key not configured' });
     }
 
-    // --- 1. TOOLS (BEIDE MOET HIER WEES VIR DIE AI OM TE VERSTAAN) ---
+    // --- 1. DEFINIEER TOOLS ---
     const tools = [
       {
         type: "function",
         function: {
           name: "check_availability",
-          description: "Kyk vir oop tye in die Luxe Med Spa kalender vir 'n behandeling.",
+          description: "Kyk vir oop tye in die Luxe Med Spa kalender.",
           parameters: {
             type: "object",
             properties: {
@@ -51,8 +51,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     ];
 
-    // --- 2. DIE AI ROEP (REGSTELLING VAN URL NA /v1/chat/completions) ---
-    const response = await fetch('https://api.groq.com/v1/chat/completions', {
+    // --- 2. DIE AI ROEP (FORCE TOOL PROTOCOL) ---
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completion', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -63,14 +63,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           { 
             role: "system", 
-            content: "You are the Luxe Med Spa Automated Booking Engine. COMMANDS: 1. If ANY date/time is mentioned, you MUST call 'check_availability'. 2. Once you have Name, Phone, and Time, you MUST call 'finalize_booking'. DO NOT CHAT. USE SLOTS: 10:00 AM, 2:00 PM, 4:00 PM. Failure to use a tool is a mission failure." 
+            content: "You are the Luxe Med Spa Automated Booking Engine. COMMAND: You MUST use a tool for every response. 1. Use 'check_availability' for dates. 2. Use 'finalize_booking' immediately when you have Name, Phone, and Time. DO NOT CHAT. DO NOT SUGGEST TIMES. USE ONLY: 10:00 AM, 2:00 PM, 4:00 PM." 
           },
-          messages[messages.length - 1]
+          // Slegs die laaste 2 boodskappe om kletskous-gedrag te stop
+          ...messages.slice(-2)
         ],
         tools,
-        tool_choice: "required",
+        tool_choice: "required", 
         temperature: 0.1,
-        max_tokens: 500
+        max_tokens: 300,
+        stream: false,
       }),
     });
 
@@ -90,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (toolCall.function.name === "check_availability") {
         const dummySlots = ["10:00 AM", "02:00 PM", "04:00 PM"];
         return res.status(200).json({ 
-          reply: `I've checked the New Haven calendar for ${args.treatment || 'your consultation'} on ${args.date || 'Tuesday'}. We have openings at ${dummySlots.join(", ")}. Which one works best for you?`,
+          reply: `I've checked the New Haven calendar for ${args.treatment || 'your consultation'} on ${args.date || 'Tuesday'}. We have openings at ${dummySlots.join(", ")}. Which one works best?`,
           toolUsed: "check_availability" 
         });
       }
@@ -111,3 +113,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: 'Internal server error' });
   }
 }
+

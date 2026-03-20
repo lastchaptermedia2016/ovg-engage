@@ -26,7 +26,7 @@ interface WidgetConfig {
 const defaultConfig: WidgetConfig = {
   logo: "/images/luxemedspa.svg",
   brandName: "The Luxe Med Spa",
-  primaryColor: "#E91E63",
+  primaryColor: "#dbadbd",
   greeting: "Hi there! I'm your Luxe Med Spa concierge ✨ How can I help you book the perfect treatment today?",
   peekText: "Hey Gorgeous! Welcome to Luxe Med Spa, how can I help?",
   phone: "27760330046",
@@ -553,11 +553,6 @@ await new Promise<void>((resolve) => {
     </>
   );
 };
-{lastMessage?.bookingData && (
-  <div className="mt-2 text-xs text-pink-200/50 italic px-2">
-    Where would you like me to send your booking confirmation??
-    <ConfirmationButtons bookingData={lastMessage.bookingData} />
-  </div>
-)}
+
 
 export default ChatWidget;

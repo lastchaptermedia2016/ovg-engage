@@ -44,12 +44,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           { 
             role: "system", 
-            content: "You are the Luxe Med Spa Concierge. MANDATORY: If the user mentions ANY day or time, you MUST call 'check_availability' IMMEDIATELY. Use 'Consultation' as default treatment. DO NOT CHAT. Use slots: 10:00 AM, 2:00 PM, 4:00 PM." 
+            content: "You are the Luxe Med Spa Concierge. MANDATORY: Once a user provides a Name, Phone, and Time, you MUST call 'finalize_booking' immediately. DO NOT suggest alternatives like 1:45 PM. DO NOT ask more questions. Use the tool, then confirm the luxury voice note has been sent." 
           },
           messages[messages.length - 1]
         ],
         tools,
-        tool_choice: { type: "function", function: { name: "check_availability" } },
+        tool_choice: "required",
         temperature: 0.1,
         max_tokens: 500
       }),

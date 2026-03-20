@@ -517,8 +517,10 @@ await new Promise<void>((resolve) => {
           </div>
 
           {/* Input / Footer Area */}
-          <div className="p-4 border-t border-gray-300/50" style={{ background: 'linear-gradient(to right, rgb(209,213,219) 0%, rgb(209,213,219) 50%, rgba(209,213,219,0.15) 100%)' }}>
-            <div className="flex gap-2 items-center">
+          <div className="relative p-4 border-t border-gray-300/50 overflow-hidden">
+            <img src={headerBg} alt="" className="absolute inset-0 w-full h-full object-cover object-center" />
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative flex gap-2 items-center">
               <Input
                 value={input}
                 onChange={e => setInput(e.target.value)}

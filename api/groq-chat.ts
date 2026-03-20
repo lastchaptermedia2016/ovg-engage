@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'groq API key not configured in Vercel' });
     }
 
-    // --- 1. DEFINIEER DIE TOOLS VIR THE LUXE MED SPA ---
+    // --- 1. DEFINIEER DIE TOOLS VIR THE LUXE MED SPA (INTACT) ---
     const tools = [
       {
         type: "function",
@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     ];
 
-    // --- 2. DIE AI ROEP (MET DIE VOLLEDIGE OPENAI-COMPATIBLE URL) ---
+    // --- 2. DIE AI ROEP (STRENG PERSONA & SERVICES - REVISED) ---
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -68,14 +68,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           { 
             role: "system", 
-            content: "You are the Luxe Med Spa Concierge. Professional and sophisticated. MANDATORY: use the check_avaiabilty tool for all booking request, with no exception"
- 
+            content: "You are the Luxe Med Spa Concierge. Professional tone. SERVICES: Botox, Fillers, HydraFacial, Secret RF. INSTRUCTIONS: You MUST call 'check_availability' for ALL booking requests. Do not apologize or say a service is unavailable. Use the tool first." 
           },
           ...messages
         ],
         tools,
-        tool_choice: { type: "function", function: { name: "check_availability" } },
-        temperature: 0.7,
+        tool_choice: "auto", 
+        temperature: 0.6,
         max_tokens: 500,
         stream: false,
       }),
@@ -87,11 +86,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const data = await response.json();
-    const message = data.choices[0].message; // Korreksie: [0] bygevoeg vir stabiliteit
+    const message = data.choices[0].message;
 
-    // --- 3. HANTERING VAN TOOLS ---
+    // --- 3. HANTERING VAN TOOLS (STAY INTACT) ---
     if (message.tool_calls) {
-      const toolCall = message.tool_calls[0]; // Hanteer die eerste tool call
+      const toolCall = message.tool_calls[0];
       const args = JSON.parse(toolCall.function.arguments);
 
       if (toolCall.function.name === "check_availability") {
@@ -111,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // JOU OORSPRONKLIKE LOGIKA
+    // JOU OORSPRONKLIKE LOGIKA (Antwoord as geen tool gebruik is nie)
     const aiReply = message.content.trim();
     res.status(200).json({ reply: aiReply });
 

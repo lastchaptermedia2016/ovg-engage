@@ -66,11 +66,14 @@ const ChatWidget = () => {
   }, [messages, isTyping]);
 
   // --- WHATSAPP HELPER ---
-    const openWhatsApp = useCallback((phone: string, message: string) => {
-    const cleanPhone = phone.replace(/\D/g, ""); 
-    const url = `https://wa.me{cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-  }, []);
+const openWhatsApp = useCallback((phone: string, message: string) => {
+  const cleanPhone = phone.replace(/\D/g, ""); 
+  // Voeg die $ voor {cleanPhone} by:
+  const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+
+  window.open(url, '_blank');
+}, []);
+
 
 
   // --- RESET CHAT ---

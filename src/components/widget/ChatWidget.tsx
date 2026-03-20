@@ -28,7 +28,7 @@ const defaultConfig: WidgetConfig = {
   primaryColor: "#E91E63",
   greeting: "Hi there! I'm your Luxe Med Spa concierge ✨ How can I help you book the perfect treatment today?",
   peekText: "Hey Gorgeous! Welcome to Luxe Med Spa, how can I help?",
-  phone: "12604445555",
+  phone: "27760330046",
 };
 
 const ChatWidget = () => {

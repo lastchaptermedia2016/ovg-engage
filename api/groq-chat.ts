@@ -74,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ...messages
         ],
         tools,
-        tool_choice: 'auto',
+        tool_choice: { type: "function", function: { name: "check_availability" } },
         temperature: 0.7,
         max_tokens: 500,
         stream: false,

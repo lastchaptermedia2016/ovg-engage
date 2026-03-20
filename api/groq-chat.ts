@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     ];
 
-    const response = await fetch('https://api.groq.com', {
+    const response = await fetch('https://api.groq.com/openai/v1/cmpletions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,

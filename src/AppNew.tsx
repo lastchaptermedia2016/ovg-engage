@@ -15,9 +15,15 @@ const AppNew = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+                <BrowserRouter>
           <Routes>
+            {/* 1. Die Hoofbladsy vir kliënte */}
             <Route path="/" element={<Index />} />
+            
+            {/* 2. Jill se Secret Revenue Dashboard */}
+            <Route path="/admin-luxe" element={<AdminDashboard />} /> 
+            
+            {/* 3. Fallback vir foute */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

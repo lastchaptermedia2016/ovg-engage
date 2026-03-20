@@ -34,29 +34,31 @@ const defaultConfig: WidgetConfig = {
 const ChatWidget = () => {
   const { toast } = useToast();
   const { isListening, transcript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
-  
-  const [config] = useState<WidgetConfig>(() => {
+  const [config, setConfig] = useState<WidgetConfig>(() => {
     const saved = (window as any).ovgConfig || {};
     return { ...defaultConfig, ...saved };
   });
 
-  // --- ALL MISSING STATES (Fixes Errors 233, 242, 250, 364, 355) ---
   const [isOpen, setIsOpen] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [hasConsent, setHasConsent] = useState(() => localStorage.getItem("ovgweb_ai_consent") === "true");
   const [showPeek, setShowPeek] = useState(false);
-  const [showResetConfirm, setShowResetConfirm] = useState(false); // Added
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try { return JSON.parse(localStorage.getItem("ovgweb_chat_messages") || "[]"); } catch { return []; }
   });
-  
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [hasGreeted, setHasGreeted] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem("ovgweb_voice_mute") !== "true"); // Fixed
+  const [hasGreeted, setHasGreeted] = useState(false);        // ← Fixed: now declared
+  // isListening now comes from useSpeechRecognition hook
+  const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem("ovgweb_voice_mute") !== "true");
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- AUTO-SCROLL ---
   useEffect(() => {
@@ -64,11 +66,12 @@ const ChatWidget = () => {
   }, [messages, isTyping]);
 
   // --- WHATSAPP HELPER ---
-  const openWhatsApp = useCallback((phone: string, message: string) => {
+    const openWhatsApp = useCallback((phone: string, message: string) => {
     const cleanPhone = phone.replace(/\D/g, ""); 
-    const url = `https://wa.me{27670330046}?text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me{cleanPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   }, []);
+
 
   // --- RESET CHAT ---
   const resetChat = useCallback(() => {
@@ -78,8 +81,7 @@ const ChatWidget = () => {
     toast({ title: "Chat Reset", description: "History cleared successfully." });
   }, [toast]);
 
-  // --- VOICE ENGINE ---
-  const speak = useCallback(async (text: string) => {
+    const speak = useCallback(async (text: string) => {
     if (!voiceEnabled || !text.trim()) return;
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
 
@@ -99,47 +101,115 @@ const ChatWidget = () => {
       } catch (e) { clearTimeout(id); throw e; }
     };
 
-    try {
-      const res = await fetchWithTimeout("https://api.groq.com", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${keys.groq}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "canopylabs/orpheus-v1-english", voice: "autumn", input: text.slice(0, 200) }),
-      });
-      if (res.ok) {
+    // 1. GROQ
+    if (keys.groq) {
+      try {
+        const res = await fetchWithTimeout("https://api.groq.com/openai/v1/audio/speech", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${keys.groq}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "canopylabs/orpheus-v1-english", voice: "autumn", input: text.slice(0, 200), response_format: "wav" }),
+        }, 1500);
+        if (!res.ok) throw new Error("Groq Error");
         audioRef.current = new Audio(URL.createObjectURL(await res.blob()));
         await audioRef.current.play();
         return;
-      }
-    } catch (e) { console.log("Groq Voice failed..."); }
-
-    // xAI Fallback
-    try {
-      const res = await fetchWithTimeout("https://api.x.ai", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${keys.xai}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "grok-beta", input: text, voice: "eve" }),
-      });
-      if (res.ok) {
-        audioRef.current = new Audio(URL.createObjectURL(await res.blob()));
-        await audioRef.current.play();
-        return;
-      }
-    } catch (e) { console.log("xAI Voice failed..."); }
-
-    // Browser Fallback
-    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-    for (const sentence of sentences) {
-      const u = new SpeechSynthesisUtterance(sentence.trim());
-      const r = setInterval(() => {
-        if (!window.speechSynthesis.speaking) clearInterval(r);
-        else { window.speechSynthesis.pause(); window.speechSynthesis.resume(); }
-      }, 10000);
-      await new Promise<void>((resolve) => {
-        u.onend = () => { clearInterval(r); resolve(); };
-        u.onerror = () => { clearInterval(r); resolve(); };
-        window.speechSynthesis.speak(u);
-      });
+      } catch (e) { console.log("Groq failed..."); }
     }
+
+    // 2. ELEVENLABS
+    if (keys.eleven) {
+      try {
+        const res = await fetchWithTimeout("https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM/stream", {
+          method: "POST",
+          headers: { "xi-api-key": keys.eleven, "Content-Type": "application/json" },
+          body: JSON.stringify({ text, model_id: "eleven_multilingual_v2" }),
+        }, 2500);
+        if (!res.ok) throw new Error("ElevenLabs Error");
+        audioRef.current = new Audio(URL.createObjectURL(await res.blob()));
+        await audioRef.current.play();
+        return;
+      } catch (e) { console.log("ElevenLabs failed..."); }
+    }
+
+    // 3. xAI
+    if (keys.xai) {
+      try {
+        const res = await fetchWithTimeout("https://api.x.ai/v1/audio/speech", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${keys.xai}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "grok-beta", input: text, voice: "eve" }),
+        }, 2000);
+        if (!res.ok) throw new Error("xAI Error");
+        audioRef.current = new Audio(URL.createObjectURL(await res.blob()));
+        await audioRef.current.play();
+        return;
+      } catch (e) { console.log("xAI failed..."); }
+    }
+
+    // 4. BROWSER FALLBACK
+        // 4. BROWSER FALLBACK - Improved (longer answers, louder, better voice)
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    const premiumVoice = voices.find(v => 
+      (v.name.includes("Natural") || 
+       v.name.includes("Google") || 
+       v.name.includes("Samantha") || 
+       v.name.includes("Karen") || 
+       v.name.includes("Emma")) && v.lang.startsWith("en")
+    );
+    if (premiumVoice) utterance.voice = premiumVoice;
+
+    utterance.rate = 0.93;
+    utterance.pitch = 1.04;
+    utterance.volume = 1.0;
+
+    // Split long answers to prevent cutting off
+    if (text.length > 180) {
+  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+
+  for (const sentence of sentences) {
+    const trimmedSentence = sentence.trim();
+    if (!trimmedSentence) continue;
+
+    const u = new SpeechSynthesisUtterance(trimmedSentence);
+    if (premiumVoice) u.voice = premiumVoice;
+    u.rate = 0.93;
+    u.pitch = 1.04;
+    u.volume = 1.0;
+
+    // --- CHROME FIX: HEARTBEAT ---
+    const r = setInterval(() => {
+      if (!window.speechSynthesis.speaking) {
+        clearInterval(r);
+      } else {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      }
+    }, 10000); // Skud die enjin elke 10 sekondes wakker
+
+    // Verander dit op lyn 173 en 177
+// Gebruik <void> om die TypeScript 'expected 1 arguments' fout op te los
+await new Promise<void>((resolve) => {
+  u.onend = () => {
+    if (r) clearInterval(r);
+    resolve(); 
+  };
+  u.onerror = (error) => {
+    if (r) clearInterval(r);
+    console.error("TTS Fout:", error);
+    resolve(); // Ons resolve steeds sodat die lus nie vashaak nie
+  };
+  window.speechSynthesis.speak(u);
+});
+
+
+  }
+} else {
+  window.speechSynthesis.speak(utterance);
+}
+
+
+    console.log("✅ Browser fallback voice started");
   }, [voiceEnabled]);
 
   // --- SEND MESSAGE (Fixes Error 402, 426, 446) ---

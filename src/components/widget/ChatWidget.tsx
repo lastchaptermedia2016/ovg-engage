@@ -426,26 +426,29 @@ await new Promise<void>((resolve) => {
           style={{ borderColor: config.primaryColor }}
         >
           {/* Header */}
-          <div className="p-5 flex justify-between items-center" style={{ background: 'linear-gradient(to right, rgb(209,213,219) 0%, rgb(209,213,219) 50%, rgba(209,213,219,0.15) 100%)' }}>
-            <div className="flex items-center gap-3">
+          <div className="relative p-5 flex justify-between items-center overflow-hidden">
+            <img src={headerBg} alt="" className="absolute inset-0 w-full h-full object-cover object-center" />
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative flex items-center gap-3">
               <img src={config.logo} alt={config.brandName} className="h-10 w-auto" />
               <div>
-                <h3 className="font-semibold text-gray-800 text-sm">{config.brandName}</h3>
+                <h3 className="font-semibold text-white text-sm">{config.brandName}</h3>
                 <div className="flex items-center gap-1.5">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                   </span>
-                  <span className="text-[11px] text-gray-500 font-medium">Online now</span>
+                  <span className="text-[11px] text-white/70 font-medium">Online now</span>
                 </div>
               </div>
             </div>
 
             {/* Controls */}
-            <div className="flex items-center gap-2">
+            <div className="relative flex items-center gap-2">
               <Button
-                variant="ghost"
                 size="icon"
+                className="h-8 w-8 rounded-full text-white shrink-0"
+                style={{ backgroundColor: config.primaryColor }}
                 onClick={() => {
                   const next = !voiceEnabled;
                   setVoiceEnabled(next);
@@ -455,13 +458,13 @@ await new Promise<void>((resolve) => {
                   toast({ title: next ? "Voice On" : "Voice Off", description: next ? "AI responses will be spoken aloud." : "AI voice muted." });
                 }}
               >
-                {voiceEnabled ? <Volume2 className="h-4 w-4" style={{ color: config.primaryColor }} /> : <VolumeX className="h-4 w-4" style={{ color: config.primaryColor }} />}
+                {voiceEnabled ? <Volume2 className="h-4 w-4 text-white" /> : <VolumeX className="h-4 w-4 text-white" />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setShowResetConfirm(true)}>
-                <RefreshCw className="h-4 w-4" style={{ color: config.primaryColor }} />
+              <Button size="icon" className="h-8 w-8 rounded-full text-white shrink-0" style={{ backgroundColor: config.primaryColor }} onClick={() => setShowResetConfirm(true)}>
+                <RefreshCw className="h-4 w-4 text-white" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                <X className="h-4 w-4" style={{ color: config.primaryColor }} />
+              <Button size="icon" className="h-8 w-8 rounded-full text-white shrink-0" style={{ backgroundColor: config.primaryColor }} onClick={() => setIsOpen(false)}>
+                <X className="h-4 w-4 text-white" />
               </Button>
             </div>
           </div>

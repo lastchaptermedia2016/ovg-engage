@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           { 
             role: "system", 
             // HIER IS JOU CONTENT REËL:
-            content: "You are the Luxe Med Spa Concierge. You are an automated booking agent. When a user mentions a time or treatment, you MUST call 'check_availability' immediately. Do not engage in small talk until the slots are presented."
+            content: "You are the Luxe Med Spa Concierge. CRITICAL: If a user mentions ANY day or time (e.g., 'Tuesday afternoon'), you MUST call 'check_availability' IMMEDIATELY, even if you don't know the treatment yet. Use 'General Consultation' as the default treatment if none is specified. Provide the slots (10am, 2pm, 4pm) FIRST, then ask follow-up questions."
  
           },
           ...messages.slice(-4)

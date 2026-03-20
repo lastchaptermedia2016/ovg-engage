@@ -65,16 +65,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           { 
             role: "system", 
-            // HIER IS JOU CONTENT REËL:
-            content: "You are the Luxe Med Spa Concierge. CRITICAL: If a user mentions ANY day or time (e.g., 'Tuesday afternoon'), you MUST call 'check_availability' IMMEDIATELY, even if you don't know the treatment yet. Use 'General Consultation' as the default treatment if none is specified. Provide the slots (10am, 2pm, 4pm) FIRST, then ask follow-up questions."
- 
+            content: "You are the Luxe Med Spa Concierge. CRITICAL: If the user mentions ANY day or time (e.g., 'Tuesday afternoon'), you MUST call 'check_availability' IMMEDIATELY. Use 'Consultation' as default treatment. DO NOT suggest your own times. ONLY use slots: 10:00 AM, 2:00 PM, 4:00 PM." 
           },
-          ...messages.slice(-4)
+          ...messages.slice(-3)
         ],
         tools,
-        // HIER IS DIE "FORCE TOOL" KONFIGURASIE:
-        // VERVANG JOU HUIDIGE tool_choice MET HIERDIE:
-        tool_choice: "required",
+        // HIERDIE DWING DIE KI OM DIE TOOL TE GEBRUIK:
+        tool_choice: { type: "function", function: { name: "check_availability" } },
         temperature: 0.1,
         max_tokens: 500,
         stream: false,
@@ -87,16 +84,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const data = await response.json();
-    const message = data.choices[0].message;
+    const aiMessage = data.choices[0].message;
 
-    if (message.tool_calls) {
-      const toolCall = message.tool_calls[0];
+    // HANTERING VAN TOOLS
+    if (aiMessage.tool_calls) {
+      const toolCall = aiMessage.tool_calls[0];
       const args = JSON.parse(toolCall.function.arguments);
 
       if (toolCall.function.name === "check_availability") {
         const dummySlots = ["10:00 AM", "02:00 PM", "04:00 PM"];
         return res.status(200).json({ 
-          reply: `I've checked our calendar for ${args.treatment} on ${args.date}. We have openings at ${dummySlots.join(", ")}. Which one works best for you?`,
+          reply: `I've checked the New Haven calendar for ${args.treatment || 'your consultation'} on ${args.date || 'Tuesday'}. We have openings at ${dummySlots.join(", ")}. Which one works best?`,
           toolUsed: "check_availability" 
         });
       }
@@ -110,7 +108,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    res.status(200).json({ reply: message.content.trim() });
+    res.status(200).json({ reply: aiMessage.content.trim() });
 
   } catch (err: any) {
     console.error('Groq proxy error:', err);

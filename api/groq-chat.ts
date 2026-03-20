@@ -66,13 +66,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           { 
             role: "system", 
             // HIER IS JOU CONTENT REËL:
-            content: "You are the Luxe Med Spa Concierge. BOTOX IS OUR #1 SERVICE. MANDATORY: If a user mentions a treatment and ANY time-related word (Tuesday, morning, afternoon, 2pm), you MUST call 'check_availability' first. Do not suggest your own times. Use the tool results (10:00 AM, 02:00 PM, 04:00 PM) only." 
+            content: "You are the Luxe Med Spa Concierge. You are an automated booking agent. When a user mentions a time or treatment, you MUST call 'check_availability' immediately. Do not engage in small talk until the slots are presented."
+ 
           },
           ...messages.slice(-4)
         ],
         tools,
         // HIER IS DIE "FORCE TOOL" KONFIGURASIE:
-        tool_choice: { type: "function", function: { name: "check_availability" } },
+        // VERVANG JOU HUIDIGE tool_choice MET HIERDIE:
+        tool_choice: "required",
         temperature: 0.1,
         max_tokens: 500,
         stream: false,

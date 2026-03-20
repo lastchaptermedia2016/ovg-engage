@@ -485,10 +485,10 @@ await new Promise<void>((resolve) => {
               );
             })}
             {isTyping && <div className="text-pink-500 text-sm animate-pulse px-2">Concierge is typing...</div>}
-            {/* Quick-reply buttons */}
+                        {/* Quick-reply buttons & WhatsApp */}
             {messages.length <= 1 && !isTyping && (
               <div className="flex flex-wrap gap-2 px-1 pt-2">
-                {["Book a treatment", "I need prices", "Can I speak to a consultant"].map((label) => (
+                {["Book a treatment", "I need prices"].map((label) => (
                   <button
                     key={label}
                     onClick={() => sendMessageDirect(label)}
@@ -497,43 +497,28 @@ await new Promise<void>((resolve) => {
                     {label}
                   </button>
                 ))}
+                
+                <button
+                  onClick={() => openWhatsApp(config.phone || "27670330046", "Hi Luxe Med Spa, I'd like to speak to a consultant.")}
+                  className="px-3 py-1.5 text-xs font-bold rounded-full border border-green-400/50 bg-green-50 text-green-700 hover:bg-green-100 transition-colors shadow-sm flex items-center gap-1"
+                >
+                  💬 Speak to a consultant
+                </button>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input / Footer */}
+          {/* Input / Footer Area */}
           <div className="p-4 border-t border-gray-300/50" style={{ background: 'linear-gradient(to right, rgb(209,213,219) 0%, rgb(209,213,219) 50%, rgba(209,213,219,0.15) 100%)' }}>
-            {isSupported && !isListening && messages.length <= 1 && (
-              <p className="text-xs text-center mb-2" style={{ color: config.primaryColor }}>
-                🎙️ Please click the mic icon to speak to us
-              </p>
-            )}
             <div className="flex gap-2 items-center">
               <Input
-                value={isListening ? transcript || input : input}
-                onChange={e => { if (!isListening) setInput(e.target.value); }}
-                placeholder={isListening ? "Listening..." : "Type your message..."}
-                className="flex-1 bg-white/90 border border-gray-300 text-black placeholder:text-gray-500 focus:border-pink-400"
-                onKeyDown={e => e.key === "Enter" && !isListening && sendMessageDirect(input)}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1 bg-white/90 border border-gray-300 text-black"
+                onKeyDown={e => e.key === "Enter" && sendMessageDirect(input)}
               />
-              {isSupported && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    if (isListening) {
-                      stopListening();
-                    } else {
-                      startListening();
-                    }
-                  }}
-                  className={`shrink-0 ${isListening ? "animate-pulse" : ""}`}
-                  style={{ color: config.primaryColor }}
-                >
-                  {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                </Button>
-              )}
               <Button 
                 onClick={() => sendMessageDirect(input)}
                 style={{ backgroundColor: config.primaryColor }}

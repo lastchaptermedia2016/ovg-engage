@@ -9,12 +9,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { messages } = req.body;
-
-    if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: 'Messages array required' });
-    }
-
     const apiKey = process.env.GROQ_API_KEY;
+
     if (!apiKey) {
       return res.status(500).json({ error: 'Groq API key not configured' });
     }
@@ -34,27 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             required: ["treatment", "date"]
           }
         }
-      },
-      {
-        type: "function",
-        function: {
-          name: "finalize_booking",
-          description: "Skep 'n finale afspraak en trigger bevestigings.",
-          parameters: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              phone: { type: "string" },
-              treatment: { type: "string" },
-              time: { type: "string" }
-            },
-            required: ["name", "phone", "treatment", "time"]
-          }
-        }
       }
     ];
 
-    const response = await fetch('https://api.groq.com/openai/v1/completions', {
+    const response = await fetch('https://api.groq.com', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -65,16 +44,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           { 
             role: "system", 
-            content: "You are the Luxe Med Spa Concierge. CRITICAL: If the user mentions ANY day or time (e.g., 'Tuesday afternoon'), you MUST call 'check_availability' IMMEDIATELY. Use 'Consultation' as default treatment. DO NOT suggest your own times. ONLY use slots: 10:00 AM, 2:00 PM, 4:00 PM." 
+            content: "You are the Luxe Med Spa Concierge. MANDATORY: If the user mentions ANY day or time, you MUST call 'check_availability' IMMEDIATELY. Use 'Consultation' as default treatment. DO NOT CHAT. Use slots: 10:00 AM, 2:00 PM, 4:00 PM." 
           },
-          ...messages.slice(-3)
+          messages[messages.length - 1]
         ],
         tools,
-        // HIERDIE DWING DIE KI OM DIE TOOL TE GEBRUIK:
         tool_choice: { type: "function", function: { name: "check_availability" } },
         temperature: 0.1,
-        max_tokens: 500,
-        stream: false,
+        max_tokens: 500
       }),
     });
 
@@ -86,26 +63,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = await response.json();
     const aiMessage = data.choices[0].message;
 
-    // HANTERING VAN TOOLS
     if (aiMessage.tool_calls) {
       const toolCall = aiMessage.tool_calls[0];
       const args = JSON.parse(toolCall.function.arguments);
 
-      if (toolCall.function.name === "check_availability") {
-        const dummySlots = ["10:00 AM", "02:00 PM", "04:00 PM"];
-        return res.status(200).json({ 
-          reply: `I've checked the New Haven calendar for ${args.treatment || 'your consultation'} on ${args.date || 'Tuesday'}. We have openings at ${dummySlots.join(", ")}. Which one works best?`,
-          toolUsed: "check_availability" 
-        });
-      }
-
-      if (toolCall.function.name === "finalize_booking") {
-        return res.status(200).json({ 
-          reply: `Excellent, ${args.name}! Your ${args.treatment} is booked for ${args.time}. A luxury voice confirmation is on its way to your WhatsApp at ${args.phone}. ✨`,
-          bookingData: args,
-          triggerTTS: true 
-        });
-      }
+      const dummySlots = ["10:00 AM", "02:00 PM", "04:00 PM"];
+      return res.status(200).json({ 
+        reply: `I've checked the New Haven calendar for ${args.treatment || 'your consultation'} on ${args.date || 'Tuesday'}. We have openings at ${dummySlots.join(", ")}. Which one works best?`,
+        toolUsed: "check_availability" 
+      });
     }
 
     res.status(200).json({ reply: aiMessage.content.trim() });

@@ -276,6 +276,17 @@ await new Promise<void>((resolve) => {
     if (!hasConsent) setShowConsent(true);
     else setIsOpen(true);
   };
+    // --- AUTO-SHOW PEEK TIMER ---
+  useEffect(() => {
+    // Wys die "Peek" borrel na 3 sekondes as die chat nog toe is
+    const timer = setTimeout(() => {
+      if (!isOpen && !hasGreeted && !showConsent) {
+        setShowPeek(true);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [isOpen, hasGreeted, showConsent]);
+
 
   // --- YOUR GOOD UI STARTS BELOW ---
 

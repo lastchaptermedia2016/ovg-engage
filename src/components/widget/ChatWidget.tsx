@@ -502,7 +502,7 @@ await new Promise<void>((resolve) => {
                 ))}
                 
                 <button
-                  onClick={() => openWhatsApp(config.phone || "27670330046", "Hi Luxe Med Spa, I'd like to speak to a consultant.")}
+                  onClick={() => openWhatsApp(config.phone || "27760330046", "Hi Luxe Med Spa, I'd like to speak to a consultant.")}
                   className="px-3 py-1.5 text-xs font-bold rounded-full border border-green-400/50 bg-green-50 text-green-700 hover:bg-green-100 transition-colors shadow-sm flex items-center gap-1"
                 >
                   💬 Speak to a consultant

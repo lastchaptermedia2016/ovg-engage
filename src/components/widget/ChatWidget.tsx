@@ -26,7 +26,7 @@ interface WidgetConfig {
 const defaultConfig: WidgetConfig = {
   logo: "/images/luxemedspa.svg",
   brandName: "The Luxe Med Spa",
-  primaryColor: "#f8cce4",
+  primaryColor: "rgb(247, 145, 201)",
   greeting: "Hi there! I'm your Luxe Med Spa concierge ✨ How can I help you book the perfect treatment today?",
   peekText: "Hey Gorgeous! Welcome to Luxe Med Spa, how can I help?",
   phone: "27760330046",

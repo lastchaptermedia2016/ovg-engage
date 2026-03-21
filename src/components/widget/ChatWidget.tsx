@@ -66,21 +66,17 @@ const ChatWidget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-    // === DISABLE BODY SCROLL WHEN CHAT IS OPEN (Mobile Fix) ===
+    // === FORCE BACKGROUND PAGE TO SCROLL ON MOBILE ===
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
+      document.body.style.overflow = "visible";
+      document.body.style.touchAction = "auto";
+      document.documentElement.style.overflow = "visible";
     } else {
       document.body.style.overflow = "visible";
       document.body.style.touchAction = "auto";
+      document.documentElement.style.overflow = "visible";
     }
-
-    // Cleanup when component unmounts
-    return () => {
-      document.body.style.overflow = "visible";
-      document.body.style.touchAction = "auto";
-    };
   }, [isOpen]);
 
   // --- WHATSAPP HELPER ---

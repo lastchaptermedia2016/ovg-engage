@@ -117,8 +117,16 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
   }, [toast]);
 
     const speak = useCallback(async (text: string) => {
-    if (!voiceEnabled || !text.trim()) return;
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+  if (!voiceEnabled || !text.trim()) return;
+
+  // KRITIES: Stop alles voor jy begin
+  window.speechSynthesis.cancel(); 
+  
+  if (audioRef.current) { 
+    audioRef.current.pause(); 
+    audioRef.current = null; 
+  }
+  // ... jou API sleutel logika ...
 
     const keys = {
       groq: import.meta.env.VITE_GROQ_API_KEY,

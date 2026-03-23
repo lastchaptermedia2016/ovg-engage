@@ -1,4 +1,4 @@
-// 1. Definieer die tipe HIER sodat dit nie van ChatWidget hoef te kom nie
+// 1. Definieer die tipe
 export interface ChatMessage {
   id: string;
   role: "user" | "ai";
@@ -6,7 +6,6 @@ export interface ChatMessage {
   timestamp: number;
 }
 
-// 2. Definieer die verwagte API-antwoord struktuur
 interface GroqResponse {
   choices?: {
     message?: {
@@ -15,7 +14,6 @@ interface GroqResponse {
   }[];
 }
 
-// 3. Skep die mock AI funksie
 export const generateAIResponse = async (
   userInput: string,
   history: ChatMessage[]
@@ -27,18 +25,24 @@ export const generateAIResponse = async (
     return "I apologize, but I am having trouble connecting to my concierge services at the moment.";
   }
 
-  const systemPrompt = `You are the exclusive, elegant AI Concierge for The Luxe Med Spa in New Haven, Indiana.
+  // --- LUXE CRM SYSTEM PROMPT ---
+  const systemPrompt = `You are the Elite AI Concierge for The Luxe Med Spa in New Haven, Indiana.
 Owner: Jill Johnson, RN BSN | Medical Director: Dr. Marwan Mustaklem.
 
-Signature treatments: TruSculpt, Secret RF, HydraFacial, Morpheus8, Cutera Xeo, Limelight IPL, Botox, Fillers, IV Drips.
+TONE: Sophisticated, warm, and luxurious. Speak like a high-end spa hostess. 
 
-Tone: Sophisticated, warm, and luxurious — speak like a high-end spa hostess. Be concise but gracious. Never repeat yourself.
+BOOKING PROTOCOL:
+When a guest wants to book or shows interest in a treatment:
+1. Acknowledge the treatment warmly.
+2. CRITICAL: You MUST ask for their formal title (Mr., Mrs., Ms., Dr.), Full Name, Email, and Phone.
+3. CRITICAL: Ask if they are a 'New Client' or a 'Returning Client'.
+4. Mention the price clearly (e.g., "$600 for Botox") so the management console tracks it.
 
-When a guest wants to book:
-- Acknowledge the treatment warmly
-- Offer 2–3 real-feeling availability options
-- Ask for their preferred slot
-- Offer to confirm the booking`;
+AVAILABILITY:
+Offer options like Wednesday at 2 PM, Thursday at 10 AM, or Friday at 3 PM.
+
+CONFIRMATION RULE:
+Once details are provided, confirm clearly: "Thank you, [Title] [LastName]. I have scheduled your [Treatment] for $[Price]. We have you down as a [New/Returning] client."`;
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -57,21 +61,23 @@ When a guest wants to book:
           })),
           { role: "user", content: userInput }
         ],
-        temperature: 0.68,
-        max_tokens: 650,          // ← Increased so replies are longer and more natural
+        temperature: 0.65,
+        max_tokens: 650,
       }),
     });
 
     const data = (await response.json()) as GroqResponse;
     let reply = data.choices?.[0]?.message?.content?.trim() || "I would be delighted to assist you.";
 
-    // Smart booking flow (cleaner, no repetition)
+    // Smart booking flow - Geoptimeer vir CRM dataversameling
     const lower = userInput.toLowerCase();
-    if (lower.includes("book") || lower.includes("appointment") || lower.includes("hydrafacial") || lower.includes("availability")) {
-      reply += `\n\nWe currently have availability for HydraFacial this week on Wednesday at 2 PM, Thursday at 10 AM, and Friday at 3 PM. Which of these times would suit you best? Shall I reserve it for you?`;
+    if (lower.includes("book") || lower.includes("appointment") || lower.includes("schedule")) {
+      if (!lower.includes("@") && !lower.includes("0")) { // As ons nog nie kontakbesonderhede het nie
+        reply += `\n\nTo secure your sanctuary time, may I have your formal title, full name, and a preferred contact number? Also, is this your first visit to The Luxe Med Spa?`;
+      }
     }
 
-    console.log("✅ Groq AI responded successfully");
+    console.log("✅ Groq AI responded with Luxe CRM Protocol");
     return reply;
 
   } catch (error) {

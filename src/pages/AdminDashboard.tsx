@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, DollarSign, CalendarCheck } from "lucide-react";
+import { TrendingUp, DollarSign, CalendarCheck } from "lucide-react";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({ 
     totalRevenue: 0, 
     totalBookings: 0, 
     lastBooking: { 
+      title: "",
       firstName: "", 
       lastName: "", 
+      isRepeat: false,
       email: "", 
       phone: "", 
       treatment: "", 
@@ -76,44 +78,55 @@ const AdminDashboard = () => {
           <CardHeader className="border-b border-white/5 bg-white/[0.01] py-6 px-8">
             <CardTitle className="text-pink-100 font-extralight tracking-[0.15em] text-xs uppercase">Latest Client Acquisition</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-white/5">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-8 hover:bg-white/[0.01] transition-all duration-500 gap-6">
-                
-                <div className="flex flex-col gap-1 min-w-[200px]">
-                  <span className="text-white/90 font-light text-xl tracking-tight">
+          <CardContent className="p-8">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+              
+              {/* 1. Client Profile, Title & Type */}
+              <div className="space-y-3 min-w-[250px]">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[8px] uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border ${stats.lastBooking.isRepeat ? 'border-pink-500/50 text-pink-400 bg-pink-500/5' : 'border-emerald-500/50 text-emerald-400 bg-emerald-500/5'}`}>
+                    {stats.lastBooking.isRepeat ? "Repeat Client" : "New Client"}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-pink-300/60 text-xs font-light italic uppercase tracking-tighter">
+                    {stats.lastBooking.title || "Client"}
+                  </span>
+                  <h3 className="text-3xl font-extralight text-white/90 tracking-tight">
                     {stats.lastBooking.firstName || "New"} {stats.lastBooking.lastName || "Guest"}
-                  </span>
-                  <span className="text-pink-300/80 text-[11px] uppercase tracking-[0.15em] font-light italic">
-                    {stats.lastBooking.treatment || "Service Consultation"}
-                  </span>
+                  </h3>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3 py-2 border-l border-white/10 pl-6 text-left">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] text-white/30 uppercase tracking-widest mb-0.5 font-bold">Email Address</span>
-                    <span className="text-xs text-white/70 font-light">{stats.lastBooking.email || "pending@luxe.com"}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[9px] text-white/30 uppercase tracking-widest mb-0.5 font-bold">Contact Number</span>
-                    <span className="text-xs text-white/70 font-light">{stats.lastBooking.phone || "No number provided"}</span>
-                  </div>
-                </div>
-
-                <div className="text-right flex flex-col items-end min-w-[100px]">
-                  <span className="text-white font-extralight text-2xl tracking-tighter">
-                    +${stats.lastBooking.price?.toFixed(2) || "0.00"}
-                  </span>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[9px] text-emerald-500 uppercase tracking-widest font-bold">Confirmed</span>
-                    <span className="text-[9px] text-white/20 uppercase tracking-tighter">at {stats.lastBooking.timestamp}</span>
-                  </div>
-                </div>
-
+                <p className="text-pink-300 text-sm tracking-[0.1em] font-light uppercase italic">
+                  {stats.lastBooking.treatment || "Service Consultation"}
+                </p>
               </div>
+
+              {/* 2. Contact Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-4 py-4 lg:border-l lg:border-white/10 lg:pl-12">
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-pink-200/40 mb-1 font-bold tracking-[0.2em] uppercase">Email Address</span>
+                  <span className="text-sm text-white/70 font-light">{stats.lastBooking.email || "pending@luxe.com"}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-pink-200/40 mb-1 font-bold tracking-[0.2em] uppercase">Contact Number</span>
+                  <span className="text-sm text-white/70 font-light">{stats.lastBooking.phone || "Not Provided"}</span>
+                </div>
+              </div>
+
+              {/* 3. Transaction Value & Time */}
+              <div className="text-right min-w-[140px]">
+                <span className="block text-3xl font-extralight text-white tracking-tighter">
+                  +${stats.lastBooking.price?.toFixed(2) || "0.00"}
+                </span>
+                <span className="text-[10px] text-white/20 uppercase tracking-[0.3em] font-medium">
+                  Confirmed at {stats.lastBooking.timestamp}
+                </span>
+              </div>
+
             </div>
           </CardContent>
         </Card>
+
       </div>
     </div>
   );

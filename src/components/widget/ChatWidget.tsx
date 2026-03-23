@@ -79,17 +79,28 @@ const logBookingForJill = (text: string) => {
    const updated = {
     totalRevenue: (prev.totalRevenue || 0) + detectedPrice,
     totalBookings: (prev.totalBookings || 0) + 1,
-    lastBooking: { 
-      // Ons probeer basiese inligting uittrek of stoor dit as "Pending"
+        lastBooking: { 
+      // 1. Trek formele titels uit (Mr, Mrs, Ms, Dr, ens.)
+      title: text.match(/(Mr|Mrs|Ms|Miss|Dr)\.?/i)?.[0] || "Client",
+
+      // 2. Trek name en vanne uit (jou bestaande logika verbeter)
       firstName: text.match(/name is (\w+)/i)?.[1] || "Guest",
       lastName: text.match(/surname is (\w+)/i)?.[1] || "Client",
+
+      // 3. Bepaal of dit 'n nuwe of lojale kliënt is
+      // Ons soek vir sleutelwoorde soos 'first time', 'new', 'again', of 'visited'
+      isRepeat: text.toLowerCase().includes("again") || text.toLowerCase().includes("visited before"),
+
+      // 4. Kontakbesonderhede
       email: text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0] || "No Email",
       phone: text.match(/(\+?\d{10,12})/)?.[0] || "No Number",
+
+      // 5. Behandeling en Waarde
       treatment: detectedTreatment, 
       price: detectedPrice,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
-  };
+   };
  
   
   localStorage.setItem("luxe_live_stats", JSON.stringify(updated));

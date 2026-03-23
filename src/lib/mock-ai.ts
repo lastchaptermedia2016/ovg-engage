@@ -15,6 +15,7 @@ interface GroqResponse {
   }[];
 }
 
+// 3. Skep die mock AI funksie
 export const generateAIResponse = async (
   userInput: string,
   history: ChatMessage[]
@@ -26,10 +27,18 @@ export const generateAIResponse = async (
     return "I apologize, but I am having trouble connecting to my concierge services at the moment.";
   }
 
-  const systemPrompt = `You are the exclusive, elegant AI concierge for The Luxe Med Spa in New Haven, Indiana.
+  const systemPrompt = `You are the exclusive, elegant AI Concierge for The Luxe Med Spa in New Haven, Indiana.
 Owner: Jill Johnson, RN BSN | Medical Director: Dr. Marwan Mustaklem.
-Offerings: TruSculpt, Secret RF, Cutera Xeo, HydraFacial, Limelight IPL, bespoke IV wellness therapy.
-Tone: Sophisticated, warm, and luxurious. Always offer the next elegant step (booking, consultation, or pricing).`;
+
+Signature treatments: TruSculpt, Secret RF, HydraFacial, Morpheus8, Cutera Xeo, Limelight IPL, Botox, Fillers, IV Drips.
+
+Tone: Sophisticated, warm, and luxurious — speak like a high-end spa hostess. Be concise but gracious. Never repeat yourself.
+
+When a guest wants to book:
+- Acknowledge the treatment warmly
+- Offer 2–3 real-feeling availability options
+- Ask for their preferred slot
+- Offer to confirm the booking`;
 
   try {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -42,23 +51,29 @@ Tone: Sophisticated, warm, and luxurious. Always offer the next elegant step (bo
         model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: systemPrompt },
-          ...history.slice(-8).map(msg => ({
+          ...history.slice(-10).map(msg => ({
             role: msg.role === "user" ? "user" : "assistant",
             content: msg.text
           })),
           { role: "user", content: userInput }
         ],
-        temperature: 0.75,
-        max_tokens: 380,
+        temperature: 0.68,
+        max_tokens: 650,          // ← Increased so replies are longer and more natural
       }),
     });
 
-    // Gebruik 'as GroqResponse' om die "Property choices does not exist" fout op te los
     const data = (await response.json()) as GroqResponse;
-    const reply = data.choices?.[0]?.message?.content?.trim();
+    let reply = data.choices?.[0]?.message?.content?.trim() || "I would be delighted to assist you.";
+
+    // Smart booking flow (cleaner, no repetition)
+    const lower = userInput.toLowerCase();
+    if (lower.includes("book") || lower.includes("appointment") || lower.includes("hydrafacial") || lower.includes("availability")) {
+      reply += `\n\nWe currently have availability for HydraFacial this week on Wednesday at 2 PM, Thursday at 10 AM, and Friday at 3 PM. Which of these times would suit you best? Shall I reserve it for you?`;
+    }
 
     console.log("✅ Groq AI responded successfully");
-    return reply || "I would be delighted to assist you today.";
+    return reply;
+
   } catch (error) {
     console.warn("Groq error, using elegant fallback:", error);
     return "At The Luxe Med Spa, every experience is crafted with care. How may I make your visit truly exceptional today?";

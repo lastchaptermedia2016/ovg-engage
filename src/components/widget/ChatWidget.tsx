@@ -76,16 +76,21 @@ const logBookingForJill = (text: string) => {
   const raw = localStorage.getItem("luxe_live_stats");
   const prev = raw ? JSON.parse(raw) : { totalRevenue: 0, totalBookings: 0, lastBooking: {} };
 
-  const updated = {
+   const updated = {
     totalRevenue: (prev.totalRevenue || 0) + detectedPrice,
     totalBookings: (prev.totalBookings || 0) + 1,
     lastBooking: { 
-      name: "New Client", 
+      // Ons probeer basiese inligting uittrek of stoor dit as "Pending"
+      firstName: text.match(/name is (\w+)/i)?.[1] || "Guest",
+      lastName: text.match(/surname is (\w+)/i)?.[1] || "Client",
+      email: text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0] || "No Email",
+      phone: text.match(/(\+?\d{10,12})/)?.[0] || "No Number",
       treatment: detectedTreatment, 
       price: detectedPrice,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   };
+ 
   
   localStorage.setItem("luxe_live_stats", JSON.stringify(updated));
   window.dispatchEvent(new Event('storage'));

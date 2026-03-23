@@ -61,10 +61,44 @@ const ChatWidget = () => {
   const recognitionRef = useRef<any>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // --- AUTO-SCROLL ---
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  // --- JILL'S REVENUE LOGGING ---
+const logBookingForJill = (text: string) => {
+  // 1. Soek vir 'n dollar-teken (veiligheids-check bygevoeg)
+  const priceMatch = text.match(/\$(\d+)/);
+  // Ons kyk eers of priceMatch bestaan voor ons [1] probeer lees
+  const detectedPrice = (priceMatch && priceMatch[1]) ? parseInt(priceMatch[1]) : 150;
+
+  // 2. Probeer die behandeling raaksien
+  const treatments = ["Botox", "Filler", "Facial", "Laser", "Peel", "Consultation"];
+  const detectedTreatment = treatments.find(t => text.toLowerCase().includes(t.toLowerCase())) || "Luxe Service";
+
+  // 3. Haal bestaande stats en werk op
+  const raw = localStorage.getItem("luxe_live_stats");
+  const prev = raw ? JSON.parse(raw) : { totalRevenue: 0, totalBookings: 0, lastBooking: {} };
+
+  const updated = {
+    totalRevenue: (prev.totalRevenue || 0) + detectedPrice,
+    totalBookings: (prev.totalBookings || 0) + 1,
+    lastBooking: { 
+      name: "New Client", 
+      treatment: detectedTreatment, 
+      price: detectedPrice,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  };
+  
+  localStorage.setItem("luxe_live_stats", JSON.stringify(updated));
+  window.dispatchEvent(new Event('storage'));
+  console.log("💎 Jill Updated:", updated.lastBooking);
+};
+
+
+
+// --- AUTO-SCROLL (Jou bestaande kode volg hier onder) ---
+useEffect(() => {
+  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages, isTyping]);
+
 
   // Auto-send after voice input finishes
 useEffect(() => {
@@ -117,16 +151,24 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
   }, [toast]);
 
     const speak = useCallback(async (text: string) => {
-  if (!voiceEnabled || !text.trim()) return;
+    if (!voiceEnabled || !text.trim()) return;
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
 
-  // KRITIES: Stop alles voor jy begin
-  window.speechSynthesis.cancel(); 
-  
-  if (audioRef.current) { 
-    audioRef.current.pause(); 
-    audioRef.current = null; 
-  }
-  // ... jou API sleutel logika ...
+    // --- TOP-TIER INSERT START: EMERGENCY BYPASS ---
+    // Change this to 'true' only when your API credits/tokens are restored.
+    const useExternalAPIs = false; 
+
+    if (!useExternalAPIs) {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text.replace(/[*#_]/g, ''));
+      const v = window.speechSynthesis.getVoices();
+      u.voice = v.find(s => s.name.includes("Google") || s.name.includes("Samantha")) || v[0];
+      u.rate = 0.95;
+      window.speechSynthesis.speak(u);
+      console.log("✅ Emergency Bypass: Speaking via Browser Fallback");
+      return; // Exit here so it doesn't wait for failing APIs
+    }
+    // --- TOP-TIER INSERT END ---
 
     const keys = {
       groq: import.meta.env.VITE_GROQ_API_KEY,
@@ -189,71 +231,81 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
       } catch (e) { console.log("xAI failed..."); }
     }
 
-    // 4. BROWSER FALLBACK
-        // 4. BROWSER FALLBACK - Improved (longer answers, louder, better voice)
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    const premiumVoice = voices.find(v => 
-      (v.name.includes("Natural") || 
-       v.name.includes("Google") || 
-       v.name.includes("Samantha") || 
-       v.name.includes("Karen") || 
-       v.name.includes("Emma")) && v.lang.startsWith("en")
-    );
-    if (premiumVoice) utterance.voice = premiumVoice;
+                    // 4. BROWSER FALLBACK - Forced Luxe Selection
+    window.speechSynthesis.cancel(); 
 
-    utterance.rate = 0.93;
-    utterance.pitch = 1.04;
+    let voices = window.speechSynthesis.getVoices();
+    
+    const getBestFemaleVoice = (v: SpeechSynthesisVoice[]) => {
+      return v.find(s => 
+        s.lang.startsWith("en") && 
+        (s.name.includes("Google US English") || 
+         s.name.includes("Samantha") || 
+         s.name.includes("Natural") || 
+         s.name.includes("Aria") || 
+         s.name.includes("Zira") || 
+         s.name.includes("Female"))
+      ) || v.find(s => s.lang.startsWith("en")) || v[0];
+    };
+
+    const premiumVoice = getBestFemaleVoice(voices);
+    
+    // --- ONS ROEP NIE HIER 'SPEAK' NIE, ONS STEL NET DIE PARAMETERS OP ---
+    const utterance = new SpeechSynthesisUtterance(text.replace(/[*#_]/g, ''));
+    if (premiumVoice) {
+      utterance.voice = premiumVoice;
+      console.log("🔊 Geselekteerde Stem: " + premiumVoice.name);
+    }
+    utterance.rate = 0.82;   
+    utterance.pitch = 1.08;  
     utterance.volume = 1.0;
+    utterance.lang = "en-US"; 
 
-    // Split long answers to prevent cutting off
+    // --- LOGIKA VIR LANK VS KORT BOODSKAPPE ---
     if (text.length > 180) {
-  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+      for (const sentence of sentences) {
+        const trimmedSentence = sentence.trim();
+        if (!trimmedSentence) continue;
 
-  for (const sentence of sentences) {
-    const trimmedSentence = sentence.trim();
-    if (!trimmedSentence) continue;
+        const u = new SpeechSynthesisUtterance(trimmedSentence);
+        if (premiumVoice) u.voice = premiumVoice;
+        u.rate = 0.82; 
+        u.pitch = 1.08;
+        u.volume = 1.0;
+        u.lang = "en-US";
 
-    const u = new SpeechSynthesisUtterance(trimmedSentence);
-    if (premiumVoice) u.voice = premiumVoice;
-    u.rate = 0.93;
-    u.pitch = 1.04;
-    u.volume = 1.0;
+        const r = setInterval(() => {
+          if (!window.speechSynthesis.speaking) {
+            clearInterval(r);
+          } else {
+            window.speechSynthesis.pause();
+            window.speechSynthesis.resume();
+          }
+        }, 10000);
 
-    // --- CHROME FIX: HEARTBEAT ---
-    const r = setInterval(() => {
-      if (!window.speechSynthesis.speaking) {
-        clearInterval(r);
-      } else {
-        window.speechSynthesis.pause();
-        window.speechSynthesis.resume();
+        await new Promise<void>((resolve) => {
+          u.onend = () => {
+            if (r) clearInterval(r);
+            resolve(); 
+          };
+          u.onerror = (error) => {
+            if (r) clearInterval(r);
+            console.error("TTS Fout:", error);
+            resolve(); 
+          };
+          window.speechSynthesis.speak(u); // PRAAT HIER VIR LANG TEKS
+        });
       }
-    }, 10000); // Skud die enjin elke 10 sekondes wakker
+    } else {
+      window.speechSynthesis.speak(utterance); // PRAAT HIER VIR KORT TEKS
+    }
 
-    // Verander dit op lyn 173 en 177
-// Gebruik <void> om die TypeScript 'expected 1 arguments' fout op te los
-await new Promise<void>((resolve) => {
-  u.onend = () => {
-    if (r) clearInterval(r);
-    resolve(); 
-  };
-  u.onerror = (error) => {
-    if (r) clearInterval(r);
-    console.error("TTS Fout:", error);
-    resolve(); // Ons resolve steeds sodat die lus nie vashaak nie
-  };
-  window.speechSynthesis.speak(u);
-});
-
-
-  }
-} else {
-  window.speechSynthesis.speak(utterance);
-}
-
-
-    console.log("✅ Browser fallback voice started");
+    console.log("✅ Browser fallback voice started with single female voice");
   }, [voiceEnabled]);
+
+
+
 
   // --- SEND MESSAGE (Fixes Error 402, 426, 446) ---
     const sendMessageDirect = async (userInputText: string) => {
@@ -268,6 +320,12 @@ await new Promise<void>((resolve) => {
     try {
       // GEKORRIGEER: Gebruik 'generateAIResponse' (sonder 'Mock')
       const response = await generateAIResponse(userInputText, newMsgs);
+      if (response.toLowerCase().includes("booked") || response.toLowerCase().includes("afspraak")) {
+  // Ons gebruik 'n standaard prys van $350 vir nou vir die Luxe Dashboard
+  // Gebruik slegs die AI se antwoord as argument:
+logBookingForJill(response); 
+
+}
       
       const aiMsg: ChatMessage = { 
         id: (Date.now() + 1).toString(), 
@@ -314,11 +372,23 @@ await new Promise<void>((resolve) => {
     }
   }, [isOpen, messages.length, hasGreeted, hasConsent]);
 
-  const handleOpenChat = () => {
+    const handleOpenChat = () => {
+    // 1. Skud die blaaier wakker vir klank (The "Unlocker")
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const unlock = new SpeechSynthesisUtterance("");
+      window.speechSynthesis.speak(unlock);
+    }
+
+    // 2. Maak die chat oop
     setShowPeek(false);
-    if (!hasConsent) setShowConsent(true);
-    else setIsOpen(true);
+    if (!hasConsent) {
+      setShowConsent(true);
+    } else {
+      setIsOpen(true);
+    }
   };
+
     // --- AUTO-SHOW PEEK TIMER ---
   useEffect(() => {
     // Wys die "Peek" borrel na 3 sekondes as die chat nog toe is

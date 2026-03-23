@@ -12,28 +12,32 @@ import AdminDashboard from "./pages/AdminDashboard";
 const queryClient = new QueryClient();
 
 const AppNew = () => (
-  <div className="relative min-h-screen text-white">
+  <div className="relative min-h-screen bg-[#FDFBF9]">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-                <BrowserRouter>
+        
+        <BrowserRouter>
+          {/* Die ChatWidget moet BINNE die Browser Router leef vir navigasie-stabiliteit */}
+          <ChatWidget /> 
+          
           <Routes>
-            {/* 1. Die Hoofbladsy vir kliënte */}
+            {/* 1. Kliënt Bladsy */}
             <Route path="/" element={<Index />} />
             
-            {/* 2. Jill se Secret Revenue Dashboard */}
-            <Route path="/admin-luxe" element={<AdminDashboard />} /> 
+            {/* 2. Jill se Secret Dashboard */}
+            <Route path="/luxe-console" element={<AdminDashboard />} /> 
             
-            {/* 3. Fallback vir foute */}
+            {/* 3. Foutbladsy */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
 
-        <ChatWidget /> 
       </TooltipProvider>
     </QueryClientProvider>
   </div>
 );
+
 
 export default AppNew;

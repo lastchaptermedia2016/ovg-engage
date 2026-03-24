@@ -45,23 +45,45 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] p-8 text-white font-extralight tracking-tight selection:bg-pink-500/30">
-      <div className="max-w-[1400px] mx-auto space-y-12">
+  <div className="min-h-screen relative overflow-hidden bg-[#080406] selection:bg-pink-500/30 font-extralight tracking-tight text-white p-8">
+    
+    {/* 1. DIE "LUXE SILK AURA" - AGTERGROND LIGTE */}
+    <div className="fixed inset-0 z-0 pointer-events-none">
+      {/* Sagte Gloei Bo-Links (Champagne/Pienk) */}
+      <div className="absolute top-[-15%] left-[-10%] w-[60%] h-[60%] bg-pink-900/15 rounded-full blur-[140px] animate-pulse transition-all duration-[5000ms]"></div>
+      
+      {/* Sagte Rose-Goud Onder-Regs */}
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-rose-800/10 rounded-full blur-[160px] animate-pulse delay-700"></div>
+      
+      {/* "Subtle Silk Grain" - Gee dit 'n tasbare, luukse papier/stof tekstuur */}
+      <div className="absolute inset-0 opacity-[0.02] bg-[url('https://www.transparenttextures.com')]"></div>
+    </div>
 
-        {/* HEADER */}
-        <header className="flex justify-between items-end border-b border-white/5 pb-10">
-          <div>
-            <h1 className="text-5xl tracking-[0.3em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-pink-100 via-white to-pink-200 font-extralight italic">
-              The Luxe Med Spa
-            </h1>
-            <p className="text-white/20 italic mt-3 text-xs font-light uppercase tracking-[0.4em]">
-              Bespoke Business Intelligence • New Haven Sanctuary
-            </p>
-          </div>
-          <button onClick={clearAllData} className="group flex items-center gap-3 px-6 py-2.5 text-[10px] uppercase tracking-[0.25em] bg-red-500/[0.02] hover:bg-red-500/10 border border-red-500/10 text-red-500/60 hover:text-red-400 rounded-full transition-all duration-500">
-            <Trash2 className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" /> Reset Console
-          </button>
-        </header>
+    {/* 2. DASHBOARD INHOUD */}
+    <div className="relative z-10 max-w-[1400px] mx-auto space-y-12">
+
+      {/* HEADER */}
+      <header className="flex justify-between items-end border-b border-white/5 pb-10">
+        <div className="space-y-1">
+          <h1 className="text-5xl tracking-[0.35em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-pink-100 via-white to-rose-200 font-extralight italic drop-shadow-[0_0_15px_rgba(255,182,193,0.1)] transition-all duration-700 hover:tracking-[0.4em]">
+            The Luxe Med Spa
+          </h1>
+          <p className="text-pink-100/20 italic mt-3 text-[10px] font-light uppercase tracking-[0.5em] flex items-center gap-3">
+            <span className="w-8 h-[1px] bg-pink-500/20"></span>
+            Bespoke Business Intelligence • New Haven Sanctuary
+          </p>
+        </div>
+        <button 
+          onClick={clearAllData} 
+          className="group flex items-center gap-3 px-7 py-3 text-[9px] uppercase tracking-[0.3em] bg-white/[0.02] hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 text-white/30 hover:text-red-400 rounded-full transition-all duration-700 backdrop-blur-xl shadow-2xl"
+        >
+          <Trash2 className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform duration-500" /> 
+          Reset Console
+        </button>
+      </header>
+
+      {/* Die rest van jou Metric Cards en Tabel gaan hier voort ... */}
+
 
         {/* METRIC CARDS - CRYSTAL UPGRADE */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">

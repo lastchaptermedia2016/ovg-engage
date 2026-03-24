@@ -61,52 +61,96 @@ const ChatWidget = () => {
   const recognitionRef = useRef<any>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // --- JILL'S REVENUE LOGGING ---
-const logBookingForJill = (text: string) => {
-  // 1. Soek vir 'n dollar-teken (veiligheids-check bygevoeg)
-  const priceMatch = text.match(/\$(\d+)/);
-  // Ons kyk eers of priceMatch bestaan voor ons [1] probeer lees
-  const detectedPrice = (priceMatch && priceMatch[1]) ? parseInt(priceMatch[1]) : 150;
-
-  // 2. Probeer die behandeling raaksien
-  const treatments = ["Botox", "Filler", "Facial", "Laser", "Peel", "Consultation"];
-  const detectedTreatment = treatments.find(t => text.toLowerCase().includes(t.toLowerCase())) || "Luxe Service";
-
-  // 3. Haal bestaande stats en werk op
-  const raw = localStorage.getItem("luxe_live_stats");
-  const prev = raw ? JSON.parse(raw) : { totalRevenue: 0, totalBookings: 0, lastBooking: {} };
-
-   const updated = {
-    totalRevenue: (prev.totalRevenue || 0) + detectedPrice,
-    totalBookings: (prev.totalBookings || 0) + 1,
-        lastBooking: { 
-      // 1. Trek formele titels uit (Mr, Mrs, Ms, Dr, ens.)
-      title: text.match(/(Mr|Mrs|Ms|Miss|Dr)\.?/i)?.[0] || "Client",
-
-      // 2. Trek name en vanne uit (jou bestaande logika verbeter)
-      firstName: text.match(/name is (\w+)/i)?.[1] || "Guest",
-      lastName: text.match(/surname is (\w+)/i)?.[1] || "Client",
-
-      // 3. Bepaal of dit 'n nuwe of lojale kliënt is
-      // Ons soek vir sleutelwoorde soos 'first time', 'new', 'again', of 'visited'
-      isRepeat: text.toLowerCase().includes("again") || text.toLowerCase().includes("visited before"),
-
-      // 4. Kontakbesonderhede
-      email: text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0] || "No Email",
-      phone: text.match(/(\+?\d{10,12})/)?.[0] || "No Number",
-
-      // 5. Behandeling en Waarde
-      treatment: detectedTreatment, 
-      price: detectedPrice,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-   };
- 
+  // --- JILL'S REVENUE LOGGING - LUXE PERSISTENT ENGINE (v2.0) ---
+const logBookingForJill = (aiResponse: string, userInputText: string) => {
+  const sourceText = (userInputText || "") + " " + (aiResponse || "");
   
-  localStorage.setItem("luxe_live_stats", JSON.stringify(updated));
-  window.dispatchEvent(new Event('storage'));
-  console.log("💎 Jill Updated:", updated.lastBooking);
+  // 1. VOORKOM "GHOST DATA" (Verhoed dat behandelings as name getel word)
+  const forbiddenNames = ["Hydra", "Facial", "Luxe", "The", "Med", "Spa", "Service", "Clinic", "Booking", "Wednesday", "Thursday", "Friday"];
+
+  // 2. NAME MEMORY - Gryp die naam wanneer dit genoem word
+  const nameMatch = sourceText.match(/(Professor|Dr|Mr|Mrs|Ms|Miss)[.,\s]*([A-Z][a-z]+)(?:\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?))?/i);
+  
+  if (nameMatch) {
+    const rawFirst = nameMatch[2];
+    const rawLast = nameMatch[3] || "Client";
+
+    // Log slegs as dit nie 'n "forbidden" woord is nie
+    if (!forbiddenNames.includes(rawFirst)) {
+      const extracted = {
+        title: nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1).toLowerCase() + ".",
+        first: rawFirst,
+        last: rawLast
+      };
+      localStorage.setItem("luxe_temp_name", JSON.stringify(extracted));
+    }
+  }
+
+  // 3. DRINK MEMORY - Bêre die drankie
+  const drinkMatch = sourceText.match(/(mocha|latte|coffee|tea|water|juice|chamomile|citrus)/i);
+  if (drinkMatch) {
+    localStorage.setItem("luxe_temp_drink", drinkMatch[0]);
+  }
+
+  // 4. KRITIEKE VEILIGHEID: Log slegs as daar 'n $ EN 'n bevestiging is
+  const priceMatch = sourceText.match(/\$(\d{1,3}(?:,\d{3})*|\d+)/);
+  const detectedPrice = priceMatch ? parseInt(priceMatch[1].replace(/,/g, '')) : 0;
+  const isFinal = /confirmed|reserved|booked|scheduled/i.test(sourceText);
+
+  // AS DAAR GEEN PRYS OF BEVESTIGING IS NIE, STOP HIER (Wag vir finale stap)
+  if (!detectedPrice || !isFinal) return;
+
+  // 5. HAAL DATA UIT GEHEUE (Gryp die gestorde naam van vroeër)
+  const savedName = JSON.parse(localStorage.getItem("luxe_temp_name") || '{"title":"Client","first":"Guest","last":"Client"}');
+  const savedDrink = localStorage.getItem("luxe_temp_drink") || "Standard Water";
+
+  // 6. SHIELD: Stop duplikate (gebaseer op Van + Prys)
+  const txId = `${savedName.last}-${detectedPrice}`.toLowerCase();
+  if (localStorage.getItem("luxe_last_tx") === txId) return;
+  localStorage.setItem("luxe_last_tx", txId);
+
+  // 7. FINALE DATA VOORBEREIDING
+  const raw = localStorage.getItem("luxe_live_stats");
+  const prev = raw ? JSON.parse(raw) : { totalRevenue: 0, totalBookings: 0, bookings: [] };
+
+  const newEntry = {
+    id: Date.now(),
+    title: savedName.title,
+    firstName: savedName.first,
+    lastName: savedName.last,
+    status: "CONFIRMED",
+    refreshment: savedDrink,
+    treatment: sourceText.match(/(HydraFacial|Botox|Filler|Laser|Peel|Hydra facial)/i)?.[0] || "Consultation",
+    price: detectedPrice,
+    isRepeat: /again|returning|repeat|before|been there/i.test(sourceText),
+    email: sourceText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i)?.[0] || "No Email",
+    phone: sourceText.match(/(\+?27|\+?\d{1,3})?[\s-]?\d{2,4}[\s-]?\d{3}[\s-]?\d{3,4}/)?.[0] || "No Number",
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+
+  // 8. STOOR & UPDATE
+  localStorage.setItem("luxe_live_stats", JSON.stringify({
+    ...prev,
+    totalRevenue: (Number(prev.totalRevenue) || 0) + detectedPrice,
+    totalBookings: (Number(prev.totalBookings) || 0) + 1,
+    bookings: [newEntry, ...(prev.bookings || [])].slice(0, 25),
+    lastBooking: newEntry
+  }));
+
+  window.dispatchEvent(new Event('luxe_update'));
+  
+  // Moenie die tydelike name skoonmaak tot die einde van die sessie nie, 
+  // maar ons hou die laaste een as 'n rekord.
+  console.log("💎 Luxe Console Hydrated Successfully:", newEntry);
 };
+
+
+
+
+
+
+
+
 
 
 
@@ -174,16 +218,19 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
     // Change this to 'true' only when your API credits/tokens are restored.
     const useExternalAPIs = false; 
 
-    if (!useExternalAPIs) {
+        if (!useExternalAPIs) {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text.replace(/[*#_]/g, ''));
       const v = window.speechSynthesis.getVoices();
       u.voice = v.find(s => s.name.includes("Google") || s.name.includes("Samantha")) || v[0];
       u.rate = 0.95;
       window.speechSynthesis.speak(u);
+      
       console.log("✅ Emergency Bypass: Speaking via Browser Fallback");
+
       return; // Exit here so it doesn't wait for failing APIs
     }
+
     // --- TOP-TIER INSERT END ---
 
     const keys = {
@@ -325,49 +372,51 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
 
   // --- SEND MESSAGE (Fixes Error 402, 426, 446) ---
     const sendMessageDirect = async (userInputText: string) => {
-    if (!userInputText.trim()) return;
-    const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", text: userInputText, timestamp: Date.now() };
-    const newMsgs = [...messages, userMsg];
-    setMessages(newMsgs);
-    localStorage.setItem("ovgweb_chat_messages", JSON.stringify(newMsgs));
-    setInput("");
-    setIsTyping(true);
+  if (!userInputText.trim()) return;
 
-    try {
-      // GEKORRIGEER: Gebruik 'generateAIResponse' (sonder 'Mock')
-      const response = await generateAIResponse(userInputText, newMsgs);
-      if (response.toLowerCase().includes("booked") || response.toLowerCase().includes("afspraak")) {
-  // Ons gebruik 'n standaard prys van $350 vir nou vir die Luxe Dashboard
-  // Gebruik slegs die AI se antwoord as argument:
-logBookingForJill(response); 
-
-}
-      
-      const aiMsg: ChatMessage = { 
-        id: (Date.now() + 1).toString(), 
-        role: "ai", 
-        text: response, 
-        timestamp: Date.now() 
-      };
-      
-      const finalMsgs = [...newMsgs, aiMsg];
-      setMessages(finalMsgs);
-      localStorage.setItem("ovgweb_chat_messages", JSON.stringify(finalMsgs));
-      
-      // Roep die spraak-funksie
-      speak(response);
-      
-    } catch (e) {
-      console.error("AI Error:", e);
-      toast({ 
-        title: "Concierge Error", 
-        description: "I'm having trouble connecting. Please try again.", 
-        variant: "destructive" 
-      });
-    } finally {
-      setIsTyping(false);
-    }
+  const userMsg: ChatMessage = { 
+    id: Date.now().toString(), 
+    role: "user", 
+    text: userInputText, 
+    timestamp: Date.now() 
   };
+
+  const newMsgs = [...messages, userMsg];
+  setMessages(newMsgs);
+  localStorage.setItem("ovgweb_chat_messages", JSON.stringify(newMsgs));
+  setInput("");
+  setIsTyping(true);
+
+  try {
+    const response = await generateAIResponse(userInputText, newMsgs);
+    
+    const aiMsg: ChatMessage = { 
+      id: (Date.now() + 1).toString(), 
+      role: "ai", 
+      text: response, 
+      timestamp: Date.now() 
+    };
+    
+    const finalMsgs = [...newMsgs, aiMsg];
+    setMessages(finalMsgs);
+    localStorage.setItem("ovgweb_chat_messages", JSON.stringify(finalMsgs));
+    
+    speak(response);
+
+    // ✅ FIXED CALL - now passes both AI response AND user input
+    logBookingForJill(response, userInputText);
+
+  } catch (e) {
+    console.error("AI Error:", e);
+    toast({ 
+      title: "Concierge Error", 
+      description: "I'm having trouble connecting. Please try again.", 
+      variant: "destructive" 
+    });
+  } finally {
+    setIsTyping(false);
+  }
+};
 
 
   const handleAcceptConsent = () => {

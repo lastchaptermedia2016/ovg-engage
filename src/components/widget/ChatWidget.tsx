@@ -60,6 +60,21 @@ const ChatWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // --- 1. LUXE MESSAGE NOTIFICATION ENGINE ---
+  const sendLuxeConfirmation = (booking: any) => {
+  // Ons bou 'n VIP-geformateerde boodskap vir WhatsApp/SMS
+  const message = `Hello ${booking.title} ${booking.lastName}, your bespoke ${booking.treatment} ($${booking.price}) at The Luxe Med Spa is confirmed for ${booking.timestamp}. We have your ${booking.refreshment} ready for your arrival. See you in the sanctuary!`;
+  
+  // Skep die skakel (verwyder alle spasies uit die foonnommer)
+  const cleanPhone = booking.phone.replace(/\D/g, '');
+  const whatsappUrl = `https://wa.me{cleanPhone}?text=${encodeURIComponent(message)}`;
+  
+  // Vir nou log ons dit net in die console sodat Jill dit kan sien
+  console.log("📱 Luxe WhatsApp Link Generated:", whatsappUrl);
+  
+  // AS JY DIT OUTOMATIES WIL OOPMAAK:
+  // window.open(whatsappUrl, '_blank');
+};
 
   // --- JILL'S REVENUE LOGGING - LUXE PERSISTENT ENGINE (v2.0) ---
 const logBookingForJill = (aiResponse: string, userInputText: string) => {
@@ -138,6 +153,11 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
   }));
 
   window.dispatchEvent(new Event('luxe_update'));
+    // --- TRIGGER DIE BOODSKAP-ENJIN ---
+  if (newEntry.status === "CONFIRMED") {
+    sendLuxeConfirmation(newEntry);
+  }
+
   
   console.log("💎 Luxe Console Hydrated Successfully:", newEntry);
 };

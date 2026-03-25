@@ -66,10 +66,10 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
   const sourceText = (userInputText || "") + " " + (aiResponse || "");
   
   // 1. VOORKOM "GHOST DATA" (Verhoed dat behandelings as name getel word)
-  const forbiddenNames = ["Hydra", "Facial", "Luxe", "The", "Med", "Spa", "Service", "Clinic", "Booking", "Wednesday", "Thursday", "Friday"];
+  const forbiddenNames = ["Hydra", "Facial", "Luxe", "The", "Med", "Spa", "Service", "Clinic", "Booking", "Wednesday", "Thursday", "Friday", "I'm", "sure", "you'll", "fresh", "cup", "note", "confirmed", "booked", "reserved", "treatment", "session"];
 
-  // 2. NAME MEMORY - Gryp die naam wanneer dit genoem word
-  const nameMatch = sourceText.match(/(Professor|Dr|Mr|Mrs|Ms|Miss)[.,\s]*([A-Z][a-z]+)(?:\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?))?/i);
+  // 2. NAME MEMORY - Improved to better handle "miss tina smit" and similar
+  const nameMatch = sourceText.match(/(my name is|I am|I'm|Mr|Mrs|Ms|Miss|Dr)[.,\s]*([A-Z][a-z]+)(?:\s+([A-Z][a-z]+))?/i);
   
   if (nameMatch) {
     const rawFirst = nameMatch[2];
@@ -78,7 +78,7 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
     // Log slegs as dit nie 'n "forbidden" woord is nie
     if (!forbiddenNames.includes(rawFirst)) {
       const extracted = {
-        title: nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1).toLowerCase() + ".",
+        title: nameMatch[1].toLowerCase().includes("my name is") || nameMatch[1].toLowerCase().includes("i am") ? "Client" : (nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1).toLowerCase() + "."),
         first: rawFirst,
         last: rawLast
       };
@@ -87,7 +87,7 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
   }
 
   // 3. DRINK MEMORY - Bêre die drankie
-  const drinkMatch = sourceText.match(/(mocha|latte|coffee|tea|water|juice|chamomile|citrus)/i);
+  const drinkMatch = sourceText.match(/(mocha|latte|coffee|tea|water|juice|chamomile|citrus|black coffee|orange juice)/i);
   if (drinkMatch) {
     localStorage.setItem("luxe_temp_drink", drinkMatch[0]);
   }
@@ -95,7 +95,7 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
   // 4. KRITIEKE VEILIGHEID: Log slegs as daar 'n $ EN 'n bevestiging is
   const priceMatch = sourceText.match(/\$(\d{1,3}(?:,\d{3})*|\d+)/);
   const detectedPrice = priceMatch ? parseInt(priceMatch[1].replace(/,/g, '')) : 0;
-  const isFinal = /confirmed|reserved|booked|scheduled/i.test(sourceText);
+  const isFinal = /confirmed|reserved|booked|scheduled|your .* is now|I've confirmed|I've booked|I've reserved/i.test(sourceText);
 
   // AS DAAR GEEN PRYS OF BEVESTIGING IS NIE, STOP HIER (Wag vir finale stap)
   if (!detectedPrice || !isFinal) return;
@@ -139,8 +139,6 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
 
   window.dispatchEvent(new Event('luxe_update'));
   
-  // Moenie die tydelike name skoonmaak tot die einde van die sessie nie, 
-  // maar ons hou die laaste een as 'n rekord.
   console.log("💎 Luxe Console Hydrated Successfully:", newEntry);
 };
 
@@ -595,10 +593,12 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
 
       {/* ===== MAIN CHAT WINDOW ===== */}
       {isOpen && (
-        <div 
-          className="fixed bottom-24 right-6 z-[9999] w-[380px] md:w-[420px] rounded-3xl border-2 overflow-hidden shadow-2xl bg-transparent"
-          style={{ borderColor: config.primaryColor }}
-        >
+  <div 
+    className="fixed bottom-6 right-4 sm:right-6 z-[9999] 
+               w-[92vw] max-w-[380px] sm:max-w-[420px] 
+               rounded-3xl border-2 overflow-hidden shadow-2xl bg-transparent"
+    style={{ borderColor: config.primaryColor }}
+  >
           {/* Header */}
           <div className="relative p-5 flex justify-between items-center overflow-hidden">
             <img src={headerBg} alt="" className="absolute inset-0 w-full h-full object-cover object-center" />

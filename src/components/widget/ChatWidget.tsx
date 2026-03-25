@@ -76,91 +76,121 @@ const ChatWidget = () => {
   // window.open(whatsappUrl, '_blank');
 };
 
-  // --- JILL'S REVENUE LOGGING - LUXE PERSISTENT ENGINE (v2.0) ---
+  // --- JILL'S REVENUE LOGGING - LUXE PERSISTENT ENGINE (v2.2 FINAL) ---
 const logBookingForJill = (aiResponse: string, userInputText: string) => {
   const sourceText = (userInputText || "") + " " + (aiResponse || "");
   
-  // 1. VOORKOM "GHOST DATA" (Verhoed dat behandelings as name getel word)
-  const forbiddenNames = ["Hydra", "Facial", "Luxe", "The", "Med", "Spa", "Service", "Clinic", "Booking", "Wednesday", "Thursday", "Friday", "I'm", "sure", "you'll", "fresh", "cup", "note", "confirmed", "booked", "reserved", "treatment", "session"];
+  const forbiddenNames = ["Hydra", "Facial", "Luxe", "The", "Med", "Spa", "Service", "Clinic", "Booking", "Wednesday", "Thursday", "Friday", "I'm", "sure", "you'll", "fresh", "cup", "note", "confirmed", "booked", "reserved", "treatment", "session", "Botox", "Filler"];
 
-  // 2. NAME MEMORY - Improved to better handle "miss tina smit" and similar
-  const nameMatch = sourceText.match(/(my name is|I am|I'm|Mr|Mrs|Ms|Miss|Dr)[.,\s]*([A-Z][a-z]+)(?:\s+([A-Z][a-z]+))?/i);
+  // 1. NAME EXTRACTION (Hanteer kleinletters en titels)
+  const nameMatch = sourceText.match(/(my name is|I am|I'm|Mr|Mrs|Ms|Miss|Dr)[.,\s]*([a-zA-Z]+)(?:\s+([a-zA-Z]+))?/i);
   
   if (nameMatch) {
     const rawFirst = nameMatch[2];
     const rawLast = nameMatch[3] || "Client";
 
-    // Log slegs as dit nie 'n "forbidden" woord is nie
-    if (!forbiddenNames.includes(rawFirst)) {
+    if (!forbiddenNames.some(f => f.toLowerCase() === rawFirst.toLowerCase())) {
+      let finalTitle = "Client";
+      const possibleTitles = ["Mr", "Mrs", "Ms", "Miss", "Dr"];
+      if (possibleTitles.some(t => nameMatch[1].toLowerCase().includes(t.toLowerCase()))) {
+        const tMatch = nameMatch[1].match(/(Mr|Mrs|Ms|Miss|Dr)/i);
+        finalTitle = tMatch ? (tMatch[0].charAt(0).toUpperCase() + tMatch[0].slice(1).toLowerCase() + ".") : "Client";
+      }
+
       const extracted = {
-        title: nameMatch[1].toLowerCase().includes("my name is") || nameMatch[1].toLowerCase().includes("i am") ? "Client" : (nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1).toLowerCase() + "."),
-        first: rawFirst,
-        last: rawLast
+        title: finalTitle,
+        first: rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase(),
+        last: rawLast !== "Client" ? rawLast.charAt(0).toUpperCase() + rawLast.slice(1).toLowerCase() : "Client"
       };
       localStorage.setItem("luxe_temp_name", JSON.stringify(extracted));
     }
   }
 
-  // 3. DRINK MEMORY - Bêre die drankie
-  const drinkMatch = sourceText.match(/(mocha|latte|coffee|tea|water|juice|chamomile|citrus|black coffee|orange juice)/i);
-  if (drinkMatch) {
-    localStorage.setItem("luxe_temp_drink", drinkMatch[0]);
+  // 2. DRINK MEMORY (Bêre in Vault)
+  const drinkRegex = /(mocha latte|orange juice|black coffee|herbal tea|mocha|latte|coffee|tea|water|juice|champagne|citrus|chamomile)/i;
+  const clientChoice = (userInputText || "").match(drinkRegex);
+  const generalMatch = sourceText.match(drinkRegex);
+
+  if (clientChoice) {
+    localStorage.setItem("luxe_temp_drink", clientChoice[0]);
+  } else if (generalMatch && !localStorage.getItem("luxe_temp_drink")) {
+    localStorage.setItem("luxe_temp_drink", generalMatch[0]);
   }
 
-  // 4. KRITIEKE VEILIGHEID: Log slegs as daar 'n $ EN 'n bevestiging is
+    // 3. KRITIEKE VEILIGHEID (Die "Luxe" Meester-Trigger)
   const priceMatch = sourceText.match(/\$(\d{1,3}(?:,\d{3})*|\d+)/);
   const detectedPrice = priceMatch ? parseInt(priceMatch[1].replace(/,/g, '')) : 0;
-  const isFinal = /confirmed|reserved|booked|scheduled|your .* is now|I've confirmed|I've booked|I've reserved/i.test(sourceText);
 
-  // AS DAAR GEEN PRYS OF BEVESTIGING IS NIE, STOP HIER (Wag vir finale stap)
-  if (!detectedPrice || !isFinal) return;
+  // Ons soek nou vir die amptelike sein OF die algemene bevestiging as fallback
+  const isFinal = /officially confirmed|confirmed|reserved|booked|scheduled|to confirm/i.test(sourceText);
 
-  // 5. HAAL DATA UIT GEHEUE (Gryp die gestorde naam van vroeër)
+  // AS DAAR GEEN PRYS OF SEIN IS NIE, STOP (Wag vir die AI se finale sin)
+  if (!detectedPrice || !isFinal) {
+    console.log("⏳ Luxe Shield: Waiting for final confirmation signal...");
+    return;
+  }
+
+
+  // 4. HAAL DATA UIT VAULT (Slegs een keer gedeclareer)
   const savedName = JSON.parse(localStorage.getItem("luxe_temp_name") || '{"title":"Client","first":"Guest","last":"Client"}');
-  const savedDrink = localStorage.getItem("luxe_temp_drink") || "Standard Water";
+  const finalRefreshment = localStorage.getItem("luxe_temp_drink") || "Standard Water";
 
-  // 6. SHIELD: Stop duplikate (gebaseer op Van + Prys)
+  // 5. SHIELD (Duplikaat-beskerming)
   const txId = `${savedName.last}-${detectedPrice}`.toLowerCase();
   if (localStorage.getItem("luxe_last_tx") === txId) return;
   localStorage.setItem("luxe_last_tx", txId);
 
-  // 7. FINALE DATA VOORBEREIDING
-  const raw = localStorage.getItem("luxe_live_stats");
-  const prev = raw ? JSON.parse(raw) : { totalRevenue: 0, totalBookings: 0, bookings: [] };
+   // 6. KONTAK & STATUS (Luxe Assumption & Alignment Fix)
+const rawStats = localStorage.getItem("luxe_live_stats");
+const prev = rawStats ? JSON.parse(rawStats) : { totalRevenue: 0, totalBookings: 0, bookings: [] };
 
-  const newEntry = {
-    id: Date.now(),
-    title: savedName.title,
-    firstName: savedName.first,
-    lastName: savedName.last,
-    status: "CONFIRMED",
-    refreshment: savedDrink,
-    treatment: sourceText.match(/(HydraFacial|Botox|Filler|Laser|Peel|Hydra facial)/i)?.[0] || "Consultation",
-    price: detectedPrice,
-    isRepeat: /again|returning|repeat|before|been there/i.test(sourceText),
-    email: sourceText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i)?.[0] || "No Email",
-    phone: sourceText.match(/(\+?27|\+?\d{1,3})?[\s-]?\d{2,4}[\s-]?\d{3}[\s-]?\d{3,4}/)?.[0] || "No Number",
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  };
+// 1. Telefoonnommer-isolasie (Regex versterk)
+const phoneMatch = sourceText.match(/(\d{10})|(\+?\d{1,4}[-.\s]?\d{2,4}[-.\s]?\d{3}[-.\s]?\d{3,4})/);
+const extractedPhone = phoneMatch ? (phoneMatch[0] || "No Number").trim() : "No Number";
 
-  // 8. STOOR & UPDATE
-  localStorage.setItem("luxe_live_stats", JSON.stringify({
-    ...prev,
-    totalRevenue: (Number(prev.totalRevenue) || 0) + detectedPrice,
-    totalBookings: (Number(prev.totalBookings) || 0) + 1,
-    bookings: [newEntry, ...(prev.bookings || [])].slice(0, 25),
-    lastBooking: newEntry
-  }));
+// 2. Luxe Assumption Logic: Almal is VIP/Returning tensy hulle sê dis hul 1ste keer
+const isExplicitlyNew = /first|new|never been|first visit|going there for the first time|it will be the 1st/i.test(sourceText);
+const finalStatus = isExplicitlyNew ? "New" : "Returning";
 
-  window.dispatchEvent(new Event('luxe_update'));
-    // --- TRIGGER DIE BOODSKAP-ENJIN ---
-  if (newEntry.status === "CONFIRMED") {
-    sendLuxeConfirmation(newEntry);
-  }
-
-  
-  console.log("💎 Luxe Console Hydrated Successfully:", newEntry);
+const newEntry = {
+  id: Date.now(),
+  title: savedName.title || "Miss.",
+  firstName: savedName.first || "Guest",
+  lastName: savedName.last || "Client",
+  refreshment: String(finalRefreshment || "Water").trim(),
+  phone: extractedPhone, // Hou dit in sy eie veld
+  status: finalStatus,   // Gebruik nou ons slim aanname
+  treatment: sourceText.match(/(HydraFacial|Botox|Filler|Laser|Peel|Hydra facial)/i)?.[0] || "Consultation",
+  price: Number(detectedPrice) || 0,
+  // Maak seker die timestamp is altyd 'n string sodat die kolom nie leeg lyk nie
+  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+  email: sourceText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i)?.[0] || "No Email"
 };
+ 
+
+// 7. STOOR & UPDATE (Skoon Data)
+const updatedBookings = [newEntry, ...(prev.bookings || [])].slice(0, 25);
+
+localStorage.setItem("luxe_live_stats", JSON.stringify({
+  ...prev,
+  totalRevenue: (Number(prev.totalRevenue) || 0) + newEntry.price,
+  totalBookings: (Number(prev.totalBookings) || 0) + 1,
+  bookings: updatedBookings,
+  lastBooking: newEntry
+}));
+
+// Belangrik: Maak seker jou UI-render funksie lees 'newEntry.phone' en 'newEntry.timestamp' apart!
+window.dispatchEvent(new Event('luxe_update'));
+
+if (typeof sendLuxeConfirmation === 'function') {
+  sendLuxeConfirmation(newEntry);
+}
+
+localStorage.removeItem("luxe_temp_drink");
+console.log("💎 Luxe Entry Fixed:", newEntry);
+};
+
+
 
 
 

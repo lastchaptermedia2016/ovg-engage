@@ -93,7 +93,7 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           <StatCard 
             title={<span className="text-[#D4AF37]/80 uppercase tracking-widest text-[10px]">Projected Revenue</span>} 
-            value={<span className="text-[#FFD700] drop-shadow-[0_0_10px_rgba(212,175,55,0.4)] font-light">${stats.totalRevenue.toFixed(2)}</span>} 
+            value={<span className="text-[#ce8705] drop-shadow-[0_0_10px_rgba(212,175,55,0.4)] font-light">${stats.totalRevenue.toFixed(2)}</span>} 
             icon={<DollarSign className="text-[#D4AF37] w-5 h-5" />} 
             sub={<span className="text-[#C5A028]/40 italic text-[9px]">Confirmed AI Conversions</span>} 
             className="border-[#D4AF37]/10 bg-gradient-to-b from-white/[0.03] to-transparent"

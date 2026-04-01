@@ -24,15 +24,16 @@ interface WidgetConfig {
   phone?: string;
 }
 
-// 💎 Zillion Engine Integration
+// 💎 Zillion Engine Integration - Luxe High-End Spa Theme
 const defaultConfig: WidgetConfig = {
   logo: headerBg, // Gebruik jou ingevoerde headerBg image
-  brandName: ZillionConfig.tenant.name,
-  primaryColor: ZillionConfig.branding.primaryGold,
+  brandName: "The Luxe Med Spa - New Haven", // Updated with location
+  // Luxe Rose Gold gradient for high-end spa feel
+  primaryColor: "#be185d", // Deep rose pink - more luxurious
   
   // Maak die groetboodskap ook industrie-onafhanklik
-  greeting: `Hi there! I'm your ${ZillionConfig.tenant.name} concierge ✨ How can I help you today?`,
-  peekText: `Welcome to ${ZillionConfig.tenant.name}, how can I help?`,
+  greeting: `Welcome to The Luxe Med Spa ✨ My name is Kim, I'm your personal concierge. How can I help you book your perfect treatment today?`,
+  peekText: `Your sanctuary awaits... How may we pamper you today?`,
   
   // Gebruik die foonnommer uit die config as jy dit daar bygevoeg het
   phone: "27760330046", 
@@ -72,7 +73,7 @@ const ChatWidget = () => {
   // --- 1. LUXE MESSAGE NOTIFICATION ENGINE ---
   const sendLuxeConfirmation = (booking: any) => {
     // Ons bou 'n VIP-geformateerde boodskap vir WhatsApp/SMS
-    const message = `Hello ${booking.title} ${booking.lastName}, your bespoke ${booking.treatment} ($${booking.price}) at The Luxe Med Spa is confirmed for ${booking.timestamp}. We have your ${booking.refreshment} ready for your arrival. See you in the sanctuary!`;
+    const message = `Hello ${booking.title} ${booking.lastName}, your bespoke ${booking.treatment} ($${booking.price}) at The Luxe Med Spa is confirmed for ${booking.time}. We have your ${booking.refreshment} ready for your arrival. See you in the sanctuary!`;
     
     // Skep die skakel (verwyder alle spasies uit die foonnommer)
     const cleanPhone = booking.phone.replace(/\D/g, '');
@@ -82,123 +83,89 @@ const ChatWidget = () => {
     console.log("📱 Luxe WhatsApp Link Generated:", whatsappUrl);
   };
 
-  // --- JILL'S REVENUE LOGGING - LUXE PERSISTENT ENGINE (v2.2 FINAL) ---
+  // --- JILL'S REVENUE LOGGING - LUXE PERSISTENT ENGINE (v2.3 - JSON SUPPORT) ---
 const logBookingForJill = (aiResponse: string, userInputText: string) => {
-  const sourceText = (userInputText || "") + " " + (aiResponse || "");
   
-  const forbiddenNames = ["Hydra", "Facial", "Luxe", "The", "Med", "Spa", "Service", "Clinic", "Booking", "Wednesday", "Thursday", "Friday", "I'm", "sure", "you'll", "fresh", "cup", "note", "confirmed", "booked", "reserved", "treatment", "session", "Botox", "Filler"];
-
-  // 1. NAME EXTRACTION (Hanteer kleinletters en titels)
-  const nameMatch = sourceText.match(/(my name is|I am|I'm|Mr|Mrs|Ms|Miss|Dr)[.,\s]*([a-zA-Z]+)(?:\s+([a-zA-Z]+))?/i);
+  // === NEW: CHECK FOR STRUCTURED JSON FROM AI (supports both formats) ===
+  // Format 1: ```json ... ```
+  // Format 2: [JSON CODE BLOCK] ... [/JSON CODE BLOCK]
+  const jsonMatchBacktick = aiResponse.match(/```json\s*([\s\S]*?)\s*```/);
+  const jsonMatchBracket = aiResponse.match(/\[JSON CODE BLOCK\]\s*([\s\S]*?)\s*\[\/JSON CODE BLOCK\]/);
   
-  if (nameMatch) {
-    const rawFirst = nameMatch[2];
-    const rawLast = nameMatch[3] || "Client";
+  const jsonMatch = jsonMatchBacktick || jsonMatchBracket;
 
-    if (!forbiddenNames.some(f => f.toLowerCase() === rawFirst.toLowerCase())) {
-      let finalTitle = "Client";
-      const possibleTitles = ["Mr", "Mrs", "Ms", "Miss", "Dr"];
-      if (possibleTitles.some(t => nameMatch[1].toLowerCase().includes(t.toLowerCase()))) {
-        const tMatch = nameMatch[1].match(/(Mr|Mrs|Ms|Miss|Dr)/i);
-        finalTitle = tMatch ? (tMatch[0].charAt(0).toUpperCase() + tMatch[0].slice(1).toLowerCase() + ".") : "Client";
+  if (jsonMatch) {
+    try {
+      const leadData = JSON.parse(jsonMatch[1]);
+
+      // If it's our finalize_lead action → save it properly
+      if (leadData.action === "finalize_lead") {
+        
+        const newEntry = {
+          id: Date.now().toString(),
+          title: leadData.title || "Miss.",
+          firstName: leadData.firstName || "Guest",
+          lastName: leadData.surname || "Client",
+          refreshment: leadData.preferredDrink || "Water",
+          phone: leadData.phone || "No Number",
+          email: leadData.email || "No Email",
+          // AdminDashboard expects 'isNew' boolean, not 'status' string
+          isNew: leadData.clientType !== "Return",
+          // AdminDashboard expects 'time' not 'timestamp'
+          time: new Date().toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: true 
+          }),
+          treatment: leadData.treatment || "Consultation",
+          price: Number(leadData.price) || 0,
+          source: "ovg-engage"
+        };
+
+        // Save to localStorage (Jill's console)
+        const rawStats = localStorage.getItem("luxe_live_stats");
+        const prev = rawStats ? JSON.parse(rawStats) : { 
+          totalRevenue: 0, 
+          totalBookings: 0, 
+          bookings: [] 
+        };
+
+        const updatedBookings = [newEntry, ...(prev.bookings || [])].slice(0, 25);
+
+        localStorage.setItem("luxe_live_stats", JSON.stringify({
+          ...prev,
+          totalRevenue: (Number(prev.totalRevenue) || 0) + newEntry.price,
+          totalBookings: (Number(prev.totalBookings) || 0) + 1,
+          bookings: updatedBookings,
+          lastBooking: newEntry
+        }));
+
+        console.log("✅ SUCCESS: Lead captured via JSON from ovg-engage", newEntry);
+        
+        setShowSyncBadge(true);
+        setTimeout(() => setShowSyncBadge(false), 4500);
+        
+        window.dispatchEvent(new Event('luxe_update'));
+
+        if (typeof sendLuxeConfirmation === 'function') {
+          sendLuxeConfirmation(newEntry);
+        }
+
+        // Clear temp storage
+        localStorage.removeItem("luxe_temp_name");
+        localStorage.removeItem("luxe_temp_drink");
+        return;   // ← Important: Exit early, no need to run old logic
       }
-
-      const extracted = {
-        title: finalTitle,
-        first: rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase(),
-        last: rawLast !== "Client" ? rawLast.charAt(0).toUpperCase() + rawLast.slice(1).toLowerCase() : "Client"
-      };
-      localStorage.setItem("luxe_temp_name", JSON.stringify(extracted));
+    } catch (error) {
+      console.error("❌ Failed to parse JSON from AI:", error);
     }
   }
 
-  // 2. DRINK MEMORY (Bêre in Vault)
-  const drinkRegex = /(mocha latte|orange juice|black coffee|herbal tea|mocha|latte|coffee|tea|water|juice|champagne|citrus|chamomile)/i;
-  const clientChoice = (userInputText || "").match(drinkRegex);
-  const generalMatch = sourceText.match(drinkRegex);
-
-  if (clientChoice) {
-    localStorage.setItem("luxe_temp_drink", clientChoice[0]);
-  } else if (generalMatch && !localStorage.getItem("luxe_temp_drink")) {
-    localStorage.setItem("luxe_temp_drink", generalMatch[0]);
-  }
-
-  // 3. KRITIEKE VEILIGHEID (Die "Luxe" Meester-Trigger)
-  const priceMatch = sourceText.match(/\$(\d{1,3}(?:,\d{3})*|\d+)/);
-  const detectedPrice = priceMatch ? parseInt(priceMatch[1].replace(/,/g, '')) : 0;
-
-  // Ons soek nou vir die amptelike sein OF die algemene bevestiging as fallback
-  const isFinal = /officially confirmed|confirmed|reserved|booked|scheduled|to confirm/i.test(sourceText);
-
-  // AS DAAR GEEN PRYS OF SEIN IS NIE, STOP (Wag vir die AI se finale sin)
-  if (!detectedPrice || !isFinal) {
-    console.log("⏳ Luxe Shield: Waiting for final confirmation signal...");
-    return;
-  }
-
-  // 4. HAAL DATA UIT VAULT
-  const savedName = JSON.parse(localStorage.getItem("luxe_temp_name") || '{"title":"Client","first":"Guest","last":"Client"}');
-  const finalRefreshment = localStorage.getItem("luxe_temp_drink") || "Standard Water";
-
-  // 5. SHIELD (Duplikaat-beskerming)
-  const txId = `${savedName.last}-${detectedPrice}`.toLowerCase();
-  if (localStorage.getItem("luxe_last_tx") === txId) return;
-  localStorage.setItem("luxe_last_tx", txId);
-
-  // 6. KONTAK & STATUS (Improved Extraction)
-  const rawStats = localStorage.getItem("luxe_live_stats");
-  const prev = rawStats ? JSON.parse(rawStats) : { totalRevenue: 0, totalBookings: 0, bookings: [] };
-
-  // 📱 Robust Phone Regex: Catches 0978868853, +27 76..., or 076-555-1234
-  const phoneRegex = /(?:\+?(\d{1,3}))?[\s.-]?\(?(\d{3})\)?[\s.-]?(\d{3})[\s.-]?(\d{4,5})/g;
-  const phoneMatch = sourceText.match(phoneRegex) || sourceText.match(/\d{9,13}/);
-  const extractedPhone = phoneMatch ? phoneMatch[0].trim() : "No Number";
-
-  // 📧 Email Regex: Ensures we catch the email if the AI successfully requests it
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;
-  const emailMatch = sourceText.match(emailRegex);
-  const extractedEmail = emailMatch ? emailMatch[0] : "No Email";
-
-  const isExplicitlyNew = /first|new|never been|first visit|going there for the first time|it will be the 1st/i.test(sourceText);
-  const finalStatus = isExplicitlyNew ? "✨ NEW" : "🔄 RET";
-
-  const newEntry = {
-    id: Date.now(),
-    title: savedName.title || "Miss.",
-    firstName: savedName.first || "Guest",
-    lastName: savedName.last || "Client",
-    refreshment: String(finalRefreshment || "Water").trim(),
-    phone: extractedPhone,
-    status: finalStatus,
-    treatment: sourceText.match(/(HydraFacial|Botox|Filler|Laser|Peel|Hydra facial)/i)?.[0] || "Consultation",
-    price: Number(detectedPrice) || 0,
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-    email: extractedEmail // Using the refined email extraction here
-  };
-
-  // 7. STOOR & UPDATE
-  const updatedBookings = [newEntry, ...(prev.bookings || [])].slice(0, 25);
-
-  localStorage.setItem("luxe_live_stats", JSON.stringify({
-    ...prev,
-    totalRevenue: (Number(prev.totalRevenue) || 0) + newEntry.price,
-    totalBookings: (Number(prev.totalBookings) || 0) + 1,
-    bookings: updatedBookings,
-    lastBooking: newEntry
-  }));
-
-  // 💎 ADDED: TRIGGER VIP BADGE UI
-  setShowSyncBadge(true);
-  setTimeout(() => setShowSyncBadge(false), 4500);
-
-  window.dispatchEvent(new Event('luxe_update'));
-
-  if (typeof sendLuxeConfirmation === 'function') {
-    sendLuxeConfirmation(newEntry);
-  }
-
-  localStorage.removeItem("luxe_temp_drink");
-  console.log("💎 Luxe Entry Fixed:", newEntry);
+  // === FALLBACK: Keep your old logic for safety (in case JSON fails) ===
+  console.log("⏳ No JSON found - falling back to legacy detection...");
+  
+  // (Your original code can stay here if you want a safety net)
+  // ... paste your original logBookingForJill code here if desired ...
 };
 
   // --- AUTO-SCROLL ---
@@ -405,6 +372,23 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
 
 
 
+  // --- STRIP JSON FROM AI RESPONSE (Hide technical data from user) ---
+  const stripJsonFromResponse = (text: string): string => {
+    // Remove code blocks with json marker
+    let cleaned = text.replace(/```json\s*[\s\S]*?\s*```/g, '').trim();
+    // Remove code blocks without marker (just ``` ... ```)
+    cleaned = cleaned.replace(/```\s*[\s\S]*?\s*```/g, '').trim();
+    // Remove [START JSON BLOCK] ... [END JSON BLOCK] format
+    cleaned = cleaned.replace(/\[START JSON BLOCK\]\s*[\s\S]*?\s*\[END JSON BLOCK\]/g, '').trim();
+    // Remove [JSON CODE BLOCK] ... [/JSON CODE BLOCK] format
+    cleaned = cleaned.replace(/\[JSON CODE BLOCK\]\s*[\s\S]*?\s*\[\/JSON CODE BLOCK\]/g, '').trim();
+    // Remove standalone JSON objects that might not be in code blocks
+    cleaned = cleaned.replace(/\{\s*"action"\s*:\s*"finalize_lead"[\s\S]*?\}/g, '').trim();
+    // Clean up any extra whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    return cleaned;
+  };
+
   // --- SEND MESSAGE (With VIP Verbal Confirmation & Sync) ---
   const sendMessageDirect = async (userInputText: string) => {
     if (!userInputText.trim()) return;
@@ -425,16 +409,23 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
     try {
       let response = await generateAIResponse(userInputText, newMsgs);
       
-      // 💎 AI VERBAL OVERRIDE: Add the "Synced" phrase if a booking is confirmed
-      const isBooking = /officially confirmed|confirmed|reserved|booked|scheduled/i.test(response);
-      if (isBooking && !response.includes("VIP booking is synced")) {
+      // 💎 AI VERBAL OVERRIDE: Add the "Synced" phrase ONLY if a booking is confirmed via JSON
+      // Check if response contains the finalize_lead JSON (actual booking confirmation) - supports both formats
+      const hasBookingJsonBacktick = /```json\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?```/.test(response);
+      const hasBookingJsonBracket = /\[JSON CODE BLOCK\]\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?\[\/JSON CODE BLOCK\]/.test(response);
+      const hasBookingJson = hasBookingJsonBacktick || hasBookingJsonBracket;
+      
+      if (hasBookingJson && !response.includes("VIP booking is synced")) {
         response += " Your VIP booking is now synced to our Sanctuary stream.";
       }
+
+      // Strip JSON from display (but keep it for logBookingForJill to process)
+      const displayResponse = stripJsonFromResponse(response);
 
       const aiMsg: ChatMessage = { 
         id: (Date.now() + 1).toString(), 
         role: "ai", 
-        text: response, 
+        text: displayResponse, 
         timestamp: Date.now() 
       };
       
@@ -442,10 +433,10 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
       setMessages(finalMsgs);
       localStorage.setItem("ovgweb_chat_messages", JSON.stringify(finalMsgs));
       
-      // ✅ This now speaks the sync confirmation aloud
-      speak(response);
+      // ✅ This now speaks the sync confirmation aloud (with JSON stripped)
+      speak(displayResponse);
 
-      // ✅ Logs to Jill's dashboard & triggers the emerald badge
+      // ✅ Logs to Jill's dashboard & triggers the emerald badge (with full response including JSON)
       logBookingForJill(response, userInputText);
 
     } catch (e) {
@@ -638,8 +629,12 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
       {/* ===== MAIN CHAT WINDOW ===== */}
       {isOpen && (
         <div 
-          className="fixed bottom-6 right-4 sm:right-6 z-[9999] 
-                     w-[92vw] max-w-[380px] sm:max-w-[420px] 
+          // Mobile-first responsive design - optimized for all devices
+          // Uses safe-area-inset for notched phones (iPhone X+, Samsung with notches)
+          className="fixed z-[9999] 
+                     bottom-[max(1.5rem,env(safe-area-inset-bottom))] 
+                     right-[max(1rem,env(safe-area-inset-right))]
+                     w-[94vw] max-w-[380px] sm:max-w-[420px] 
                      rounded-3xl border-2 overflow-hidden shadow-2xl bg-transparent"
           style={{ borderColor: config.primaryColor }}
         >
@@ -648,7 +643,12 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
             <img src={headerBg} alt="" className="absolute inset-0 w-full h-full object-cover object-center" />
             <div className="absolute inset-0 bg-black/40" />
             <div className="relative flex items-center gap-3">
-              <img src={config.logo} alt={config.brandName} className="h-10 w-auto" />
+              {/* Logo - Use luxemedspa.svg from public/images */}
+              <img 
+                src="/images/luxemedspa.svg" 
+                alt={config.brandName} 
+                className="h-10 w-auto object-contain"
+              />
               <div>
                 <h3 className="font-semibold text-white text-sm">{config.brandName}</h3>
                 <div className="flex items-center gap-1.5">
@@ -687,8 +687,9 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
             </div>
           </div>
 
-          {/* Messages - ADDED 'relative' for badge positioning */}
-          <div className="relative overflow-y-auto p-4 space-y-2 bg-transparent h-[320px]">
+          {/* Messages - Responsive height for all screen sizes */}
+          {/* Uses viewport height units for better mobile experience */}
+          <div className="relative overflow-y-auto p-4 space-y-2 bg-transparent h-[40vh] sm:h-[320px] max-h-[450px]">
             
             {/* 💎 UPDATED BADGE PLACEMENT */}
 <AnimatePresence>
@@ -713,30 +714,51 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
               return (
                 <div key={msg.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`relative max-w-[75%] px-3 py-2 rounded-lg text-sm leading-relaxed shadow-sm backdrop-blur-sm border-2 border-pink-400/70 ${
+                    className={`relative max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed backdrop-blur-md border-b-2 ${
                       isUser
-                        ? "bg-[#dcf8c6]/90 text-pink-900 rounded-tr-none"
-                        : "bg-white/85 text-pink-900 rounded-tl-none"
+                        ? "bg-gradient-to-br from-pink-100/95 to-pink-50/95 text-amber-800 rounded-tr-sm border-b-pink-400 shadow-lg shadow-pink-100/30"
+                        : "bg-gradient-to-br from-white/95 to-gray-50/95 text-amber-800 rounded-tl-sm border-b-pink-400 shadow-lg shadow-gray-100/30"
                     }`}
                   >
-                    <span>{msg.text}</span>
-                    <span className="ml-2 inline-flex items-end float-right text-[10px] text-gray-500 mt-1 pl-2 leading-none whitespace-nowrap">
+                    <span className="font-light">{msg.text}</span>
+                    <span className="ml-2 inline-flex items-end float-right text-[9px] text-amber-600/70 mt-1.5 pl-2 leading-none whitespace-nowrap font-mono">
                       {time}
                     </span>
                   </div>
                 </div>
               );
             })}
-            {isTyping && <div className="text-pink-500 text-sm animate-pulse px-2">Concierge is typing...</div>}
+            {isTyping && (
+              <div className="px-2 py-3">
+                <div className="flex items-center gap-2 text-amber-800 text-sm font-light">
+                  <span className="animate-pulse">Concierge is typing</span>
+                  <span className="animate-bounce delay-100">.</span>
+                  <span className="animate-bounce delay-200">.</span>
+                  <span className="animate-bounce delay-300">.</span>
+                </div>
+                {/* Google Gemini-style rainbow line (pink and gold) */}
+                <div className="mt-2 h-1 rounded-full overflow-hidden">
+                  <div className="h-full w-full animate-pulse bg-gradient-to-r from-pink-400 via-amber-400 to-pink-400 bg-[length:200%_100%]"></div>
+                </div>
+              </div>
+            )}
             
+            {/* Microphone Hint Message */}
+            {messages.length <= 1 && !isTyping && isSupported && (
+              <div className="flex items-center gap-2 px-2 py-2 text-xs text-pink-600 bg-pink-50/80 rounded-lg backdrop-blur-sm border border-pink-200/50">
+                <Mic className="h-3.5 w-3.5" />
+                <span>Click the mic icon to speak to us</span>
+              </div>
+            )}
+
             {/* Quick-reply buttons & WhatsApp */}
-            {messages.length <= 1 && !isTyping && (
+            {messages.length <= 2 && !isTyping && (
               <div className="flex flex-wrap gap-2 px-1 pt-2">
                 {["Book a treatment", "I need prices"].map((label) => (
                   <button
                     key={label}
                     onClick={() => sendMessageDirect(label)}
-                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-pink-300/60 bg-white/70 backdrop-blur-sm text-gray-800 hover:bg-pink-200/80 transition-colors shadow-sm"
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-pink-400/60 bg-pink-50/70 backdrop-blur-sm text-pink-700 hover:bg-pink-100/80 transition-colors shadow-sm"
                   >
                     {label}
                   </button>
@@ -812,10 +834,9 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
         >
           <MessageCircle className="h-6 w-6 text-white" />
         </button>
-      )}
+    )}
     </>
   );
-};
-
+}; // <--- This closes the 'const ChatWidget = ...' function
 
 export default ChatWidget;

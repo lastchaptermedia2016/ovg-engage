@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { ZillionConfig } from '../../ZillionConfig';
 
 // Fixed: Importing type from mock-ai to break circular dependency
 import { generateAIResponse, type ChatMessage } from "@/lib/mock-ai"; 
@@ -23,13 +24,18 @@ interface WidgetConfig {
   phone?: string;
 }
 
+// 💎 Zillion Engine Integration
 const defaultConfig: WidgetConfig = {
-  logo: "/images/luxemedspa.svg",
-  brandName: "The Luxe Med Spa",
-  primaryColor: "rgb(189, 124, 151)",
-  greeting: "Hi there! I'm your Luxe Med Spa concierge ✨ How can I help you book the perfect treatment today?",
-  peekText: "Hey Gorgeous! Welcome to Luxe Med Spa, how can I help?",
-  phone: "27760330046",
+  logo: headerBg, // Gebruik jou ingevoerde headerBg image
+  brandName: ZillionConfig.tenant.name,
+  primaryColor: ZillionConfig.branding.primaryGold,
+  
+  // Maak die groetboodskap ook industrie-onafhanklik
+  greeting: `Hi there! I'm your ${ZillionConfig.tenant.name} concierge ✨ How can I help you today?`,
+  peekText: `Welcome to ${ZillionConfig.tenant.name}, how can I help?`,
+  
+  // Gebruik die foonnommer uit die config as jy dit daar bygevoeg het
+  phone: "27760330046", 
 };
 
 const ChatWidget = () => {
@@ -44,14 +50,16 @@ const ChatWidget = () => {
   const [showConsent, setShowConsent] = useState(false);
   const [hasConsent, setHasConsent] = useState(() => localStorage.getItem("ovgweb_ai_consent") === "true");
   const [showPeek, setShowPeek] = useState(false);
+  
+  // 💎 ADDED: VIP Status Indicator State
+  const [showSyncBadge, setShowSyncBadge] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try { return JSON.parse(localStorage.getItem("ovgweb_chat_messages") || "[]"); } catch { return []; }
   });
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [hasGreeted, setHasGreeted] = useState(false);        // ← Fixed: now declared
-  // isListening now comes from useSpeechRecognition hook
+  const [hasGreeted, setHasGreeted] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem("ovgweb_voice_mute") !== "true");
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -60,21 +68,19 @@ const ChatWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // --- 1. LUXE MESSAGE NOTIFICATION ENGINE ---
   const sendLuxeConfirmation = (booking: any) => {
-  // Ons bou 'n VIP-geformateerde boodskap vir WhatsApp/SMS
-  const message = `Hello ${booking.title} ${booking.lastName}, your bespoke ${booking.treatment} ($${booking.price}) at The Luxe Med Spa is confirmed for ${booking.timestamp}. We have your ${booking.refreshment} ready for your arrival. See you in the sanctuary!`;
-  
-  // Skep die skakel (verwyder alle spasies uit die foonnommer)
-  const cleanPhone = booking.phone.replace(/\D/g, '');
-  const whatsappUrl = `https://wa.me{cleanPhone}?text=${encodeURIComponent(message)}`;
-  
-  // Vir nou log ons dit net in die console sodat Jill dit kan sien
-  console.log("📱 Luxe WhatsApp Link Generated:", whatsappUrl);
-  
-  // AS JY DIT OUTOMATIES WIL OOPMAAK:
-  // window.open(whatsappUrl, '_blank');
-};
+    // Ons bou 'n VIP-geformateerde boodskap vir WhatsApp/SMS
+    const message = `Hello ${booking.title} ${booking.lastName}, your bespoke ${booking.treatment} ($${booking.price}) at The Luxe Med Spa is confirmed for ${booking.timestamp}. We have your ${booking.refreshment} ready for your arrival. See you in the sanctuary!`;
+    
+    // Skep die skakel (verwyder alle spasies uit die foonnommer)
+    const cleanPhone = booking.phone.replace(/\D/g, '');
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    
+    // Vir nou log ons dit net in die console sodat Jill dit kan sien
+    console.log("📱 Luxe WhatsApp Link Generated:", whatsappUrl);
+  };
 
   // --- JILL'S REVENUE LOGGING - LUXE PERSISTENT ENGINE (v2.2 FINAL) ---
 const logBookingForJill = (aiResponse: string, userInputText: string) => {
@@ -117,7 +123,7 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
     localStorage.setItem("luxe_temp_drink", generalMatch[0]);
   }
 
-    // 3. KRITIEKE VEILIGHEID (Die "Luxe" Meester-Trigger)
+  // 3. KRITIEKE VEILIGHEID (Die "Luxe" Meester-Trigger)
   const priceMatch = sourceText.match(/\$(\d{1,3}(?:,\d{3})*|\d+)/);
   const detectedPrice = priceMatch ? parseInt(priceMatch[1].replace(/,/g, '')) : 0;
 
@@ -130,8 +136,7 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
     return;
   }
 
-
-  // 4. HAAL DATA UIT VAULT (Slegs een keer gedeclareer)
+  // 4. HAAL DATA UIT VAULT
   const savedName = JSON.parse(localStorage.getItem("luxe_temp_name") || '{"title":"Client","first":"Guest","last":"Client"}');
   const finalRefreshment = localStorage.getItem("luxe_temp_drink") || "Standard Water";
 
@@ -140,89 +145,82 @@ const logBookingForJill = (aiResponse: string, userInputText: string) => {
   if (localStorage.getItem("luxe_last_tx") === txId) return;
   localStorage.setItem("luxe_last_tx", txId);
 
-   // 6. KONTAK & STATUS (Luxe Assumption & Alignment Fix)
-const rawStats = localStorage.getItem("luxe_live_stats");
-const prev = rawStats ? JSON.parse(rawStats) : { totalRevenue: 0, totalBookings: 0, bookings: [] };
+  // 6. KONTAK & STATUS (Improved Extraction)
+  const rawStats = localStorage.getItem("luxe_live_stats");
+  const prev = rawStats ? JSON.parse(rawStats) : { totalRevenue: 0, totalBookings: 0, bookings: [] };
 
-// 1. Telefoonnommer-isolasie (Regex versterk)
-const phoneMatch = sourceText.match(/(\d{10})|(\+?\d{1,4}[-.\s]?\d{2,4}[-.\s]?\d{3}[-.\s]?\d{3,4})/);
-const extractedPhone = phoneMatch ? (phoneMatch[0] || "No Number").trim() : "No Number";
+  // 📱 Robust Phone Regex: Catches 0978868853, +27 76..., or 076-555-1234
+  const phoneRegex = /(?:\+?(\d{1,3}))?[\s.-]?\(?(\d{3})\)?[\s.-]?(\d{3})[\s.-]?(\d{4,5})/g;
+  const phoneMatch = sourceText.match(phoneRegex) || sourceText.match(/\d{9,13}/);
+  const extractedPhone = phoneMatch ? phoneMatch[0].trim() : "No Number";
 
-// 2. Luxe Assumption Logic: Almal is VIP/Returning tensy hulle sê dis hul 1ste keer
-const isExplicitlyNew = /first|new|never been|first visit|going there for the first time|it will be the 1st/i.test(sourceText);
-const finalStatus = isExplicitlyNew ? "New" : "Returning";
+  // 📧 Email Regex: Ensures we catch the email if the AI successfully requests it
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;
+  const emailMatch = sourceText.match(emailRegex);
+  const extractedEmail = emailMatch ? emailMatch[0] : "No Email";
 
-const newEntry = {
-  id: Date.now(),
-  title: savedName.title || "Miss.",
-  firstName: savedName.first || "Guest",
-  lastName: savedName.last || "Client",
-  refreshment: String(finalRefreshment || "Water").trim(),
-  phone: extractedPhone, // Hou dit in sy eie veld
-  status: finalStatus,   // Gebruik nou ons slim aanname
-  treatment: sourceText.match(/(HydraFacial|Botox|Filler|Laser|Peel|Hydra facial)/i)?.[0] || "Consultation",
-  price: Number(detectedPrice) || 0,
-  // Maak seker die timestamp is altyd 'n string sodat die kolom nie leeg lyk nie
-  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
-  email: sourceText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i)?.[0] || "No Email"
+  const isExplicitlyNew = /first|new|never been|first visit|going there for the first time|it will be the 1st/i.test(sourceText);
+  const finalStatus = isExplicitlyNew ? "✨ NEW" : "🔄 RET";
+
+  const newEntry = {
+    id: Date.now(),
+    title: savedName.title || "Miss.",
+    firstName: savedName.first || "Guest",
+    lastName: savedName.last || "Client",
+    refreshment: String(finalRefreshment || "Water").trim(),
+    phone: extractedPhone,
+    status: finalStatus,
+    treatment: sourceText.match(/(HydraFacial|Botox|Filler|Laser|Peel|Hydra facial)/i)?.[0] || "Consultation",
+    price: Number(detectedPrice) || 0,
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
+    email: extractedEmail // Using the refined email extraction here
+  };
+
+  // 7. STOOR & UPDATE
+  const updatedBookings = [newEntry, ...(prev.bookings || [])].slice(0, 25);
+
+  localStorage.setItem("luxe_live_stats", JSON.stringify({
+    ...prev,
+    totalRevenue: (Number(prev.totalRevenue) || 0) + newEntry.price,
+    totalBookings: (Number(prev.totalBookings) || 0) + 1,
+    bookings: updatedBookings,
+    lastBooking: newEntry
+  }));
+
+  // 💎 ADDED: TRIGGER VIP BADGE UI
+  setShowSyncBadge(true);
+  setTimeout(() => setShowSyncBadge(false), 4500);
+
+  window.dispatchEvent(new Event('luxe_update'));
+
+  if (typeof sendLuxeConfirmation === 'function') {
+    sendLuxeConfirmation(newEntry);
+  }
+
+  localStorage.removeItem("luxe_temp_drink");
+  console.log("💎 Luxe Entry Fixed:", newEntry);
 };
- 
 
-// 7. STOOR & UPDATE (Skoon Data)
-const updatedBookings = [newEntry, ...(prev.bookings || [])].slice(0, 25);
-
-localStorage.setItem("luxe_live_stats", JSON.stringify({
-  ...prev,
-  totalRevenue: (Number(prev.totalRevenue) || 0) + newEntry.price,
-  totalBookings: (Number(prev.totalBookings) || 0) + 1,
-  bookings: updatedBookings,
-  lastBooking: newEntry
-}));
-
-// Belangrik: Maak seker jou UI-render funksie lees 'newEntry.phone' en 'newEntry.timestamp' apart!
-window.dispatchEvent(new Event('luxe_update'));
-
-if (typeof sendLuxeConfirmation === 'function') {
-  sendLuxeConfirmation(newEntry);
-}
-
-localStorage.removeItem("luxe_temp_drink");
-console.log("💎 Luxe Entry Fixed:", newEntry);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-// --- AUTO-SCROLL (Jou bestaande kode volg hier onder) ---
-useEffect(() => {
-  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [messages, isTyping]);
-
+  // --- AUTO-SCROLL ---
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
 
   // Auto-send after voice input finishes
-useEffect(() => {
-  if (!isListening && transcript.trim()) {
-    const spokenText = transcript.trim();
-    setInput(spokenText);
-    
-    setTimeout(() => {
-      sendMessageDirect(spokenText);
-      resetTranscript();
-      setInput("");
-    }, 50);
-  }
-}, [isListening, transcript]);
+  useEffect(() => {
+    if (!isListening && transcript.trim()) {
+      const spokenText = transcript.trim();
+      setInput(spokenText);
+      
+      setTimeout(() => {
+        sendMessageDirect(spokenText);
+        resetTranscript();
+        setInput("");
+      }, 50);
+    }
+  }, [isListening, transcript]);
 
-    // === DISABLE BODY SCROLL WHEN CHAT IS OPEN (Mobile Fix) ===
+  // === DISABLE BODY SCROLL WHEN CHAT IS OPEN (Mobile Fix) ===
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -232,7 +230,6 @@ useEffect(() => {
       document.body.style.touchAction = "auto";
     }
 
-    // Cleanup when component unmounts
     return () => {
       document.body.style.overflow = "visible";
       document.body.style.touchAction = "auto";
@@ -240,15 +237,11 @@ useEffect(() => {
   }, [isOpen]);
 
   // --- WHATSAPP HELPER ---
-const openWhatsApp = useCallback((phone: string, message: string) => {
-  const cleanPhone = phone.replace(/\D/g, ""); 
-  // Voeg die $ voor {cleanPhone} by:
-  const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-
-  window.open(url, '_blank');
-}, []);
-
-
+  const openWhatsApp = useCallback((phone: string, message: string) => {
+    const cleanPhone = phone.replace(/\D/g, ""); 
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  }, []);
 
   // --- RESET CHAT ---
   const resetChat = useCallback(() => {
@@ -258,28 +251,22 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
     toast({ title: "Chat Reset", description: "History cleared successfully." });
   }, [toast]);
 
-    const speak = useCallback(async (text: string) => {
+  const speak = useCallback(async (text: string) => {
     if (!voiceEnabled || !text.trim()) return;
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
 
-    // --- TOP-TIER INSERT START: EMERGENCY BYPASS ---
-    // Change this to 'true' only when your API credits/tokens are restored.
     const useExternalAPIs = false; 
 
-        if (!useExternalAPIs) {
+    if (!useExternalAPIs) {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text.replace(/[*#_]/g, ''));
       const v = window.speechSynthesis.getVoices();
       u.voice = v.find(s => s.name.includes("Google") || s.name.includes("Samantha")) || v[0];
       u.rate = 0.95;
       window.speechSynthesis.speak(u);
-      
       console.log("✅ Emergency Bypass: Speaking via Browser Fallback");
-
-      return; // Exit here so it doesn't wait for failing APIs
+      return;
     }
-
-    // --- TOP-TIER INSERT END ---
 
     const keys = {
       groq: import.meta.env.VITE_GROQ_API_KEY,
@@ -418,53 +405,60 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
 
 
 
-  // --- SEND MESSAGE (Fixes Error 402, 426, 446) ---
-    const sendMessageDirect = async (userInputText: string) => {
-  if (!userInputText.trim()) return;
+  // --- SEND MESSAGE (With VIP Verbal Confirmation & Sync) ---
+  const sendMessageDirect = async (userInputText: string) => {
+    if (!userInputText.trim()) return;
 
-  const userMsg: ChatMessage = { 
-    id: Date.now().toString(), 
-    role: "user", 
-    text: userInputText, 
-    timestamp: Date.now() 
-  };
-
-  const newMsgs = [...messages, userMsg];
-  setMessages(newMsgs);
-  localStorage.setItem("ovgweb_chat_messages", JSON.stringify(newMsgs));
-  setInput("");
-  setIsTyping(true);
-
-  try {
-    const response = await generateAIResponse(userInputText, newMsgs);
-    
-    const aiMsg: ChatMessage = { 
-      id: (Date.now() + 1).toString(), 
-      role: "ai", 
-      text: response, 
+    const userMsg: ChatMessage = { 
+      id: Date.now().toString(), 
+      role: "user", 
+      text: userInputText, 
       timestamp: Date.now() 
     };
-    
-    const finalMsgs = [...newMsgs, aiMsg];
-    setMessages(finalMsgs);
-    localStorage.setItem("ovgweb_chat_messages", JSON.stringify(finalMsgs));
-    
-    speak(response);
 
-    // ✅ FIXED CALL - now passes both AI response AND user input
-    logBookingForJill(response, userInputText);
+    const newMsgs = [...messages, userMsg];
+    setMessages(newMsgs);
+    localStorage.setItem("ovgweb_chat_messages", JSON.stringify(newMsgs));
+    setInput("");
+    setIsTyping(true);
 
-  } catch (e) {
-    console.error("AI Error:", e);
-    toast({ 
-      title: "Concierge Error", 
-      description: "I'm having trouble connecting. Please try again.", 
-      variant: "destructive" 
-    });
-  } finally {
-    setIsTyping(false);
-  }
-};
+    try {
+      let response = await generateAIResponse(userInputText, newMsgs);
+      
+      // 💎 AI VERBAL OVERRIDE: Add the "Synced" phrase if a booking is confirmed
+      const isBooking = /officially confirmed|confirmed|reserved|booked|scheduled/i.test(response);
+      if (isBooking && !response.includes("VIP booking is synced")) {
+        response += " Your VIP booking is now synced to our Sanctuary stream.";
+      }
+
+      const aiMsg: ChatMessage = { 
+        id: (Date.now() + 1).toString(), 
+        role: "ai", 
+        text: response, 
+        timestamp: Date.now() 
+      };
+      
+      const finalMsgs = [...newMsgs, aiMsg];
+      setMessages(finalMsgs);
+      localStorage.setItem("ovgweb_chat_messages", JSON.stringify(finalMsgs));
+      
+      // ✅ This now speaks the sync confirmation aloud
+      speak(response);
+
+      // ✅ Logs to Jill's dashboard & triggers the emerald badge
+      logBookingForJill(response, userInputText);
+
+    } catch (e) {
+      console.error("AI Error:", e);
+      toast({ 
+        title: "Concierge Error", 
+        description: "I'm having trouble connecting. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
 
   const handleAcceptConsent = () => {
@@ -643,12 +637,12 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
 
       {/* ===== MAIN CHAT WINDOW ===== */}
       {isOpen && (
-  <div 
-    className="fixed bottom-6 right-4 sm:right-6 z-[9999] 
-               w-[92vw] max-w-[380px] sm:max-w-[420px] 
-               rounded-3xl border-2 overflow-hidden shadow-2xl bg-transparent"
-    style={{ borderColor: config.primaryColor }}
-  >
+        <div 
+          className="fixed bottom-6 right-4 sm:right-6 z-[9999] 
+                     w-[92vw] max-w-[380px] sm:max-w-[420px] 
+                     rounded-3xl border-2 overflow-hidden shadow-2xl bg-transparent"
+          style={{ borderColor: config.primaryColor }}
+        >
           {/* Header */}
           <div className="relative p-5 flex justify-between items-center overflow-hidden">
             <img src={headerBg} alt="" className="absolute inset-0 w-full h-full object-cover object-center" />
@@ -693,8 +687,26 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="overflow-y-auto p-4 space-y-2 bg-transparent h-[320px]">
+          {/* Messages - ADDED 'relative' for badge positioning */}
+          <div className="relative overflow-y-auto p-4 space-y-2 bg-transparent h-[320px]">
+            
+            {/* 💎 UPDATED BADGE PLACEMENT */}
+<AnimatePresence>
+  {showSyncBadge && (
+    <motion.div 
+      initial={{ y: -50, opacity: 0 }} 
+      animate={{ y: 10, opacity: 1 }} // Moved down slightly to y: 10
+      exit={{ y: -20, opacity: 0 }} 
+      className="absolute left-1/2 -translate-x-1/2 z-[9999] w-[90%] pointer-events-none"
+    >
+      <div className="bg-emerald-600 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-2xl flex items-center justify-center gap-2 border border-white/30 backdrop-blur-md">
+        <ShieldCheck className="h-3.5 w-3.5 animate-pulse" /> 
+        VIP BOOKING SECURED • SYNCED TO SANCTUARY
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
+
             {messages.map((msg) => {
               const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
               const isUser = msg.role === "user";
@@ -716,7 +728,8 @@ const openWhatsApp = useCallback((phone: string, message: string) => {
               );
             })}
             {isTyping && <div className="text-pink-500 text-sm animate-pulse px-2">Concierge is typing...</div>}
-                        {/* Quick-reply buttons & WhatsApp */}
+            
+            {/* Quick-reply buttons & WhatsApp */}
             {messages.length <= 1 && !isTyping && (
               <div className="flex flex-wrap gap-2 px-1 pt-2">
                 {["Book a treatment", "I need prices"].map((label) => (

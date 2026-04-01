@@ -23,6 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'GROQ API key not configured' });
     }
 
+    console.log("🔊 Calling Groq TTS API with text:", text.substring(0, 50) + "...");
+
     // Make a request to the GROQ TTS API
     const response = await fetch('https://api.groq.com/openai/v1/audio/speech', {
       method: 'POST',
@@ -31,24 +33,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text,
-        voice_id: 'default',  // Default voice; adjust as necessary
+        model: 'canopylabs/orpheus-v1-english',
+        input: text,
+        voice: 'autumn',
+        response_format: 'wav',
       }),
     });
 
     // Handle non-OK responses from the API
     if (!response.ok) {
       const errorText = await response.text();
-      return res.status(response.status).json({ error: `GROQ error: ${errorText}` });
+      console.error('❌ Groq TTS API error:', response.status, errorText);
+      return res.status(response.status).json({ error: `GROQ TTS error: ${errorText}` });
     }
+
+    console.log("✅ Groq TTS API responded successfully");
 
     // Convert the response to an audio buffer
     const buffer = await response.arrayBuffer();
-    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Type', 'audio/wav');
     res.send(Buffer.from(buffer));
   } catch (err: any) {
     // Log the error and return a 500 status
-    console.error('Proxy error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('GROQ TTS proxy error:', err);
+    res.status(500).json({ error: 'Internal server error: ' + err.message });
   }
 }

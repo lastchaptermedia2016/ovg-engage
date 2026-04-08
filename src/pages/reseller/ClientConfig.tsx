@@ -28,6 +28,9 @@ interface WidgetConfig {
     logoUrl: string;
     font: string;
     headerImage?: string; // Custom header background image URL
+    chatBubblePosition?: 'bottom-right' | 'bottom-left' | 'bottom-center';
+    chatBubbleIcon?: 'message' | 'chat' | 'support' | 'help' | 'user';
+    chatBubbleLabel?: string; // Optional label text next to bubble
   };
   ai_config: {
     mood: string;
@@ -48,6 +51,7 @@ interface WidgetConfig {
     whatsappEnabled: boolean;
     emailNotifications: boolean;
   };
+  allowed_domains: string[];
   special_offers: string | null;
 }
 
@@ -98,6 +102,7 @@ export default function ClientConfig() {
       whatsappEnabled: true,
       emailNotifications: false,
     },
+    allowed_domains: [],
     special_offers: '',
   });
 
@@ -140,6 +145,7 @@ export default function ClientConfig() {
         ai_config: (configData as any).ai_config as WidgetConfig['ai_config'],
         offerings: (configData as any).offerings as WidgetConfig['offerings'],
         addons: (configData as any).addons as WidgetConfig['addons'],
+        allowed_domains: (configData as any).allowed_domains || [],
         special_offers: (configData as any).special_offers,
       });
     }
@@ -160,6 +166,7 @@ export default function ClientConfig() {
         ai_config: config.ai_config as any,
         offerings: config.offerings as any,
         addons: config.addons as any,
+        allowed_domains: config.allowed_domains as any,
         special_offers: config.special_offers as any,
       }, {
         onConflict: 'tenant_id',

@@ -349,6 +349,38 @@ export type Database = {
           updated_at?: string
         }
       }
+      reseller_pricing: {
+        Row: {
+          id: string
+          reseller_id: string
+          plan_slug: string | null
+          addon_slug: string | null
+          price_to_client: number
+          currency: string | null
+          updated_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          reseller_id: string
+          plan_slug?: string | null
+          addon_slug?: string | null
+          price_to_client: number
+          currency?: string | null
+          updated_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          reseller_id?: string
+          plan_slug?: string | null
+          addon_slug?: string | null
+          price_to_client?: number
+          currency?: string | null
+          updated_at?: string
+          created_at?: string
+        }
+      }
       subscription_history: {
         Row: {
           id: string

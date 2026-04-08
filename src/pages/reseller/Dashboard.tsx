@@ -34,6 +34,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Tenant {
   id: string;
@@ -96,6 +97,10 @@ export default function ResellerDashboard() {
     totalRevenue: 0,
     conversionRate: 0,
   });
+
+  // Pricing management state
+  const [resellerPricing, setResellerPricing] = useState<any[]>([]);
+  const [isEditingPricing, setIsEditingPricing] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -382,6 +387,20 @@ export default function ResellerDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Tabs for Clients and Pricing */}
+        <Tabs defaultValue="clients" className="space-y-6">
+          <TabsList className="bg-black/40 border-white/10 backdrop-blur-xl p-1">
+            <TabsTrigger value="clients" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white text-white/60">
+              <Building2 className="h-4 w-4 mr-2" />
+              Clients
+            </TabsTrigger>
+            <TabsTrigger value="pricing" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white text-white/60">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Pricing
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="clients" className="space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="bg-black/40 border-white/10 backdrop-blur-xl">
@@ -565,6 +584,185 @@ export default function ResellerDashboard() {
             </div>
           )}
         </div>
+          </TabsContent>
+
+          <TabsContent value="pricing" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white">Pricing Management</h2>
+                <p className="text-sm text-white/40 mt-1">
+                  Set custom prices for your clients and track profit margins
+                </p>
+              </div>
+              <Button
+                onClick={() => setIsEditingPricing(!isEditingPricing)}
+                className="bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600"
+              >
+                {isEditingPricing ? 'Done' : 'Edit Prices'}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="bg-black/40 border-white/10 backdrop-blur-xl">
+                <CardHeader>
+                  <CardTitle className="text-white">Subscription Plans</CardTitle>
+                  <CardDescription className="text-white/40">
+                    Set custom prices for your clients
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {pricingPlans.map((plan) => {
+                    const resellerPrice = resellerPricing.find(
+                      (p: any) => p.plan_slug === plan.slug
+                    );
+                    const customPrice = resellerPrice?.price_to_client || plan.price_to_client;
+                    const profit = customPrice - plan.cost_to_us_max;
+
+                    return (
+                      <div key={plan.id} className="border border-white/10 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-semibold text-white">{plan.name}</h4>
+                            <p className="text-xs text-white/40">{plan.description}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-white/60">Base Price</div>
+                            <div className="text-lg font-bold text-gold-500">R{plan.price_to_client}</div>
+                          </div>
+                        </div>
+                        
+                        {isEditingPricing ? (
+                          <div className="space-y-2">
+                            <Label className="text-white/80 text-sm">Your Price</Label>
+                            <Input
+                              type="number"
+                              value={customPrice}
+                              onChange={(e) => {
+                                const newPrice = parseFloat(e.target.value);
+                                setResellerPricing(prev => {
+                                  const existing = prev.find((p: any) => p.plan_slug === plan.slug);
+                                  if (existing) {
+                                    return prev.map((p: any) =>
+                                      p.plan_slug === plan.slug
+                                        ? { ...p, price_to_client: newPrice }
+                                        : p
+                                    );
+                                  } else {
+                                    return [...prev, {
+                                      plan_slug: plan.slug,
+                                      price_to_client: newPrice
+                                    }];
+                                  }
+                                });
+                              }}
+                              className="bg-white/5 border-white/10 text-white"
+                              min={plan.cost_to_us_max}
+                            />
+                            <p className="text-xs text-white/40">
+                              Minimum price: R{plan.cost_to_us_max} (cost to you)
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="text-sm text-white/60">Your Price</div>
+                              <div className="text-lg font-bold text-white">R{customPrice}</div>
+                            </div>
+                            <div>
+                              <div className="text-sm text-white/60">Your Profit</div>
+                              <div className={`text-lg font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                R{profit.toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              <Card className="bg-black/40 border-white/10 backdrop-blur-xl">
+                <CardHeader>
+                  <CardTitle className="text-white">Add-ons</CardTitle>
+                  <CardDescription className="text-white/40">
+                    Set custom prices for add-on features
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {addonDefinitions.map((addon) => {
+                    const resellerPrice = resellerPricing.find(
+                      (p: any) => p.addon_slug === addon.slug
+                    );
+                    const customPrice = resellerPrice?.price_to_client || addon.price_to_client;
+                    const profit = customPrice - addon.cost_to_us_max;
+
+                    return (
+                      <div key={addon.id} className="border border-white/10 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-semibold text-white">{addon.name}</h4>
+                            <p className="text-xs text-white/40">{addon.description}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-white/60">Base Price</div>
+                            <div className="text-lg font-bold text-gold-500">R{addon.price_to_client}</div>
+                          </div>
+                        </div>
+                        
+                        {isEditingPricing ? (
+                          <div className="space-y-2">
+                            <Label className="text-white/80 text-sm">Your Price</Label>
+                            <Input
+                              type="number"
+                              value={customPrice}
+                              onChange={(e) => {
+                                const newPrice = parseFloat(e.target.value);
+                                setResellerPricing(prev => {
+                                  const existing = prev.find((p: any) => p.addon_slug === addon.slug);
+                                  if (existing) {
+                                    return prev.map((p: any) =>
+                                      p.addon_slug === addon.slug
+                                        ? { ...p, price_to_client: newPrice }
+                                        : p
+                                    );
+                                  } else {
+                                    return [...prev, {
+                                      addon_slug: addon.slug,
+                                      price_to_client: newPrice
+                                    }];
+                                  }
+                                });
+                              }}
+                              className="bg-white/5 border-white/10 text-white"
+                              min={addon.cost_to_us_max}
+                            />
+                            <p className="text-xs text-white/40">
+                              Minimum price: R{addon.cost_to_us_max} (cost to you)
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="text-sm text-white/60">Your Price</div>
+                              <div className="text-lg font-bold text-white">R{customPrice}</div>
+                            </div>
+                            <div>
+                              <div className="text-sm text-white/60">Your Profit</div>
+                              <div className={`text-lg font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                R{profit.toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </main>
 
       {/* Add Client Dialog */}

@@ -26,6 +26,7 @@ A modern, floating chat widget designed for beauty and wellness businesses. Help
 - **Embed code generator** - One-click copy embed code for each client
 - **AI mood selector** - Choose from luxurious, professional, friendly, minimal, or playful
 - **Feature toggles** - Enable/disable voice, analytics, WhatsApp, email notifications
+- **Pricing Management** - Set custom prices for clients and track profit margins in real-time
 - **Custom Services** - Bill clients for additional development work with time tracking
 - **Monthly Invoicing** - Generate comprehensive invoices with subscription, add-ons, and services
 - **VIP Customer Console** - Premium add-on for customer loyalty programs (SHIFT+V access)

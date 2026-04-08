@@ -8,12 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-// Fixed: Importing type from mock-ai to break circular dependency
 import { generateAIResponse, type ChatMessage } from "@/lib/mock-ai"; 
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
-// 🎨 Whitelabel Widget Configuration Interface (same as original)
+// 🎨 Whitelabel Widget Configuration Interface
 interface WidgetConfig {
   // Branding
   logo?: string;
@@ -36,9 +34,15 @@ interface WidgetConfig {
   // Advanced
   allowedDomains?: string[];
   headerImage?: string; // Custom header background image URL
+  
+  // Add-ons
+  voiceEnabled?: boolean;
+  analyticsEnabled?: boolean;
+  whatsappEnabled?: boolean;
+  emailNotifications?: boolean;
 }
 
-// 💎 Default Config (same as original, but will be overridden by database)
+// 💎 Default Configuration (FALLBACK ONLY)
 const defaultConfig: WidgetConfig = {
   logo: "/images/luxemedspa.svg",
   brandName: "The Luxe Med Spa - New Haven",
@@ -50,19 +54,24 @@ const defaultConfig: WidgetConfig = {
   phone: "27760330046",
   whatsappMessageTemplate: `Hello {title} {lastName}, your bespoke {treatment} ($` + `{price}) at {brandName} is confirmed for {time}. We have your {refreshment} ready for your arrival. See you in the sanctuary!`,
   headerImage: headerBg,
+  voiceEnabled: true,
+  analyticsEnabled: true,
+  whatsappEnabled: true,
+  emailNotifications: false,
 };
 
 const ResellerChatWidget = () => {
   const { toast } = useToast();
   const { isListening, transcript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
   
-  // State for configuration - will be loaded from database
-  const savedConfig = (window as any).ovgConfig || {};
+  // State
   const [config, setConfig] = useState<WidgetConfig>(() => {
-    return { ...defaultConfig, ...savedConfig };
+    const saved = (window as any).ovgConfig || {};
+    return { ...defaultConfig, ...saved };
   });
-  const [configLoaded, setConfigLoaded] = useState(false);
-
+  const [isLoading, setIsLoading] = useState(true);
+  const [configError, setConfigError] = useState<string | null>(null);
+  
   const [isOpen, setIsOpen] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [hasConsent, setHasConsent] = useState(() => localStorage.getItem("ovgweb_ai_consent") === "true");
@@ -87,66 +96,70 @@ const ResellerChatWidget = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const [isGroqListening, setIsGroqListening] = useState(false);
 
-  // --- LOAD CONFIGURATION FROM DATABASE ---
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        // Get tenant ID from window.ovgConfig
-        const tenantId = (window as any).ovgConfig?.tenantId;
-        
-        if (!tenantId) {
-          console.log("🎨 No tenant ID found, using default config");
-          setConfigLoaded(true);
-          return;
-        }
-
-        console.log("🎨 Loading config for tenant:", tenantId);
-
-        // Fetch widget config from Supabase
-        const { data, error } = await supabase
-          .from('widget_configs')
-          .select('*')
-          .eq('tenant_id', tenantId)
-          .single();
-
-        if (error || !data) {
-          console.log("🎨 No config found in database, using defaults");
-          setConfigLoaded(true);
-          return;
-        }
-
-        // Cast data to any to access JSONB fields
-        const widgetData = data as any;
-
-        // Merge database config with defaults
-        const dbConfig: WidgetConfig = {
-          logo: widgetData.branding?.logo,
-          logoUrl: widgetData.branding?.logoUrl,
-          brandName: widgetData.branding?.brandName,
-          primaryColor: widgetData.branding?.primaryColor,
-          aiName: widgetData.ai_config?.name,
-          greeting: widgetData.ai_config?.greeting,
-          peekText: widgetData.ai_config?.peekText,
-          syncBadgeText: widgetData.ai_config?.syncBadgeText,
-          phone: widgetData.business_info?.phone,
-          whatsappMessageTemplate: widgetData.business_info?.whatsappMessageTemplate,
-          headerImage: widgetData.branding?.headerImage,
-        };
-
-        // Merge with defaults and window config
-        const mergedConfig = { ...defaultConfig, ...savedConfig, ...dbConfig };
-        setConfig(mergedConfig);
-        setConfigLoaded(true);
-
-        console.log("🎨 Config loaded from database:", mergedConfig);
-      } catch (err) {
-        console.error("🎨 Error loading config:", err);
-        setConfigLoaded(true);
+  // --- LOAD CONFIGURATION FROM SUPABASE ---
+  const loadWidgetConfig = useCallback(async () => {
+    try {
+      const tenantId = (window as any).ovgConfig?.tenantId;
+      if (!tenantId) {
+        console.warn("No tenantId found in window.ovgConfig, using defaults");
+        setIsLoading(false);
+        return;
       }
-    };
 
-    loadConfig();
+      const { data, error } = await supabase
+        .from('widget_configs')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .single();
+
+      if (error) {
+        console.error("Error loading widget config:", error);
+        setConfigError("Failed to load widget configuration");
+      } else if (data) {
+        // Type assertion to handle the data structure
+        const configData = data as any;
+        
+        // Merge database config with defaults
+        const mergedConfig: WidgetConfig = {
+          ...defaultConfig,
+          ...configData.branding,
+          ...configData.ai_config,
+          ...configData.offerings,
+          ...configData.addons,
+          special_offers: configData.special_offers,
+          // Map database fields to widget config
+          brandName: configData.branding?.brandName || defaultConfig.brandName,
+          primaryColor: configData.branding?.primaryColor || defaultConfig.primaryColor,
+          aiName: configData.ai_config?.aiName || defaultConfig.aiName,
+          greeting: configData.ai_config?.greeting || defaultConfig.greeting,
+          peekText: configData.branding?.peekText || defaultConfig.peekText,
+          syncBadgeText: configData.branding?.syncBadgeText || defaultConfig.syncBadgeText,
+          phone: configData.branding?.phone || defaultConfig.phone,
+          whatsappMessageTemplate: configData.branding?.whatsappMessageTemplate || defaultConfig.whatsappMessageTemplate,
+          headerImage: configData.branding?.headerImage || defaultConfig.headerImage,
+          voiceEnabled: configData.addons?.voiceEnabled ?? defaultConfig.voiceEnabled,
+          analyticsEnabled: configData.addons?.analyticsEnabled ?? defaultConfig.analyticsEnabled,
+          whatsappEnabled: configData.addons?.whatsappEnabled ?? defaultConfig.whatsappEnabled,
+          emailNotifications: configData.addons?.emailNotifications ?? defaultConfig.emailNotifications,
+        };
+        
+        setConfig(mergedConfig);
+        console.log("✅ Widget config loaded from database:", mergedConfig);
+      } else {
+        console.warn("No widget config found for tenant, using defaults");
+      }
+    } catch (err) {
+      console.error("Unexpected error loading config:", err);
+      setConfigError("Failed to load widget configuration");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  // Load config on mount
+  useEffect(() => {
+    loadWidgetConfig();
+  }, [loadWidgetConfig]);
 
   // --- GROQ STT (Speech-to-Text) ---
   const startGroqRecording = useCallback(async () => {
@@ -815,6 +828,9 @@ const ResellerChatWidget = () => {
       const hasBookingJsonBracket = /\[JSON CODE BLOCK\]\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?\[\/JSON CODE BLOCK\]/.test(response);
       const hasBookingJson = hasBookingJsonBacktick || hasBookingJsonBracket;
       
+      // VIP synced text is now part of the AI response itself (in the system prompt)
+      // No need to append it here anymore
+
       const displayResponse = stripJsonFromResponse(response);
 
       const aiMsg: ChatMessage = { 
@@ -905,9 +921,24 @@ const ResellerChatWidget = () => {
     return () => clearTimeout(timer);
   }, [isOpen, hasGreeted, showConsent]);
 
-  // Don't render until config is loaded
-  if (!configLoaded) {
-    return null;
+  // Show loading state while fetching config
+  if (isLoading) {
+    return (
+      <div className="fixed bottom-6 right-6 z-[9999]">
+        <div className="h-14 w-14 rounded-full border-2 border-pink-500/30 border-t-pink-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // Show error state if config failed to load
+  if (configError) {
+    return (
+      <div className="fixed bottom-6 right-6 z-[9999]">
+        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
+          Widget unavailable - please check your configuration
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -994,41 +1025,20 @@ const ResellerChatWidget = () => {
             >
               <div className="flex items-center gap-3 mb-4">
                 <div
-                  className="h-10 w-10 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: config.primaryColor }}
-                >
-                  <ShieldCheck className="h-5 w-5 text-white" />
+                  className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </div>
+                <div>
+                  <h3 className="font-semibold text-white text-sm">{config.brandName}</h3>
+                  <div className="flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    <span className="text-[11px] text-white/70 font-medium">Online now</span>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-white">Before we chat…</h3>
-              </div>
-
-              <p className="text-sm text-gray-300 leading-relaxed mb-2">
-                This AI concierge is powered by artificial intelligence. By continuing you agree to our:
-              </p>
-              <ul className="text-xs text-gray-400 space-y-1 mb-5 ml-4 list-disc">
-                <li>Terms & Conditions</li>
-                <li>Privacy Policy</li>
-                <li>AI-generated responses disclaimer</li>
-              </ul>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
-                  onClick={() => setShowConsent(false)}
-                >
-                  Decline
-                </Button>
-                <Button
-                  className="flex-1 text-white font-semibold"
-                  style={{ backgroundColor: config.primaryColor }}
-                  onClick={() => {
-                    handleAcceptConsent();
-                    setIsOpen(true);
-                  }}
-                >
-                  I Agree ✨
-                </Button>
               </div>
             </motion.div>
           </motion.div>

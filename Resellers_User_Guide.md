@@ -43,19 +43,20 @@ This guide will help you get started with managing your clients and deploying AI
 
 ## Dashboard Overview
 
-Your dashboard provides a comprehensive view of your reseller business:
+Your dashboard provides a comprehensive view of your reseller business with two main tabs: **Clients** and **Pricing**.
 
 ### Key Metrics
 
 - **Total Clients** - Number of businesses you're managing
 - **Total Leads** - Combined leads generated across all clients
-- **Monthly Revenue** - Your estimated monthly revenue
+- **Total Revenue** - Combined revenue across all clients
 - **Conversion Rate** - Average conversion rate across all clients
 
 ### Quick Actions
 
 - **Add New Client** - Quickly add a new client to your portfolio
 - **Search Clients** - Find clients by name, industry, or domain
+- **Switch to Pricing Tab** - Manage your pricing and profit margins
 
 ---
 
@@ -424,12 +425,63 @@ When reporting an issue, please include:
 
 ---
 
+## Pricing Management
+
+The **Pricing** tab allows you to set custom prices for your clients and track your profit margins in real-time.
+
+### Accessing Pricing Management
+
+1. From your dashboard, click the **Pricing** tab
+2. You'll see two sections: **Subscription Plans** and **Add-ons**
+
+### Setting Custom Prices
+
+#### For Subscription Plans
+
+1. Click **Edit Prices** to enter edit mode
+2. For each plan, enter your custom price in the input field
+3. The system shows:
+   - **Base Price** - The standard price (what you pay to us)
+   - **Your Price** - What you charge your clients
+   - **Your Profit** - The difference (shown in green if profitable, red if loss)
+4. Click **Done** to save your changes
+
+#### For Add-ons
+
+1. Follow the same process as subscription plans
+2. Each add-on shows its base cost and allows custom pricing
+3. Profit margins are calculated automatically
+
+### Understanding Profit Margins
+
+- **Green Profit Display**: You're charging more than the base cost (profitable)
+- **Red Profit Display**: You're charging less than the base cost (loss)
+- **Minimum Price**: The system enforces a minimum price equal to the base cost
+
+### Pricing Strategy Tips
+
+1. **Research Your Market**: Understand what competitors charge
+2. **Consider Value-Add**: Bundle services to justify higher prices
+3. **Tiered Pricing**: Offer different price points for different client needs
+4. **Monitor Margins**: Keep an eye on your profit percentages
+5. **Adjust Regularly**: Review and update prices based on performance
+
+### Example Pricing Structure
+
+| Plan | Base Cost | Your Price | Your Profit |
+|------|-----------|------------|-------------|
+| Starter | R299 | R499 | R200 |
+| Professional | R599 | R999 | R400 |
+| Enterprise | R1,199 | R1,999 | R800 |
+
+---
+
 ## Version Information
 
-**Guide Version:** 2.2  
+**Guide Version:** 3.0  
 **Last Updated:** April 2026  
 **Platform:** OVG Engage Reseller Console  
-**New Features:** Custom Services, Time Tracking, Monthly Invoicing, VIP Customer Console, Header Background Images
+**New Features:** Pricing Management, White-Labeled Chat Widget, Custom Services, Time Tracking, Monthly Invoicing, VIP Customer Console, Header Background Images
 
 ---
 

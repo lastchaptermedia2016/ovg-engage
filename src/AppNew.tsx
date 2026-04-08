@@ -7,7 +7,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ChatWidget from "./components/widget/ChatWidget"; 
+import ResellerChatWidget from "./components/widget/ResellerChatWidget";
+import VIPCustomerConsole from "./components/widget/VIPCustomerConsole";
 import AdminDashboard from "./pages/AdminDashboard";
+import ResellerLogin from "./pages/reseller/Login";
+import ResellerDashboard from "./pages/reseller/Dashboard";
+import ClientConfig from "./pages/reseller/ClientConfig";
+import CustomServices from "./pages/reseller/CustomServices";
 
 const queryClient = new QueryClient();
 
@@ -51,11 +57,23 @@ const AppNew = () => {
         )}
 
         <BrowserRouter>
-          <ChatWidget /> 
+          {/* Original ChatWidget */}
+          <ChatWidget />
+          
+          {/* Reseller Chat Widget (configuration-driven) */}
+          <ResellerChatWidget />
+          
+          {/* VIP Customer Console (SHIFT+V) */}
+          <VIPCustomerConsole />
           <Routes>
             <Route path="/" element={<Index />} />
             {/* We keep this here but we don't rely on it anymore */}
-            <Route path="/luxe-console" element={<AdminDashboard />} /> 
+            <Route path="/luxe-console" element={<AdminDashboard />} />
+            {/* Reseller Console Routes */}
+            <Route path="/reseller/login" element={<ResellerLogin />} />
+            <Route path="/reseller/dashboard" element={<ResellerDashboard />} />
+            <Route path="/reseller/client/:tenantId" element={<ClientConfig />} />
+            <Route path="/reseller/client/:tenantId/services" element={<CustomServices />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -17,6 +17,19 @@ A modern, floating chat widget designed for beauty and wellness businesses. Help
 - LocalStorage persistence (chat history saved across refreshes)
 - Admin dashboard (press Shift+J to access)
 
+### Reseller Console Features
+- **Multi-client management** - Manage unlimited client configurations from one dashboard
+- **Per-client customization** - Unique branding, AI settings, and offerings per client
+- **Analytics dashboard** - Track leads, revenue, and conversions across all clients
+- **Secure authentication** - Supabase-based auth with Row Level Security
+- **White-label widget** - Fully customizable colors, logo, fonts, and AI personality
+- **Embed code generator** - One-click copy embed code for each client
+- **AI mood selector** - Choose from luxurious, professional, friendly, minimal, or playful
+- **Feature toggles** - Enable/disable voice, analytics, WhatsApp, email notifications
+- **Custom Services** - Bill clients for additional development work with time tracking
+- **Monthly Invoicing** - Generate comprehensive invoices with subscription, add-ons, and services
+- **VIP Customer Console** - Premium add-on for customer loyalty programs (SHIFT+V access)
+
 ## Tech Stack
 - **Frontend:** React 18 + Vite + TypeScript
 - **Styling:** Tailwind CSS + shadcn/ui components
@@ -193,6 +206,11 @@ ovg-engage/
 | `api/groq-chat.ts` | Serverless function for AI chat with function calling (booking) |
 | `src/loader.js` | Embed script for integrating widget into external websites |
 | `src/pages/AdminDashboard.tsx` | Admin console for viewing leads and analytics |
+| `src/pages/reseller/Dashboard.tsx` | Reseller dashboard for managing multiple clients |
+| `src/pages/reseller/ClientConfig.tsx` | Client configuration page with branding, AI, and VIP settings |
+| `src/pages/reseller/CustomServices.tsx` | Custom services management with time tracking and invoicing |
+| `src/components/widget/ResellerChatWidget.tsx` | Database-driven chat widget for reseller clients |
+| `src/components/widget/VIPCustomerConsole.tsx` | VIP customer loyalty console (SHIFT+V access) |
 
 ### Architecture Overview
 
@@ -318,3 +336,10 @@ To add your client's domain, configure it before loading the widget:
 ## License
 
 Private - All rights reserved to OVG Engage.
+
+---
+
+## Additional Documentation
+
+- **[Reseller User Guide](./Resellers_User_Guide.md)** - Complete guide for resellers on managing clients, configuring widgets, custom services, invoicing, and the VIP Customer Console
+- **[Reseller Widget Architecture](./RESELLER_WIDGET_ARCHITECTURE.md)** - Technical architecture documentation for the white-label reseller system

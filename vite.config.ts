@@ -179,8 +179,6 @@ function apiProxyPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [react(), apiProxyPlugin()],
-  // THE FIX: Explicitly tell Vite this is a Single Page App
-  appType: 'spa',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -189,5 +187,9 @@ export default defineConfig({
   server: {
     port: 8080,
     strictPort: true,
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
   },
 })

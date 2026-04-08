@@ -7,20 +7,576 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
-  }
   public: {
     Tables: {
-      [_ in never]: never
+      resellers: {
+        Row: {
+          id: string
+          user_id: string
+          email: string
+          company_name: string | null
+          phone: string | null
+          subscription_tier: string
+          max_tenants: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          email: string
+          company_name?: string | null
+          phone?: string | null
+          subscription_tier?: string
+          max_tenants?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          email?: string
+          company_name?: string | null
+          phone?: string | null
+          subscription_tier?: string
+          max_tenants?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      tenants: {
+        Row: {
+          id: string
+          reseller_id: string
+          name: string
+          industry: string
+          domain: string | null
+          location: string | null
+          phone: string | null
+          email: string | null
+          embed_code: string | null
+          is_active: boolean
+          subscription_tier: string
+          addons: Json
+          billing_cycle: string
+          billing_date: number | null
+          is_billing_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          reseller_id: string
+          name: string
+          industry?: string
+          domain?: string | null
+          location?: string | null
+          phone?: string | null
+          email?: string | null
+          embed_code?: string | null
+          is_active?: boolean
+          subscription_tier?: string
+          addons?: Json
+          billing_cycle?: string
+          billing_date?: number | null
+          is_billing_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          reseller_id?: string
+          name?: string
+          industry?: string
+          domain?: string | null
+          location?: string | null
+          phone?: string | null
+          email?: string | null
+          embed_code?: string | null
+          is_active?: boolean
+          subscription_tier?: string
+          addons?: Json
+          billing_cycle?: string
+          billing_date?: number | null
+          is_billing_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      widget_configs: {
+        Row: {
+          id: string
+          tenant_id: string
+          branding: Json
+          ai_config: Json
+          offerings: Json
+          special_offers: string | null
+          addons: Json
+          allowed_domains: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          branding?: Json
+          ai_config?: Json
+          offerings?: Json
+          special_offers?: string | null
+          addons?: Json
+          allowed_domains?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          branding?: Json
+          ai_config?: Json
+          offerings?: Json
+          special_offers?: string | null
+          addons?: Json
+          allowed_domains?: string[] | null
+          updated_at?: string
+        }
+      }
+      leads: {
+        Row: {
+          id: string
+          tenant_id: string
+          title: string
+          first_name: string | null
+          last_name: string | null
+          email: string | null
+          phone: string | null
+          treatment: string | null
+          price: number
+          refreshment: string | null
+          appointment_time: string | null
+          status: string
+          source: string
+          is_new_customer: boolean
+          conversation_data: Json | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          title?: string
+          first_name?: string | null
+          last_name?: string | null
+          email?: string | null
+          phone?: string | null
+          treatment?: string | null
+          price?: number
+          refreshment?: string | null
+          appointment_time?: string | null
+          status?: string
+          source?: string
+          is_new_customer?: boolean
+          conversation_data?: Json | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          title?: string
+          first_name?: string | null
+          last_name?: string | null
+          email?: string | null
+          phone?: string | null
+          treatment?: string | null
+          price?: number
+          refreshment?: string | null
+          appointment_time?: string | null
+          status?: string
+          source?: string
+          is_new_customer?: boolean
+          conversation_data?: Json | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      daily_stats: {
+        Row: {
+          id: string
+          tenant_id: string
+          date: string
+          total_leads: number
+          total_revenue: number
+          conversations: number
+          conversions: number
+          new_customers: number
+          returning_customers: number
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          date: string
+          total_leads?: number
+          total_revenue?: number
+          conversations?: number
+          conversions?: number
+          new_customers?: number
+          returning_customers?: number
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          date?: string
+          total_leads?: number
+          total_revenue?: number
+          conversations?: number
+          conversions?: number
+          new_customers?: number
+          returning_customers?: number
+        }
+      }
+      api_keys: {
+        Row: {
+          id: string
+          tenant_id: string
+          key_hash: string
+          key_prefix: string
+          name: string
+          is_active: boolean
+          created_at: string
+          expires_at: string | null
+          last_used_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          key_hash: string
+          key_prefix: string
+          name?: string
+          is_active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          last_used_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          key_hash?: string
+          key_prefix?: string
+          name?: string
+          is_active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          last_used_at?: string | null
+        }
+      }
+      pricing_plans: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          description: string | null
+          cost_to_us_min: number
+          cost_to_us_max: number
+          price_to_client: number
+          features: Json
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          description?: string | null
+          cost_to_us_min?: number
+          cost_to_us_max?: number
+          price_to_client?: number
+          features?: Json
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          description?: string | null
+          cost_to_us_min?: number
+          cost_to_us_max?: number
+          price_to_client?: number
+          features?: Json
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      addon_definitions: {
+        Row: {
+          id: string
+          name: string
+          slug: string
+          description: string | null
+          cost_to_us_min: number
+          cost_to_us_max: number
+          price_to_client: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          slug: string
+          description?: string | null
+          cost_to_us_min?: number
+          cost_to_us_max?: number
+          price_to_client?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          slug?: string
+          description?: string | null
+          cost_to_us_min?: number
+          cost_to_us_max?: number
+          price_to_client?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      subscription_history: {
+        Row: {
+          id: string
+          tenant_id: string
+          old_tier: string | null
+          new_tier: string | null
+          old_addons: Json | null
+          new_addons: Json | null
+          old_price: number | null
+          new_price: number | null
+          changed_by: string | null
+          changed_at: string
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          old_tier?: string | null
+          new_tier?: string | null
+          old_addons?: Json | null
+          new_addons?: Json | null
+          old_price?: number | null
+          new_price?: number | null
+          changed_by?: string | null
+          changed_at?: string
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          old_tier?: string | null
+          new_tier?: string | null
+          old_addons?: Json | null
+          new_addons?: Json | null
+          old_price?: number | null
+          new_price?: number | null
+          changed_by?: string | null
+          changed_at?: string
+          notes?: string | null
+        }
+      }
+      custom_services: {
+        Row: {
+          id: string
+          tenant_id: string
+          reseller_id: string
+          service_name: string
+          description: string | null
+          hourly_rate: number
+          estimated_hours: number
+          estimated_total: number
+          status: string
+          priority: string
+          notes: string | null
+          internal_notes: string | null
+          created_at: string
+          updated_at: string
+          approved_at: string | null
+          started_at: string | null
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          reseller_id: string
+          service_name: string
+          description?: string | null
+          hourly_rate?: number
+          estimated_hours?: number
+          estimated_total?: number
+          status?: string
+          priority?: string
+          notes?: string | null
+          internal_notes?: string | null
+          created_at?: string
+          updated_at?: string
+          approved_at?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          reseller_id?: string
+          service_name?: string
+          description?: string | null
+          hourly_rate?: number
+          estimated_hours?: number
+          estimated_total?: number
+          status?: string
+          priority?: string
+          notes?: string | null
+          internal_notes?: string | null
+          created_at?: string
+          updated_at?: string
+          approved_at?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+        }
+      }
+      time_entries: {
+        Row: {
+          id: string
+          service_id: string
+          user_id: string | null
+          description: string
+          started_at: string
+          ended_at: string | null
+          duration_minutes: number | null
+          is_running: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          service_id: string
+          user_id?: string | null
+          description: string
+          started_at?: string
+          ended_at?: string | null
+          duration_minutes?: number | null
+          is_running?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          service_id?: string
+          user_id?: string | null
+          description?: string
+          started_at?: string
+          ended_at?: string | null
+          duration_minutes?: number | null
+          is_running?: boolean
+          created_at?: string
+        }
+      }
+      invoices: {
+        Row: {
+          id: string
+          tenant_id: string
+          reseller_id: string
+          invoice_number: string
+          services: Json
+          subtotal: number
+          tax_rate: number
+          tax_amount: number
+          total: number
+          status: string
+          due_date: string | null
+          notes: string | null
+          created_at: string
+          sent_at: string | null
+          paid_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          reseller_id: string
+          invoice_number: string
+          services?: Json
+          subtotal?: number
+          tax_rate?: number
+          tax_amount?: number
+          total?: number
+          status?: string
+          due_date?: string | null
+          notes?: string | null
+          created_at?: string
+          sent_at?: string | null
+          paid_at?: string | null
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          reseller_id?: string
+          invoice_number?: string
+          services?: Json
+          subtotal?: number
+          tax_rate?: number
+          tax_amount?: number
+          total?: number
+          status?: string
+          due_date?: string | null
+          notes?: string | null
+          created_at?: string
+          sent_at?: string | null
+          paid_at?: string | null
+        }
+      }
+      service_approvals: {
+        Row: {
+          id: string
+          service_id: string
+          approved_by: string | null
+          approved_at: string
+          approval_method: string
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          service_id: string
+          approved_by?: string | null
+          approved_at?: string
+          approval_method?: string
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          service_id?: string
+          approved_by?: string | null
+          approved_at?: string
+          approval_method?: string
+          notes?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_embed_code: {
+        Args: {
+          tenant_uuid: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
@@ -151,5 +707,6 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {},
-  },
+    Functions: {}
+  }
 } as const

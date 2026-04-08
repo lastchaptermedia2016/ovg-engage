@@ -114,6 +114,10 @@ Customize the visual appearance of the widget:
 
 #### Logo & Font
 - **Logo URL** - Upload your client's logo and paste the URL
+- **Header Background Image URL** - Custom image for the chat widget header background
+  - Recommended size: 800x200px
+  - Supports JPG, PNG, WebP formats
+  - Live preview shown below the input field
 - **Font Family** - Choose from available fonts:
   - Inter
   - Roboto
@@ -422,10 +426,10 @@ When reporting an issue, please include:
 
 ## Version Information
 
-**Guide Version:** 2.1  
+**Guide Version:** 2.2  
 **Last Updated:** April 2026  
 **Platform:** OVG Engage Reseller Console  
-**New Features:** Custom Services, Time Tracking, Monthly Invoicing, VIP Customer Console
+**New Features:** Custom Services, Time Tracking, Monthly Invoicing, VIP Customer Console, Header Background Images
 
 ---
 

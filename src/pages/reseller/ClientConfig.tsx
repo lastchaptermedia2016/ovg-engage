@@ -27,6 +27,7 @@ interface WidgetConfig {
     primaryGold: string;
     logoUrl: string;
     font: string;
+    headerImage?: string; // Custom header background image URL
   };
   ai_config: {
     mood: string;
@@ -76,6 +77,7 @@ export default function ClientConfig() {
       primaryGold: '#D4AF37',
       logoUrl: '',
       font: 'Inter, sans-serif',
+      headerImage: '',
     },
     ai_config: {
       mood: 'professional',
@@ -191,6 +193,33 @@ export default function ClientConfig() {
       ...prev,
       branding: { ...prev.branding, [key]: value },
     }));
+  };
+
+  const handleFileUpload = (key: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a valid image file (JPG, PNG, WebP, or SVG)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    // Convert to base64 for immediate preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64String = e.target?.result as string;
+      updateBranding(key, base64String);
+      toast.success('Image uploaded successfully!');
+    };
+    reader.readAsDataURL(file);
   };
 
   const updateAiConfig = (key: string, value: any) => {
@@ -381,10 +410,68 @@ export default function ClientConfig() {
                         }
                         className="flex-1 bg-white/5 border-white/10 text-white"
                       />
-                      <Button variant="outline" className="border-white/10">
+                      <Button 
+                        variant="outline" 
+                        className="border-white/10"
+                        onClick={() => {
+                          const input = document.getElementById('logo-upload-input') as HTMLInputElement;
+                          input?.click();
+                        }}
+                      >
                         <Upload className="h-4 w-4" />
                       </Button>
+                      <input
+                        id="logo-upload-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload('logoUrl', e)}
+                        className="hidden"
+                      />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-white/80">Header Background Image URL</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="https://example.com/header-bg.jpg"
+                        value={config.branding.headerImage || ''}
+                        onChange={(e) =>
+                          updateBranding('headerImage', e.target.value)
+                        }
+                        className="flex-1 bg-white/5 border-white/10 text-white"
+                      />
+                      <Button 
+                        variant="outline" 
+                        className="border-white/10"
+                        onClick={() => {
+                          const input = document.getElementById('header-upload-input') as HTMLInputElement;
+                          input?.click();
+                        }}
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      <input
+                        id="header-upload-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload('headerImage', e)}
+                        className="hidden"
+                      />
+                    </div>
+                    <p className="text-xs text-white/40">
+                      Recommended: 800x200px image. Used as the chat widget header background.
+                    </p>
+                    {config.branding.headerImage && (
+                      <div className="mt-2 rounded-lg overflow-hidden border border-white/10">
+                        <img 
+                          src={config.branding.headerImage} 
+                          alt="Header preview" 
+                          className="w-full h-20 object-cover"
+                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">

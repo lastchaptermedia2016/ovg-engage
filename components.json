@@ -4,7 +4,7 @@
   "rsc": false,
   "tsx": true,
   "tailwind": {
-    "config": "tailwind.config.ts",
+    "config": "tailwind.OVG Engage | AI Concierge",
     "css": "src/index.css",
     "baseColor": "slate",
     "cssVariables": true,

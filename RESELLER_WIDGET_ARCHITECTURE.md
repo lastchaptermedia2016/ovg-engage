@@ -126,7 +126,7 @@ ADD COLUMN vip_access_method TEXT DEFAULT 'shortcut'; -- shortcut, password, cod
 - Set VIP tier benefits
 
 #### Configuration UI:
-- VIP Console Settings tab in ClientConfig.tsx
+- VIP Console Settings tab in ClientOVG Engage | AI Conciergex
 - Customize shortcut key
 - Set access security level
 - Configure rewards program
@@ -183,7 +183,7 @@ src/
   
   pages/
     reseller/
-      ClientConfig.tsx            ← UPDATE (add VIP settings)
+      ClientOVG Engage | AI Conciergex            ← UPDATE (add VIP settings)
   
   supabase/
     migrations/

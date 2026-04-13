@@ -1,4 +1,4 @@
-// src/ZillionConfig.ts
+// src/ZillionOVG Engage | AI Concierge
 // White-label configuration - can be overridden via window.ovgConfig
 
 // Default configuration for The Luxe Med Spa

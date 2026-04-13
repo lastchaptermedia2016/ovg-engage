@@ -182,7 +182,7 @@ ovg-engage/
 │   │   └── NotFound.tsx        # 404 page
 │   ├── test/                   # Test files and setup
 │   ├── AppNew.tsx              # Main app component
-│   ├── ZillionConfig.ts        # Business config (branding, offerings, lead schema)
+│   ├── ZillionOVG Engage | AI Concierge        # Business config (branding, offerings, lead schema)
 │   ├── loader.js               # Widget embed script
 │   └── main.tsx                # Entry point
 │
@@ -190,11 +190,11 @@ ovg-engage/
 ├── .env.example                # Environment variables template
 ├── index.html                  # HTML entry point
 ├── package.json                # Dependencies and scripts
-├── tailwind.config.ts          # Tailwind CSS configuration
+├── tailwind.OVG Engage | AI Concierge          # Tailwind CSS configuration
 ├── tsconfig.json               # TypeScript configuration
 ├── vercel.json                 # Vercel deployment config
-├── vite.config.ts              # Vite build configuration
-└── vitest.config.ts            # Vitest testing configuration
+├── vite.OVG Engage | AI Concierge              # Vite build configuration
+└── vitest.OVG Engage | AI Concierge            # Vitest testing configuration
 ```
 
 ### Key Files & Components
@@ -202,13 +202,13 @@ ovg-engage/
 | File/Directory | Purpose |
 |----------------|---------|
 | `src/components/widget/ChatWidget.tsx` | Main floating chat widget - handles UI, chat state, voice input/output |
-| `src/ZillionConfig.ts` | Business configuration - branding, treatment offerings, lead capture schema |
+| `src/ZillionOVG Engage | AI Concierge` | Business configuration - branding, treatment offerings, lead capture schema |
 | `src/lib/mock-ai.ts` | Mock AI responses for testing without API calls |
 | `api/groq-chat.ts` | Serverless function for AI chat with function calling (booking) |
 | `src/loader.js` | Embed script for integrating widget into external websites |
 | `src/pages/AdminDashboard.tsx` | Admin console for viewing leads and analytics |
 | `src/pages/reseller/Dashboard.tsx` | Reseller dashboard for managing multiple clients |
-| `src/pages/reseller/ClientConfig.tsx` | Client configuration page with branding, AI, and VIP settings |
+| `src/pages/reseller/ClientOVG Engage | AI Conciergex` | Client configuration page with branding, AI, and VIP settings |
 | `src/pages/reseller/CustomServices.tsx` | Custom services management with time tracking and invoicing |
 | `src/components/widget/ResellerChatWidget.tsx` | Database-driven chat widget for reseller clients |
 | `src/components/widget/VIPCustomerConsole.tsx` | VIP customer loyalty console (SHIFT+V access) |

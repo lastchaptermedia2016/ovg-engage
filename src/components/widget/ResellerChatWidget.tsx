@@ -7,8 +7,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { generateAIResponse, type ChatMessage } from "@/lib/mock-ai"; 
+import { ZillionConfig } from '../../ZillionConfig';
+
+// Fixed: Importing type from mock-ai to break circular dependency
+import { generateAIResponse, type ChatMessage } from "@/lib/mock-ai";
+// OmniVerge Global AI
+import { generateOmniVergeResponse as generateOmniVergeAI } from "@/lib/omniverge-ai";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 // 🎨 Whitelabel Widget Configuration Interface
@@ -34,15 +38,10 @@ interface WidgetConfig {
   // Advanced
   allowedDomains?: string[];
   headerImage?: string; // Custom header background image URL
-  
-  // Add-ons
-  voiceEnabled?: boolean;
-  analyticsEnabled?: boolean;
-  whatsappEnabled?: boolean;
-  emailNotifications?: boolean;
 }
 
-// 💎 Default Configuration (FALLBACK ONLY)
+// 💎 Zillion Engine Integration - Luxe High-End Spa Theme (DEFAULTS)
+// These defaults create the Luxe Med Spa look & feel, but are fully overridable
 const defaultConfig: WidgetConfig = {
   logo: "/images/luxemedspa.svg",
   brandName: "The Luxe Med Spa - New Haven",
@@ -54,24 +53,48 @@ const defaultConfig: WidgetConfig = {
   phone: "27760330046",
   whatsappMessageTemplate: `Hello {title} {lastName}, your bespoke {treatment} ($` + `{price}) at {brandName} is confirmed for {time}. We have your {refreshment} ready for your arrival. See you in the sanctuary!`,
   headerImage: headerBg,
-  voiceEnabled: true,
-  analyticsEnabled: true,
-  whatsappEnabled: true,
-  emailNotifications: false,
+};
+
+// 🌐 OmniVerge Global Theme Defaults
+const omnivergeDefaultConfig: WidgetConfig = {
+  logo: "/images/omniverge-global.svg",
+  brandName: "OmniVerge Global",
+  primaryColor: "#c2aa6f",
+  aiName: "Nova",
+  greeting: `Welcome to OmniVerge Global ✨ I'm Nova, your AI-powered growth strategist. How can we help you master both tradition and innovation to transform challenges into opportunities and bold ideas into lasting success?`,
+  peekText: `Welcome to the future... How may we assist you today?`,
+  syncBadgeText: "BOOKING CONFIRMED • SYNCED TO OMNIVERGE GLOBAL",
+  phone: "0636658016",
+  whatsappMessageTemplate: `Hello {title} {lastName}, your consultation with OmniVerge Global is confirmed for {time}. We look forward to helping you achieve unprecedented growth.`,
+  headerImage: "/images/omniverge-header.jpg",
 };
 
 const ResellerChatWidget = () => {
   const { toast } = useToast();
   const { isListening, transcript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
-  
-  // State
   const [config, setConfig] = useState<WidgetConfig>(() => {
     const saved = (window as any).ovgConfig || {};
     return { ...defaultConfig, ...saved };
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [configError, setConfigError] = useState<string | null>(null);
-  
+
+  // Watch for changes to window.ovgConfig (for test pages)
+  useEffect(() => {
+    const saved = (window as any).ovgConfig || {};
+    setConfig(prevConfig => ({ ...defaultConfig, ...saved }));
+    
+    // Also watch for any future changes to window.ovgConfig
+    const originalConfig = (window as any).ovgConfig;
+    const checkForChanges = () => {
+      const currentConfig = (window as any).ovgConfig;
+      if (currentConfig !== originalConfig) {
+        setConfig(prevConfig => ({ ...defaultConfig, ...currentConfig }));
+      }
+    };
+    
+    const interval = setInterval(checkForChanges, 100);
+    return () => clearInterval(interval);
+  }, []);
+
   const [isOpen, setIsOpen] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [hasConsent, setHasConsent] = useState(() => localStorage.getItem("ovgweb_ai_consent") === "true");
@@ -95,71 +118,6 @@ const ResellerChatWidget = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const [isGroqListening, setIsGroqListening] = useState(false);
-
-  // --- LOAD CONFIGURATION FROM SUPABASE ---
-  const loadWidgetConfig = useCallback(async () => {
-    try {
-      const tenantId = (window as any).ovgConfig?.tenantId;
-      if (!tenantId) {
-        console.warn("No tenantId found in window.ovgConfig, using defaults");
-        setIsLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('widget_configs')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .single();
-
-      if (error) {
-        console.error("Error loading widget config:", error);
-        setConfigError("Failed to load widget configuration");
-      } else if (data) {
-        // Type assertion to handle the data structure
-        const configData = data as any;
-        
-        // Merge database config with defaults
-        const mergedConfig: WidgetConfig = {
-          ...defaultConfig,
-          ...configData.branding,
-          ...configData.ai_config,
-          ...configData.offerings,
-          ...configData.addons,
-          special_offers: configData.special_offers,
-          // Map database fields to widget config
-          brandName: configData.branding?.brandName || defaultConfig.brandName,
-          primaryColor: configData.branding?.primaryColor || defaultConfig.primaryColor,
-          aiName: configData.ai_config?.aiName || defaultConfig.aiName,
-          greeting: configData.ai_config?.greeting || defaultConfig.greeting,
-          peekText: configData.branding?.peekText || defaultConfig.peekText,
-          syncBadgeText: configData.branding?.syncBadgeText || defaultConfig.syncBadgeText,
-          phone: configData.branding?.phone || defaultConfig.phone,
-          whatsappMessageTemplate: configData.branding?.whatsappMessageTemplate || defaultConfig.whatsappMessageTemplate,
-          headerImage: configData.branding?.headerImage || defaultConfig.headerImage,
-          voiceEnabled: configData.addons?.voiceEnabled ?? defaultConfig.voiceEnabled,
-          analyticsEnabled: configData.addons?.analyticsEnabled ?? defaultConfig.analyticsEnabled,
-          whatsappEnabled: configData.addons?.whatsappEnabled ?? defaultConfig.whatsappEnabled,
-          emailNotifications: configData.addons?.emailNotifications ?? defaultConfig.emailNotifications,
-        };
-        
-        setConfig(mergedConfig);
-        console.log("✅ Widget config loaded from database:", mergedConfig);
-      } else {
-        console.warn("No widget config found for tenant, using defaults");
-      }
-    } catch (err) {
-      console.error("Unexpected error loading config:", err);
-      setConfigError("Failed to load widget configuration");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Load config on mount
-  useEffect(() => {
-    loadWidgetConfig();
-  }, [loadWidgetConfig]);
 
   // --- GROQ STT (Speech-to-Text) ---
   const startGroqRecording = useCallback(async () => {
@@ -822,7 +780,11 @@ const ResellerChatWidget = () => {
     setIsTyping(true);
 
     try {
-      let response = await generateAIResponse(userInputText, newMsgs);
+      // Check if we should use OmniVerge AI (for OmniVerge Global branding)
+      const useOmniVergeAI = config.brandName?.toLowerCase().includes("omniverge");
+      let response = useOmniVergeAI 
+        ? await generateOmniVergeAI(userInputText, newMsgs)
+        : await generateAIResponse(userInputText, newMsgs);
       
       const hasBookingJsonBacktick = /```json\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?```/.test(response);
       const hasBookingJsonBracket = /\[JSON CODE BLOCK\]\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?\[\/JSON CODE BLOCK\]/.test(response);
@@ -921,26 +883,6 @@ const ResellerChatWidget = () => {
     return () => clearTimeout(timer);
   }, [isOpen, hasGreeted, showConsent]);
 
-  // Show loading state while fetching config
-  if (isLoading) {
-    return (
-      <div className="fixed bottom-6 right-6 z-[9999]">
-        <div className="h-14 w-14 rounded-full border-2 border-pink-500/30 border-t-pink-500 animate-spin" />
-      </div>
-    );
-  }
-
-  // Show error state if config failed to load
-  if (configError) {
-    return (
-      <div className="fixed bottom-6 right-6 z-[9999]">
-        <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-red-400 text-sm">
-          Widget unavailable - please check your configuration
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       {/* ===== PEEK TEASER ===== */}
@@ -1025,20 +967,41 @@ const ResellerChatWidget = () => {
             >
               <div className="flex items-center gap-3 mb-4">
                 <div
-                  className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </div>
-                <div>
-                  <h3 className="font-semibold text-white text-sm">{config.brandName}</h3>
-                  <div className="flex items-center gap-1.5">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                    <span className="text-[11px] text-white/70 font-medium">Online now</span>
-                  </div>
+                  className="h-10 w-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: config.primaryColor }}
+                >
+                  <ShieldCheck className="h-5 w-5 text-white" />
                 </div>
+                <h3 className="text-lg font-bold text-white">Before we chat…</h3>
+              </div>
+
+              <p className="text-sm text-gray-300 leading-relaxed mb-2">
+                This AI concierge is powered by artificial intelligence. By continuing you agree to our:
+              </p>
+              <ul className="text-xs text-gray-400 space-y-1 mb-5 ml-4 list-disc">
+                <li>Terms & Conditions</li>
+                <li>Privacy Policy</li>
+                <li>AI-generated responses disclaimer</li>
+              </ul>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  onClick={() => setShowConsent(false)}
+                >
+                  Decline
+                </Button>
+                <Button
+                  className="flex-1 text-white font-semibold"
+                  style={{ backgroundColor: config.primaryColor }}
+                  onClick={() => {
+                    handleAcceptConsent();
+                    setIsOpen(true);
+                  }}
+                >
+                  I Agree ✨
+                </Button>
               </div>
             </motion.div>
           </motion.div>
@@ -1056,32 +1019,27 @@ const ResellerChatWidget = () => {
           style={{ borderColor: config.primaryColor }}
         >
           {/* Header */}
-          <div className="relative p-5 flex justify-between items-center overflow-hidden">
-            <img src={config.headerImage || headerBg} alt="" className="absolute inset-0 w-full h-full object-cover object-center" />
-            <div className="absolute inset-0 bg-black/40" />
-            <div className="relative flex items-center gap-3">
+          <div className="relative p-4 flex justify-between items-center overflow-hidden bg-gradient-to-r from-[#0f0f23] via-[#1a1a2e] to-[#16213e]">
+            <div className="relative flex items-center justify-between w-full min-w-0">
               <img 
                 src={config.logo || config.logoUrl || "/images/luxemedspa.svg"} 
                 alt={config.brandName} 
-                className="h-10 w-auto object-contain"
+                className="h-32 w-32 object-contain shrink-0"
               />
-              <div>
-                <h3 className="font-semibold text-white text-sm">{config.brandName}</h3>
-                <div className="flex items-center gap-1.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                  <span className="text-[11px] text-white/70 font-medium">Online now</span>
-                </div>
+              <div className="flex items-center gap-1">
+                <span className="relative flex h-1 w-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1 w-1 bg-green-500"></span>
+                </span>
+                <span className="text-[8px] text-white/60 font-medium">Online</span>
               </div>
             </div>
 
             {/* Controls */}
-            <div className="relative flex items-center gap-2">
+            <div className="relative flex items-center gap-1.5">
               <Button
                 size="icon"
-                className="h-8 w-8 rounded-full text-white shrink-0"
+                className="h-6 w-6 rounded-full text-white shrink-0"
                 style={{ backgroundColor: config.primaryColor }}
                 onClick={() => {
                   const next = !voiceEnabled;
@@ -1092,13 +1050,13 @@ const ResellerChatWidget = () => {
                   toast({ title: next ? "Voice On" : "Voice Off", description: next ? "AI responses will be spoken aloud." : "AI voice muted." });
                 }}
               >
-                {voiceEnabled ? <Volume2 className="h-4 w-4 text-white" /> : <VolumeX className="h-4 w-4 text-white" />}
+                {voiceEnabled ? <Volume2 className="h-3 w-3 text-white" /> : <VolumeX className="h-3 w-3 text-white" />}
               </Button>
-              <Button size="icon" className="h-8 w-8 rounded-full text-white shrink-0" style={{ backgroundColor: config.primaryColor }} onClick={() => setShowResetConfirm(true)}>
-                <RefreshCw className="h-4 w-4 text-white" />
+              <Button size="icon" className="h-6 w-6 rounded-full text-white shrink-0" style={{ backgroundColor: config.primaryColor }} onClick={() => setShowResetConfirm(true)}>
+                <RefreshCw className="h-3 w-3 text-white" />
               </Button>
-              <Button size="icon" className="h-8 w-8 rounded-full text-white shrink-0" style={{ backgroundColor: config.primaryColor }} onClick={() => setIsOpen(false)}>
-                <X className="h-4 w-4 text-white" />
+              <Button size="icon" className="h-6 w-6 rounded-full text-white shrink-0" style={{ backgroundColor: config.primaryColor }} onClick={() => setIsOpen(false)}>
+                <X className="h-3 w-3 text-white" />
               </Button>
             </div>
           </div>
@@ -1186,9 +1144,7 @@ const ResellerChatWidget = () => {
           </div>
 
           {/* Input / Footer Area */}
-          <div className="relative p-4 border-t border-gray-300/50 overflow-hidden">
-            <img src={config.headerImage || headerBg} alt="" className="absolute inset-0 w-full h-full object-cover object-center" />
-            <div className="absolute inset-0 bg-black/40" />
+          <div className="relative p-4 border-t border-[#c2aa6f]/30 overflow-hidden bg-gradient-to-t from-[#0f0f23] via-[#1a1a2e] to-[#16213e]">
             
             <div className="relative flex gap-2 items-center">
               {/* Microphone Button - Use Groq STT */}

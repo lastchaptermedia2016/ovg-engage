@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useMatch } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ChatWidget from "./components/widget/ChatWidget"; 
@@ -14,8 +14,34 @@ import ResellerLogin from "./pages/reseller/Login";
 import ResellerDashboard from "./pages/reseller/Dashboard";
 import ClientConfig from "./pages/reseller/ClientConfig";
 import CustomServices from "./pages/reseller/CustomServices";
+import TestOmniVerge from "./pages/TestOmniVerge";
 
 const queryClient = new QueryClient();
+
+// Widget Manager - conditionally renders widgets based on route
+const WidgetManager = () => {
+  const isTestOmniVerge = useMatch("/test-omniverge");
+  
+  // Debug: Log the route match result
+  console.log("🔍 WidgetManager Debug - isTestOmniVerge:", isTestOmniVerge, "pathname:", window.location.pathname);
+  
+  // Debug: Log which widget is being rendered
+  if (!isTestOmniVerge) {
+    console.log("🔴 Rendering ChatWidget (Luxe Med Spa)");
+  } else {
+    console.log("🟢 Rendering ResellerChatWidget (OmniVerge Global)");
+  }
+  
+  // Only render the original ChatWidget on non-test pages
+  // Only render ResellerChatWidget on test page (it handles its own config)
+  return (
+    <>
+      {!isTestOmniVerge && <ChatWidget />}
+      {isTestOmniVerge && <ResellerChatWidget />}
+      <VIPCustomerConsole />
+    </>
+  );
+};
 
 const AppNew = () => {
   const [showJillConsole, setShowJillConsole] = useState(false);
@@ -57,14 +83,6 @@ const AppNew = () => {
         )}
 
         <BrowserRouter>
-          {/* Original ChatWidget */}
-          <ChatWidget />
-          
-          {/* Reseller Chat Widget (configuration-driven) */}
-          <ResellerChatWidget />
-          
-          {/* VIP Customer Console (SHIFT+V) */}
-          <VIPCustomerConsole />
           <Routes>
             <Route path="/" element={<Index />} />
             {/* We keep this here but we don't rely on it anymore */}
@@ -74,8 +92,12 @@ const AppNew = () => {
             <Route path="/reseller/dashboard" element={<ResellerDashboard />} />
             <Route path="/reseller/client/:tenantId" element={<ClientConfig />} />
             <Route path="/reseller/client/:tenantId/services" element={<CustomServices />} />
+            {/* Test page for OmniVerge Global widget */}
+            <Route path="/test-omniverge" element={<TestOmniVerge />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          {/* Widget Manager - conditionally renders widgets based on route */}
+          <WidgetManager />
         </BrowserRouter>
         
       </TooltipProvider>

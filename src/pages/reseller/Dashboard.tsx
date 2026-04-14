@@ -360,7 +360,44 @@ export default function ResellerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0505]">
+    <div className="min-h-screen bg-[#0A0505] overflow-x-hidden w-screen max-w-full">
+      <style>{`
+        *, *::before, *::after {
+          max-width: 100vw !important;
+          box-sizing: border-box;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          -ms-word-break: break-all;
+          word-break: break-word;
+          -ms-hyphens: auto;
+          -moz-hyphens: auto;
+          -webkit-hyphens: auto;
+          hyphens: auto;
+        }
+
+        html, body {
+          overflow-x: hidden !important;
+          width: 100% !important;
+          position: relative;
+          max-width: 100% !important;
+        }
+
+        div, span, applet, object, iframe,
+        h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+        a, abbr, acronym, address, big, cite, code,
+        del, dfn, em, img, ins, kbd, q, s, samp,
+        small, strike, strong, sub, sup, tt, var,
+        b, u, i, center,
+        dl, dt, dd, ol, ul, li,
+        fieldset, form, label, legend,
+        table, caption, tbody, tfoot, thead, tr, th, td,
+        article, aside, canvas, details, embed, 
+        figure, figcaption, footer, header, hgroup, 
+        menu, nav, output, ruby, section, summary,
+        time, mark, audio, video {
+          max-width: 100% !important;
+        }
+      `}</style>
       {/* Header */}
       <header className="border-b border-white/10 bg-black/20 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -386,7 +423,7 @@ export default function ResellerDashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-8 space-y-8 overflow-x-hidden w-full">
         {/* Tabs for Clients and Pricing */}
         <Tabs defaultValue="clients" className="space-y-6">
           <TabsList className="bg-black/40 border-white/10 backdrop-blur-xl p-1">
@@ -460,9 +497,9 @@ export default function ResellerDashboard() {
           </Card>
         </div>
 
-        {/* Clients Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          {/* Clients Section */}
+          <div className="space-y-6 w-full max-w-full min-w-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 w-full min-w-0">
             <div>
               <h2 className="text-2xl font-bold text-white">Your Clients</h2>
               <p className="text-sm text-white/40 mt-1">
@@ -470,20 +507,20 @@ export default function ResellerDashboard() {
               </p>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="relative">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full min-w-0">
+              <div className="relative flex-1 min-w-[140px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
                 <Input
                   placeholder="Search clients..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-64 pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                  className="w-full pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
                 />
               </div>
 
               <Button
                 onClick={() => setShowAddClient(true)}
-                className="bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600"
+                className="bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600 w-full sm:w-auto"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Client
@@ -492,11 +529,11 @@ export default function ResellerDashboard() {
           </div>
 
           {/* Clients Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full min-w-0">
             {filteredTenants.map((tenant) => (
               <Card
                 key={tenant.id}
-                className="bg-black/40 border-white/10 backdrop-blur-xl hover:border-white/20 transition-colors"
+                className="bg-black/40 border-white/10 backdrop-blur-xl hover:border-white/20 transition-colors w-full min-w-0"
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">

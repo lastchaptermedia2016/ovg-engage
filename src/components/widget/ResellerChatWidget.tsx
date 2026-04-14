@@ -77,22 +77,44 @@ const ResellerChatWidget = () => {
     return { ...defaultConfig, ...saved };
   });
 
-  // Watch for changes to window.ovgConfig (for test pages)
+  // Watch for configuration changes with efficient cache invalidation
   useEffect(() => {
     const saved = (window as any).ovgConfig || {};
     setConfig(prevConfig => ({ ...defaultConfig, ...saved }));
     
-    // Also watch for any future changes to window.ovgConfig
-    const originalConfig = (window as any).ovgConfig;
+    // Efficient configuration cache invalidation
+    // Check for config updates every 30 seconds instead of 100ms
+    // Server-side can update window.ovgConfig.version when changes occur
+    let lastKnownVersion = saved.version || 0;
+    
     const checkForChanges = () => {
-      const currentConfig = (window as any).ovgConfig;
-      if (currentConfig !== originalConfig) {
+      const currentConfig = (window as any).ovgConfig || {};
+      
+      // Only update config if version number has changed
+      if (currentConfig.version && currentConfig.version !== lastKnownVersion) {
         setConfig(prevConfig => ({ ...defaultConfig, ...currentConfig }));
+        lastKnownVersion = currentConfig.version;
+        console.log('🔄 Widget configuration updated (version:', currentConfig.version, ')');
       }
     };
     
-    const interval = setInterval(checkForChanges, 100);
-    return () => clearInterval(interval);
+    // Check for configuration updates every 30 seconds
+    const interval = setInterval(checkForChanges, 30000);
+    
+    // Also listen for explicit config refresh event
+    const handleConfigRefresh = () => {
+      const currentConfig = (window as any).ovgConfig || {};
+      setConfig(prevConfig => ({ ...defaultConfig, ...currentConfig }));
+      lastKnownVersion = currentConfig.version || lastKnownVersion;
+      console.log('🔄 Widget configuration refreshed manually');
+    };
+    
+    window.addEventListener('ovg_config_refresh', handleConfigRefresh);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('ovg_config_refresh', handleConfigRefresh);
+    };
   }, []);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -1010,12 +1032,12 @@ const ResellerChatWidget = () => {
 
       {/* ===== MAIN CHAT WINDOW ===== */}
       {isOpen && (
-        <div 
+      <div 
           className="fixed z-[9999] 
                      bottom-[max(1.5rem,env(safe-area-inset-bottom))] 
                      right-[max(1rem,env(safe-area-inset-right))]
                      w-[94vw] max-w-[380px] sm:max-w-[420px] 
-                     rounded-3xl border-2 overflow-hidden shadow-2xl bg-transparent"
+                     rounded-3xl border-2 overflow-hidden overflow-x-hidden shadow-2xl bg-transparent max-w-full"
           style={{ borderColor: config.primaryColor }}
         >
           {/* Header */}

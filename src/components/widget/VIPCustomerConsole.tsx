@@ -276,6 +276,19 @@ const VIPCustomerConsole = () => {
     try {
       const tenantId = (window as any).ovgConfig?.tenantId;
       if (!tenantId) return;
+      
+      // Rate limiting - block after 5 failed attempts for 10 minutes
+      const RATE_LIMIT_KEY = `vip_ratelimit_${tenantId}`;
+      const rateLimitData = localStorage.getItem(RATE_LIMIT_KEY);
+      
+      if (rateLimitData) {
+        const { attempts, blockedUntil } = JSON.parse(rateLimitData);
+        if (blockedUntil && new Date() < new Date(blockedUntil)) {
+          const remainingTime = Math.ceil((new Date(blockedUntil).getTime() - Date.now()) / 60000);
+          toast({ title: 'Access Blocked', description: `Too many failed attempts. Try again in ${remainingTime} minutes.`, variant: 'destructive' });
+          return;
+        }
+      }
 
       if (config?.vipAccessMethod === 'code') {
         const { data, error } = await supabase
@@ -287,6 +300,19 @@ const VIPCustomerConsole = () => {
           .single();
 
         if (error || !data) {
+          // Increment failed attempt counter
+          const currentData = rateLimitData ? JSON.parse(rateLimitData) : { attempts: 0 };
+          const newAttempts = currentData.attempts + 1;
+          
+          if (newAttempts >= 5) {
+            localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify({
+              attempts: newAttempts,
+              blockedUntil: new Date(Date.now() + 10 * 60 * 1000)
+            }));
+          } else {
+            localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify({ attempts: newAttempts }));
+          }
+          
           toast({ title: 'Invalid Code', description: 'Please enter a valid VIP access code.', variant: 'destructive' });
           return;
         }
@@ -304,13 +330,31 @@ const VIPCustomerConsole = () => {
           .update({ current_uses: accessData.current_uses + 1 })
           .eq('id', accessData.id);
       } else if (config?.vipAccessMethod === 'password') {
-        // Simple password check (in production, this should be server-side)
-        if (password !== 'VIP2026') { // Default password
+        // Password check - read from environment variable with secure fallback
+        const defaultPassword = import.meta.env.VITE_VIP_DEFAULT_PASSWORD || '';
+        
+        if (!defaultPassword || password !== defaultPassword) {
+          // Increment failed attempt counter
+          const currentData = rateLimitData ? JSON.parse(rateLimitData) : { attempts: 0 };
+          const newAttempts = currentData.attempts + 1;
+          
+          if (newAttempts >= 5) {
+            localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify({
+              attempts: newAttempts,
+              blockedUntil: new Date(Date.now() + 10 * 60 * 1000)
+            }));
+          } else {
+            localStorage.setItem(RATE_LIMIT_KEY, JSON.stringify({ attempts: newAttempts }));
+          }
+          
           toast({ title: 'Invalid Password', description: 'Please enter the correct password.', variant: 'destructive' });
           return;
         }
       }
 
+      // Reset rate limiting on successful access
+      localStorage.removeItem(RATE_LIMIT_KEY);
+      
       setIsAuthorized(true);
       setShowPasswordModal(false);
       setIsOpen(true);

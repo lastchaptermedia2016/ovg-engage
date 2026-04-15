@@ -110,9 +110,15 @@ export default function ResellerDashboard() {
   useEffect(() => {
     if (resellerData) {
       fetchTenants();
-      fetchStats();
     }
   }, [resellerData]);
+
+  useEffect(() => {
+    console.log('🔄 Tenants state updated:', tenants.length, 'tenants');
+    if (tenants.length > 0 || resellerData) {
+      fetchStats(tenants);
+    }
+  }, [tenants, resellerData]);
 
   const fetchPricingData = async () => {
     const { data: plans } = await supabase
@@ -233,37 +239,46 @@ export default function ResellerDashboard() {
     setTenants(data || []);
   };
 
-  const fetchStats = async () => {
+  const fetchStats = async (tenantList = tenants) => {
     if (!resellerData) return;
 
+    console.log('✅ fetchStats running with tenants:', tenantList.length);
+    console.log('✅ Tenant List:', tenantList);
+
+    // Directly update total clients first - THIS IS THE IMMEDIATE FIX
+    setStats(prev => ({
+      ...prev,
+      totalClients: tenantList.length
+    }));
+
     // Get total leads and revenue across all tenants
+    const tenantIds = tenantList.map((t) => t.id);
+    
     const { data: leadsData } = await supabase
       .from('leads')
       .select('price, status, is_new_customer, created_at')
-      .in(
-        'tenant_id',
-        tenants.map((t) => t.id)
-      );
+      .in('tenant_id', tenantIds);
 
     const { data: statsData } = await supabase
       .from('daily_stats')
       .select('total_leads, total_revenue, conversions')
-      .in(
-        'tenant_id',
-        tenants.map((t) => t.id)
-      )
+      .in('tenant_id', tenantIds)
       .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
     const totalLeads = statsData?.reduce((sum, s) => sum + (s.total_leads || 0), 0) || 0;
     const totalRevenue = statsData?.reduce((sum, s) => sum + (s.total_revenue || 0), 0) || 0;
     const totalConversions = statsData?.reduce((sum, s) => sum + (s.conversions || 0), 0) || 0;
 
-    setStats({
-      totalClients: tenants.length,
+    const newStats = {
+      totalClients: tenantList.length,
       totalLeads,
       totalRevenue,
       conversionRate: totalLeads > 0 ? (totalConversions / totalLeads) * 100 : 0,
-    });
+    };
+
+    console.log('✅ Calculated new stats:', newStats);
+
+    setStats(newStats);
   };
 
   const handleAddClient = async () => {
@@ -308,7 +323,8 @@ export default function ResellerDashboard() {
     setNewClientName('');
     setNewClientIndustry('Wellness');
     setNewClientDomain('');
-    fetchTenants();
+    await fetchTenants();
+    // We don't need to call fetchStats manually now - the useEffect will trigger it when tenants updates
   };
 
   const handleDeleteClient = async (tenantId: string) => {
@@ -324,7 +340,7 @@ export default function ResellerDashboard() {
     }
 
     toast.success('Client deleted');
-    fetchTenants();
+    await fetchTenants();
   };
 
   const handleSignOut = async () => {

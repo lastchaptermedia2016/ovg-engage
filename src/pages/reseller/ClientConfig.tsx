@@ -716,11 +716,11 @@ export default function ClientConfig() {
                     </div>
                   </div>
 
-                  {/* Widget preview */}
-                  <div
-                    className="absolute bottom-6 right-6 w-80 rounded-2xl border-2 overflow-hidden shadow-2xl"
-                    style={{ borderColor: config.branding.primaryColor }}
-                  >
+                   {/* Widget preview */}
+                   <div
+                     className="absolute bottom-6 right-6 w-80 max-w-[calc(100%-48px)] rounded-2xl border-2 overflow-hidden shadow-2xl"
+                     style={{ borderColor: config.branding.primaryColor }}
+                   >
                     {/* Widget header */}
                     <div
                       className="p-4 flex items-center gap-3"

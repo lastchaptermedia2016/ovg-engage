@@ -298,7 +298,7 @@ export default function ClientConfig() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className="bg-white/5 p-1">
+          <TabsList className="bg-white/5 p-1 flex flex-wrap min-w-0 w-full max-w-full">
             <TabsTrigger
               value="branding"
               className="data-[state=active]:bg-white/10 text-white/60 data-[state=active]:text-white"
@@ -719,7 +719,7 @@ export default function ClientConfig() {
                    {/* Widget preview */}
                    <div
                      className="absolute bottom-6 right-6 w-80 max-w-[calc(100%-48px)] rounded-2xl border-2 overflow-hidden shadow-2xl"
-                     style={{ borderColor: config.branding.primaryColor }}
+                     style={{ borderColor: config.branding.primaryColor, transformOrigin: 'bottom right', transform: 'scale(0.85)' }}
                    >
                     {/* Widget header */}
                     <div

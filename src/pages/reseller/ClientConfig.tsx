@@ -275,19 +275,20 @@ export default function ClientConfig() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
             <Button
               variant="outline"
               onClick={copyEmbedCode}
-              className="border-white/10 text-white hover:bg-white/5"
+              className="border-white/10 text-white hover:bg-white/5 text-sm"
             >
               <Code className="h-4 w-4 mr-2" />
-              Copy Embed Code
+              <span className="hidden sm:inline">Copy Embed Code</span>
+              <span className="sm:hidden">Embed</span>
             </Button>
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600"
+              className="bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600 text-sm"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save Changes'}

@@ -56,6 +56,7 @@ interface PricingPlan {
   cost_to_us_min: number;
   cost_to_us_max: number;
   price_to_client: number;
+  setup_fee: number;
   features: string[];
   is_active: boolean;
 }
@@ -678,9 +679,12 @@ export default function ResellerDashboard() {
                             <h4 className="font-semibold text-white">{plan.name}</h4>
                             <p className="text-xs text-white/40">{plan.description}</p>
                           </div>
-                          <div className="text-right">
-                            <div className="text-sm text-white/60">Base Price</div>
-                            <div className="text-lg font-bold text-gold-500">R{plan.price_to_client}</div>
+                        <div className="text-right">
+                            <div className="text-sm text-white/60">Monthly Price</div>
+                            <div className="text-lg font-bold text-gold-500">R{plan.price_to_client}/mo</div>
+                            {plan.setup_fee > 0 && (
+                              <div className="text-sm text-gold-400">+ R{plan.setup_fee} setup</div>
+                            )}
                           </div>
                         </div>
                         
@@ -881,7 +885,12 @@ export default function ResellerDashboard() {
                   >
                     <div className="font-semibold text-white">{plan.name}</div>
                     <div className="text-xs text-white/60 mt-1">{plan.description}</div>
-                    <div className="text-sm text-gold-500 mt-2">R{plan.price_to_client}/mo</div>
+                    <div className="text-sm text-gold-500 mt-2">
+                      R{plan.price_to_client}/mo
+                      {plan.setup_fee > 0 && (
+                        <span className="block text-gold-400">+ R{plan.setup_fee} setup</span>
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>

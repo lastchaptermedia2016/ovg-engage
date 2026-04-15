@@ -694,7 +694,7 @@ export default function ClientConfig() {
           </TabsContent>
 
           {/* Preview Tab */}
-          <TabsContent value="preview" className="space-y-6">
+          <TabsContent value="preview" className="space-y-6 w-full min-w-0 max-w-full">
             <Card className="bg-black/40 border-white/10 backdrop-blur-xl">
               <CardHeader>
                 <CardTitle className="text-white">Widget Preview</CardTitle>

@@ -43,10 +43,10 @@ interface WidgetConfig {
 // 💎 Zillion Engine Integration - Luxe High-End Spa Theme (DEFAULTS)
 // These defaults create the Luxe Med Spa look & feel, but are fully overridable
 const defaultConfig: WidgetConfig = {
-  logo: "/images/luxemedspa.svg",
-  brandName: "The Luxe Med Spa - New Haven",
-  primaryColor: "#be185d",
-  aiName: "Kim",
+  logo: "/images/omnivergeglobal.svg",
+  brandName: "Omniverge Global",
+  primaryColor: "#0097b2",
+  aiName: "Assistant",
   greeting: `Welcome to The Luxe Med Spa ✨ My name is Kim, I'm your personal concierge. How can I help you book your perfect treatment today?`,
   peekText: `Your sanctuary awaits... How may we pamper you today?`,
   syncBadgeText: "VIP BOOKING SECURED • SYNCED TO SANCTUARY",

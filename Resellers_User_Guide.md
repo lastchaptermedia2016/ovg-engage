@@ -49,7 +49,7 @@ Your dashboard provides a comprehensive view of your reseller business with two 
 
 - **Total Clients** - Number of businesses you're managing
 - **Total Leads** - Combined leads generated across all clients
-- **Total Revenue** - Combined revenue across all clients
+- **Total Revenue** - Combined revenue including both monthly subscriptions **and one-time setup fees**
 - **Conversion Rate** - Average conversion rate across all clients
 
 ### Quick Actions

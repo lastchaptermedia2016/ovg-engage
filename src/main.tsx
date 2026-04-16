@@ -1,6 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import AppNew from './AppNew' // ← Haal die .tsx uit
+import { BrowserRouter } from 'react-router-dom';
+import AppNew from './AppNew'
 import './index.css'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(<AppNew />)
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <BrowserRouter>
+    <AppNew />
+  </BrowserRouter>
+)

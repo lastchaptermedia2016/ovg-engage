@@ -141,8 +141,8 @@ const VIPCustomerConsole = () => {
 
         const widgetData = data as any;
         const vipConfig: VIPConsoleConfig = {
-          brandName: widgetData.branding?.brandName || 'The Luxe Med Spa',
-          primaryColor: widgetData.branding?.primaryColor || '#be185d',
+          brandName: widgetData.branding?.brandName || 'Omniverge Global',
+          primaryColor: widgetData.branding?.primaryColor || '#0097b2',
           logo: widgetData.branding?.logo,
           vipConsoleEnabled: widgetData.vip_console_enabled || false,
           vipShortcut: widgetData.vip_shortcut || 'SHIFT+V',

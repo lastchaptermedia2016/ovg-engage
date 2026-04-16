@@ -28,6 +28,9 @@ interface WidgetConfig {
     logoUrl: string;
     font: string;
     headerImage?: string; // Custom header background image URL
+    footerImage?: string; // Custom footer background image URL
+    headerOverlayIntensity?: number; // 0-1 range for background tint
+    footerOverlayIntensity?: number; // 0-1 range for background tint
     chatBubblePosition?: 'bottom-right' | 'bottom-left' | 'bottom-center';
     chatBubbleIcon?: 'message' | 'chat' | 'support' | 'help' | 'user';
     chatBubbleLabel?: string; // Optional label text next to bubble
@@ -82,6 +85,9 @@ export default function ClientConfig() {
       logoUrl: '',
       font: 'Inter, sans-serif',
       headerImage: '',
+      footerImage: '',
+      headerOverlayIntensity: 0.2,
+      footerOverlayIntensity: 0.2,
     },
     ai_config: {
       mood: 'professional',
@@ -195,7 +201,7 @@ export default function ClientConfig() {
     toast.success('Embed code copied to clipboard!');
   };
 
-  const updateBranding = (key: string, value: string) => {
+  const updateBranding = (key: string, value: string | number) => {
     setConfig((prev) => ({
       ...prev,
       branding: { ...prev.branding, [key]: value },
@@ -480,6 +486,78 @@ export default function ClientConfig() {
                         />
                       </div>
                     )}
+                    
+                    <div className="mt-3 space-y-2">
+                      <Label className="text-white/80 text-xs">Header Overlay Intensity: {Math.round((config.branding.headerOverlayIntensity ?? 0.2) * 100)}%</Label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={config.branding.headerOverlayIntensity ?? 0.2}
+                        onChange={(e) => updateBranding('headerOverlayIntensity', parseFloat(e.target.value))}
+                        className="w-full accent-cyan-500"
+                      />
+                      <p className="text-xs text-white/40">Adjust darkness overlay for better text readability</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-white/80">Footer Background Image URL</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="https://example.com/footer-bg.jpg"
+                        value={config.branding.footerImage || ''}
+                        onChange={(e) =>
+                          updateBranding('footerImage', e.target.value)
+                        }
+                        className="flex-1 bg-white/5 border-white/10 text-white"
+                      />
+                      <Button 
+                        variant="outline" 
+                        className="border-white/10"
+                        onClick={() => {
+                          const input = document.getElementById('footer-upload-input') as HTMLInputElement;
+                          input?.click();
+                        }}
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      <input
+                        id="footer-upload-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload('footerImage', e)}
+                        className="hidden"
+                      />
+                    </div>
+                    <p className="text-xs text-white/40">
+                      Recommended: 800x120px image. Used as the chat widget footer background.
+                    </p>
+                    {config.branding.footerImage && (
+                      <div className="mt-2 rounded-lg overflow-hidden border border-white/10">
+                        <img 
+                          src={config.branding.footerImage} 
+                          alt="Footer preview" 
+                          className="w-full h-20 object-cover"
+                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="mt-3 space-y-2">
+                      <Label className="text-white/80 text-xs">Footer Overlay Intensity: {Math.round((config.branding.footerOverlayIntensity ?? 0.2) * 100)}%</Label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={config.branding.footerOverlayIntensity ?? 0.2}
+                        onChange={(e) => updateBranding('footerOverlayIntensity', parseFloat(e.target.value))}
+                        className="w-full accent-cyan-500"
+                      />
+                      <p className="text-xs text-white/40">Adjust darkness overlay for better text readability</p>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

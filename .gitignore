@@ -30,3 +30,7 @@ dist-ssr
 .env.test
 .env.production
 .env*.local
+
+# Test files
+test_audio.wav
+*.wav

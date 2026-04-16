@@ -1,4 +1,4 @@
-# OVG Engage – Beauty & Wellness Concierge Chat Widget
+# OVG Engage – AI agentic voice concierge widget
 
 A modern, floating chat widget designed for beauty and wellness businesses. Helps users book treatments, check prices, claim offers, and connect with consultants — with a natural, welcoming voice experience.
 
@@ -16,6 +16,15 @@ A modern, floating chat widget designed for beauty and wellness businesses. Help
 - AI-powered responses via Groq/Grok with function calling
 - LocalStorage persistence (chat history saved across refreshes)
 - Admin dashboard (press Shift+J to access)
+
+### Pricing Logic
+- **Dual-billing model**: Once-off Setup Fee + Monthly Subscription
+- All pricing handled in **South African Rands (ZAR)** with `R` currency symbol
+- Automatic setup fee population from pricing plans
+- Custom override support for client negotiation
+- Dashboard revenue tracking includes both recurring subscriptions and one-time setup fees
+- Database schema includes `setup_fee_zar` column in `pricing_plans` table
+- Setup fees are included in Total Revenue metric calculations
 
 ### Reseller Console Features
 - **Multi-client management** - Manage unlimited client configurations from one dashboard

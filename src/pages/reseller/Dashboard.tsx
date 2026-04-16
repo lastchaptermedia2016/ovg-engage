@@ -11,7 +11,6 @@ import {
   Plus,
   Search,
   LogOut,
-  Settings,
   Copy,
   ExternalLink,
   MoreHorizontal,
@@ -36,6 +35,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+// ✅ ORIGINAL CLEAN INTERFACES
 interface Tenant {
   id: string;
   name: string;
@@ -57,6 +57,7 @@ interface PricingPlan {
   cost_to_us_max: number;
   price_to_client: number;
   setup_fee: number;
+  setup_fee_zar: number;
   features: string[];
   is_active: boolean;
 }
@@ -87,6 +88,8 @@ export default function ResellerDashboard() {
   const [newClientName, setNewClientName] = useState('');
   const [newClientIndustry, setNewClientIndustry] = useState('Wellness');
   const [newClientDomain, setNewClientDomain] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
+  const [newClientMobile, setNewClientMobile] = useState('');
   const [newClientTier, setNewClientTier] = useState('starter');
   const [newClientAddons, setNewClientAddons] = useState<string[]>([]);
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
@@ -99,10 +102,13 @@ export default function ResellerDashboard() {
     conversionRate: 0,
   });
 
-  // Pricing management state
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+
+  // ✅ SINGLE GLOBAL STATE ARRAY
   const [resellerPricing, setResellerPricing] = useState<any[]>([]);
   const [isEditingPricing, setIsEditingPricing] = useState(false);
 
+  // ✅ CLEAN USEEFFECT CHAIN
   useEffect(() => {
     checkAuth();
     fetchPricingData();
@@ -111,13 +117,13 @@ export default function ResellerDashboard() {
   useEffect(() => {
     if (resellerData) {
       fetchTenants();
+      fetchAuditLogs();
     }
   }, [resellerData]);
 
   useEffect(() => {
-    console.log('🔄 Tenants state updated:', tenants.length, 'tenants');
-    if (tenants.length > 0 || resellerData) {
-      fetchStats(tenants);
+    if (tenants.length > 0 && resellerData) {
+      fetchStats();
     }
   }, [tenants, resellerData]);
 
@@ -170,57 +176,67 @@ export default function ResellerDashboard() {
     return calculateMonthlyPrice() - calculateMonthlyCost();
   };
 
+  const calculateSetupFee = () => {
+    const plan = pricingPlans.find(p => p.slug === newClientTier);
+    return plan?.setup_fee_zar || plan?.setup_fee || 0;
+  };
+
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate('/reseller/login');
-      return;
-    }
-
-    console.log('Session user:', session.user);
-
-    const { data: reseller, error } = await supabase
-      .from('resellers')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching reseller:', error);
-      setIsLoading(false);
-      return;
-    }
-
-    if (reseller) {
-      console.log('Reseller found:', reseller);
-      setResellerData(reseller);
-    } else {
-      // Create reseller record if it doesn't exist
-      console.log('No reseller found, creating one...');
-      const { data: newReseller, error: insertError } = await supabase
-        .from('resellers')
-        .insert({
-          user_id: session.user.id,
-          email: session.user.email,
-          company_name: session.user.user_metadata?.company_name || 'My Company',
-          subscription_tier: 'free',
-          max_tenants: 3,
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('Error creating reseller:', insertError);
-        toast.error('Failed to create reseller account');
-        setIsLoading(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/reseller/login');
         return;
       }
 
-      console.log('New reseller created:', newReseller);
-      setResellerData(newReseller);
-    }
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role, tenant_id')
+        .eq('id', session.user.id)
+        .maybeSingle() as any;
 
-    setIsLoading(false);
+      if (userData && userData.role === 'client') {
+        toast.error('You do not have access to the management console');
+        window.location.href = `/portal/${userData.tenant_id}/settings`;
+        return;
+      }
+
+      const { data: reseller, error } = await supabase
+        .from('resellers')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching reseller:', error);
+        return;
+      }
+
+      if (reseller) {
+        setResellerData(reseller);
+      } else {
+        const { data: newReseller, error: insertError } = await supabase
+          .from('resellers')
+          .insert({
+            user_id: session.user.id,
+            email: session.user.email,
+            company_name: session.user.user_metadata?.company_name || 'My Company',
+            subscription_tier: 'free',
+            max_tenants: 3,
+          })
+          .select()
+          .single() as any;
+
+        if (insertError) {
+          toast.error('Failed to create reseller account');
+          return;
+        }
+
+        setResellerData(newReseller);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const fetchTenants = async () => {
@@ -240,79 +256,112 @@ export default function ResellerDashboard() {
     setTenants(data || []);
   };
 
-  const fetchStats = async (tenantList = tenants) => {
+  const fetchAuditLogs = async () => {
+    const tenantIds = tenants.map(t => t.id);
+    
+    const { data: logs } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .in('client_id', tenantIds)
+      .order('created_at', { ascending: false })
+      .limit(15);
+
+    setAuditLogs(logs || []);
+  };
+
+  const fetchStats = async () => {
     if (!resellerData) return;
 
-    console.log('✅ fetchStats running with tenants:', tenantList.length);
-    console.log('✅ Tenant List:', tenantList);
-
-    // Directly update total clients first - THIS IS THE IMMEDIATE FIX
     setStats(prev => ({
       ...prev,
-      totalClients: tenantList.length
+      totalClients: tenants.length
     }));
 
-    // Get total leads and revenue across all tenants
-    const tenantIds = tenantList.map((t) => t.id);
-    
-    const { data: leadsData } = await supabase
-      .from('leads')
-      .select('price, status, is_new_customer, created_at')
-      .in('tenant_id', tenantIds);
+    if (tenants.length === 0) {
+      setStats(prev => ({
+        ...prev,
+        totalLeads: 0,
+        totalRevenue: 0,
+        conversionRate: 0
+      }));
+      return;
+    }
 
-    const { data: statsData } = await supabase
-      .from('daily_stats')
-      .select('total_leads, total_revenue, conversions')
-      .in('tenant_id', tenantIds)
-      .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const tenantIds = tenants.map((t) => t.id).filter(id => uuidRegex.test(id));
 
-    const totalLeads = statsData?.reduce((sum, s) => sum + (s.total_leads || 0), 0) || 0;
-    const totalRevenue = statsData?.reduce((sum, s) => sum + (s.total_revenue || 0), 0) || 0;
-    const totalConversions = statsData?.reduce((sum, s) => sum + (s.conversions || 0), 0) || 0;
+    if (tenantIds.length === 0) {
+      setStats(prev => ({
+        ...prev,
+        totalLeads: 0,
+        totalRevenue: 0,
+        conversionRate: 0
+      }));
+      return;
+    }
 
-    const newStats = {
-      totalClients: tenantList.length,
-      totalLeads,
-      totalRevenue,
-      conversionRate: totalLeads > 0 ? (totalConversions / totalLeads) * 100 : 0,
-    };
+    try {
+      const { data: statsData } = await supabase
+        .from('daily_stats')
+        .select('total_leads, total_revenue, conversions')
+        .in('tenant_id', tenantIds)
+        .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) as any;
 
-    console.log('✅ Calculated new stats:', newStats);
+      const totalLeads = statsData?.reduce((sum, s) => sum + (s.total_leads || 0), 0) || 0;
+      const totalRevenue = statsData?.reduce((sum, s) => sum + (s.total_revenue || 0), 0) || 0;
+      const totalConversions = statsData?.reduce((sum, s) => sum + (s.conversions || 0), 0) || 0;
 
-    setStats(newStats);
+      setStats({
+        totalClients: tenants.length,
+        totalLeads,
+        totalRevenue,
+        conversionRate: totalLeads > 0 ? (totalConversions / totalLeads) * 100 : 0,
+      });
+
+    } catch (err: any) {
+      setStats(prev => ({
+        ...prev,
+        totalLeads: 0,
+        totalRevenue: 0,
+        conversionRate: 0
+      }));
+    }
   };
 
   const handleAddClient = async () => {
-    console.log('handleAddClient called');
-    console.log('resellerData:', resellerData);
-    console.log('newClientName:', newClientName);
-    console.log('newClientName.trim():', newClientName.trim());
-    
     if (!resellerData) {
       toast.error('Authentication error: Please sign in again');
-      console.error('No reseller data - user not authenticated');
       return;
     }
     
     if (!newClientName.trim()) {
       toast.error('Please enter a client name');
-      console.error('Empty client name');
       return;
     }
 
-    const { data, error } = await supabase
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!newClientEmail || !emailRegex.test(newClientEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    const insertPayload = {
+      reseller_id: resellerData.id,
+      name: newClientName.trim(),
+      industry: newClientIndustry,
+      domain: newClientDomain || null,
+      contact_email: newClientEmail,
+      contact_mobile: newClientMobile,
+      is_active: true,
+      subscription_tier: newClientTier,
+      addons: newClientAddons,
+    };
+
+    const { data: tenant, error } = await supabase
       .from('tenants')
-      .insert({
-        reseller_id: resellerData.id,
-        name: newClientName.trim(),
-        industry: newClientIndustry,
-        domain: newClientDomain || null,
-        is_active: true,
-        subscription_tier: newClientTier,
-        addons: newClientAddons,
-      })
+      .insert(insertPayload)
       .select()
-      .single();
+      .single() as any;
 
     if (error) {
       toast.error(error.message);
@@ -324,8 +373,9 @@ export default function ResellerDashboard() {
     setNewClientName('');
     setNewClientIndustry('Wellness');
     setNewClientDomain('');
+    setNewClientEmail('');
+    setNewClientMobile('');
     await fetchTenants();
-    // We don't need to call fetchStats manually now - the useEffect will trigger it when tenants updates
   };
 
   const handleDeleteClient = async (tenantId: string) => {
@@ -346,8 +396,14 @@ export default function ResellerDashboard() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate('/reseller/login');
-    toast.success('Signed out successfully');
+
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-') || key.startsWith('supabase.auth.')) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    window.location.href = '/reseller/login';
   };
 
   const copyEmbedCode = (tenant: Tenant) => {
@@ -378,43 +434,6 @@ export default function ResellerDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0A0505] overflow-x-hidden w-screen max-w-full">
-      <style>{`
-        *, *::before, *::after {
-          max-width: 100vw !important;
-          box-sizing: border-box;
-          overflow-wrap: break-word;
-          word-wrap: break-word;
-          -ms-word-break: break-all;
-          word-break: break-word;
-          -ms-hyphens: auto;
-          -moz-hyphens: auto;
-          -webkit-hyphens: auto;
-          hyphens: auto;
-        }
-
-        html, body {
-          overflow-x: hidden !important;
-          width: 100% !important;
-          position: relative;
-          max-width: 100% !important;
-        }
-
-        div, span, applet, object, iframe,
-        h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-        a, abbr, acronym, address, big, cite, code,
-        del, dfn, em, img, ins, kbd, q, s, samp,
-        small, strike, strong, sub, sup, tt, var,
-        b, u, i, center,
-        dl, dt, dd, ol, ul, li,
-        fieldset, form, label, legend,
-        table, caption, tbody, tfoot, thead, tr, th, td,
-        article, aside, canvas, details, embed, 
-        figure, figcaption, footer, header, hgroup, 
-        menu, nav, output, ruby, section, summary,
-        time, mark, audio, video {
-          max-width: 100% !important;
-        }
-      `}</style>
       {/* Header */}
       <header className="border-b border-white/10 bg-black/20 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -649,10 +668,28 @@ export default function ResellerDashboard() {
                 </p>
               </div>
               <Button
-                onClick={() => setIsEditingPricing(!isEditingPricing)}
+                onClick={async () => {
+                  if (isEditingPricing) {
+                    // ✅ SINGLE GLOBAL SAVE BUTTON
+                    // Saves ALL changes at once
+                    for (const plan of pricingPlans) {
+                      const edited = resellerPricing.find((p: any) => p.plan_slug === plan.slug);
+                      
+                      await (supabase as any)
+                        .from('pricing_plans')
+                        .update({
+                          price_to_client: edited?.price_to_client ?? plan.price_to_client,
+                          setup_fee_zar: edited?.setup_fee_zar ?? plan.setup_fee_zar
+                        })
+                        .eq('id', plan.id);
+                    }
+                    toast.success('Pricing changes saved!');
+                  }
+                  setIsEditingPricing(!isEditingPricing);
+                }}
                 className="bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600"
               >
-                {isEditingPricing ? 'Done' : 'Edit Prices'}
+                {isEditingPricing ? 'Save All Changes' : 'Edit Prices'}
               </Button>
             </div>
 
@@ -670,6 +707,7 @@ export default function ResellerDashboard() {
                       (p: any) => p.plan_slug === plan.slug
                     );
                     const customPrice = resellerPrice?.price_to_client || plan.price_to_client;
+                    const customSetupFee = resellerPrice?.setup_fee_zar ?? plan.setup_fee_zar ?? plan.setup_fee;
                     const profit = customPrice - plan.cost_to_us_max;
 
                     return (
@@ -680,7 +718,7 @@ export default function ResellerDashboard() {
                             <p className="text-xs text-white/40">{plan.description}</p>
                           </div>
                         <div className="text-right">
-                            <div className="text-sm text-white/60">Monthly Price</div>
+                            <div className="text-sm text-white/60">Base Price</div>
                             <div className="text-lg font-bold text-gold-500">R{plan.price_to_client}/mo</div>
                             {plan.setup_fee > 0 && (
                               <div className="text-sm text-gold-400">+ R{plan.setup_fee} setup</div>
@@ -689,34 +727,67 @@ export default function ResellerDashboard() {
                         </div>
                         
                         {isEditingPricing ? (
-                          <div className="space-y-2">
-                            <Label className="text-white/80 text-sm">Your Price</Label>
-                            <Input
-                              type="number"
-                              value={customPrice}
-                              onChange={(e) => {
-                                const newPrice = parseFloat(e.target.value);
-                                setResellerPricing(prev => {
-                                  const existing = prev.find((p: any) => p.plan_slug === plan.slug);
-                                  if (existing) {
-                                    return prev.map((p: any) =>
-                                      p.plan_slug === plan.slug
-                                        ? { ...p, price_to_client: newPrice }
-                                        : p
-                                    );
-                                  } else {
-                                    return [...prev, {
-                                      plan_slug: plan.slug,
-                                      price_to_client: newPrice
-                                    }];
-                                  }
-                                });
-                              }}
-                              className="bg-white/5 border-white/10 text-white"
-                              min={plan.cost_to_us_max}
-                            />
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-2">
+                                <Label className="text-white/80 text-sm">Monthly Price (R)</Label>
+                                <Input
+                                  type="number"
+                                  value={customPrice}
+                                  onChange={(e) => {
+                                    const newPrice = parseFloat(e.target.value);
+                                    setResellerPricing(prev => {
+                                      const existing = prev.find((p: any) => p.plan_slug === plan.slug);
+                                      if (existing) {
+                                        return prev.map((p: any) =>
+                                          p.plan_slug === plan.slug
+                                            ? { ...p, price_to_client: newPrice }
+                                            : p
+                                        );
+                                      } else {
+                                        return [...prev, {
+                                          plan_slug: plan.slug,
+                                          price_to_client: newPrice,
+                                          setup_fee_zar: plan.setup_fee_zar
+                                        }];
+                                      }
+                                    });
+                                  }}
+                                  className="bg-white/5 border-white/10 text-white"
+                                  min={plan.cost_to_us_max}
+                                />
+                              </div>
+                                <div className="space-y-2">
+                                  <Label className="text-white/80 text-sm">Setup Fee (R)</Label>
+                                  <Input
+                                    type="number"
+                                    value={customSetupFee}
+                                    onChange={(e) => {
+                                      const setupFee = parseFloat(e.target.value) || 0;
+                                      setResellerPricing(prev => {
+                                        const existing = prev.find((p: any) => p.plan_slug === plan.slug);
+                                        if (existing) {
+                                          return prev.map((p: any) =>
+                                            p.plan_slug === plan.slug
+                                              ? { ...p, setup_fee_zar: setupFee }
+                                              : p
+                                          );
+                                        } else {
+                                          return [...prev, {
+                                            plan_slug: plan.slug,
+                                            price_to_client: plan.price_to_client,
+                                            setup_fee_zar: setupFee
+                                          }];
+                                        }
+                                      });
+                                    }}
+                                    className="bg-white/5 border-white/10 text-white"
+                                    min={0}
+                                  />
+                                </div>
+                            </div>
                             <p className="text-xs text-white/40">
-                              Minimum price: R{plan.cost_to_us_max} (cost to you)
+                              Minimum monthly price: R{plan.cost_to_us_max} (cost to you)
                             </p>
                           </div>
                         ) : (
@@ -870,6 +941,29 @@ export default function ResellerDashboard() {
             </div>
 
             <div className="space-y-2">
+              <Label className="text-white/80">Contact Email</Label>
+              <Input
+                type="email"
+                placeholder="client@company.com"
+                value={newClientEmail}
+                onChange={(e) => setNewClientEmail(e.target.value)}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-white/80">Mobile Number</Label>
+              <Input
+                type="tel"
+                placeholder="+27 82 123 4567"
+                value={newClientMobile}
+                onChange={(e) => setNewClientMobile(e.target.value)}
+                className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label className="text-white/80">Subscription Tier</Label>
               <div className="grid grid-cols-2 gap-3">
                 {pricingPlans.map((plan) => (
@@ -928,6 +1022,12 @@ export default function ResellerDashboard() {
                   <span className="text-white/60 text-sm">Monthly Revenue</span>
                   <span className="text-white font-semibold">R{calculateMonthlyPrice()}</span>
                 </div>
+                {calculateSetupFee() > 0 && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white/60 text-sm">Setup Fee (one-time)</span>
+                    <span className="text-gold-400 font-semibold">+ R{calculateSetupFee()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-white/60 text-sm">Monthly Cost</span>
                   <span className="text-red-400">-R{calculateMonthlyCost()}</span>

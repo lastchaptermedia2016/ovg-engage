@@ -1,232 +1,246 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Sparkles, Mail, Lock, Building2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Building2 } from 'lucide-react';
+
+/**
+ * ✅ RESELLER LOGIN COMPONENT
+ * 
+ * 100% ISOLATED. NO CLIENT BRANDING.
+ * 
+ * Path: /reseller/login
+ * Branding: OmniVerge Global Electric Blue (#0097b2)
+ * 
+ * THIS COMPONENT NEVER RENDERS CLIENT CONTENT.
+ */
 
 export default function ResellerLogin() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const navigate = useNavigate();
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  // ✅ NO useEffect session check - RouteGuard handles that
+  // ✅ NO onAuthStateChange listener - prevents double-login ghost
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ Submission guard - prevent double-click
+    if (isLoading) return;
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: {
-          data: {
-            company_name: companyName,
-          },
-        },
       });
 
-      if (error) throw error;
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
 
-      toast.success('Account created! Please check your email to confirm.');
-      navigate('/reseller/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create account');
-    } finally {
+      // ✅ STRICT ROLE CHECK - Check metadata first, then DB fallback
+      const userMeta = data.user?.user_metadata;
+
+      if (['reseller', 'admin', 'developer', 'support'].includes(userMeta?.role)) {
+        window.location.href = '/reseller/dashboard';
+      } else if (userMeta?.role) {
+        // Known role but not reseller → reject
+        toast.error('This login is for Reseller accounts only');
+        await supabase.auth.signOut();
+        setIsLoading(false);
+      } else {
+        // No role in metadata → check database
+        console.log('⚠️ No role in metadata, checking database...');
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', data.user!.id)
+          .maybeSingle() as any;
+
+        if (userData && ['reseller', 'admin', 'developer', 'support'].includes(userData.role)) {
+          window.location.href = '/reseller/dashboard';
+        } else {
+          toast.error('This login is for Reseller accounts only');
+          await supabase.auth.signOut();
+          setIsLoading(false);
+        }
+      }
+    } catch (err: any) {
+      toast.error(`Login failed: ${err.message}`);
       setIsLoading(false);
     }
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ Submission guard - prevent double-click
+    if (isLoading) return;
+    if (!companyName.trim()) {
+      toast.error('Please enter your company name');
+      return;
+    }
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      // 1. Create auth user with HARD CODED reseller role
+      const { error, data } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            role: 'reseller', // ✅ EXCELLENCE VALIDATION: Always reseller on this path
+            company_name: companyName.trim(),
+          }
+        }
       });
 
-      if (error) throw error;
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
 
-      toast.success('Welcome back!');
-      navigate('/reseller/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
-    } finally {
+      // 2. Create record in public.resellers table
+      const { error: resellerError } = await (supabase as any)
+        .from('resellers')
+        .insert({
+          user_id: data.user!.id,
+          email: email,
+          company_name: companyName.trim(),
+          subscription_tier: 'free',
+          max_tenants: 3,
+        });
+
+      if (resellerError) {
+        console.error('Failed to create reseller record:', resellerError);
+      }
+
+      toast.success('Account created! Check your email for verification.');
+      setIsSignUp(false); // Switch back to login mode
+      setIsLoading(false);
+    } catch (err: any) {
+      toast.error(`Signup failed: ${err.message}`);
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0505] via-[#1a0a0a] to-[#0A0505] flex items-center justify-center p-4">
-      {/* Background shimmer */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[30%] -left-[10%] w-[70%] h-[70%] bg-pink-500/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-[30%] -right-[10%] w-[70%] h-[70%] bg-gold-500/5 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-[#0A0F1C] flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <img 
+            src="/images/omnivergeglobal.svg" 
+            alt="OmniVerge Global" 
+            className="h-12 mx-auto mb-4"
+          />
+          <h1 className="text-3xl font-bold text-white mb-2">OMNIVERGE GLOBAL</h1>
+          <p className="text-white/40">Reseller Management Console</p>
+        </div>
 
-      <Card className="w-full max-w-md bg-black/40 border-white/10 backdrop-blur-xl relative z-10">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-pink-500 to-gold-500 flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold text-white">
-            OVG Engage
-          </CardTitle>
-          <CardDescription className="text-white/60">
-            Reseller Console - Manage your clients
-          </CardDescription>
-        </CardHeader>
-
-        <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-white/5">
-            <TabsTrigger value="signin" className="data-[state=active]:bg-white/10">
-              Sign In
-            </TabsTrigger>
-            <TabsTrigger value="signup" className="data-[state=active]:bg-white/10">
-              Sign Up
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="signin">
-            <form onSubmit={handleSignIn}>
-              <CardHeader>
-                <CardDescription className="text-white/60">
-                  Enter your credentials to access your account
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+        <Card className="bg-black/40 border-[#0097b2]/20 backdrop-blur-xl">
+          <CardHeader>
+            <CardTitle className="text-white">
+              {isSignUp ? 'Create Reseller Account' : 'Reseller Login'}
+            </CardTitle>
+            <CardDescription className="text-white/60">
+              {isSignUp 
+                ? 'Register for a new reseller account'
+                : 'Sign in to access the management console'
+              }
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
+              {/* Company Name field only in Sign Up mode */}
+              {isSignUp && (
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email" className="text-white/80">
-                    Email
-                  </Label>
+                  <Label className="text-white/80">Company Name</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-white/40" />
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
                     <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password" className="text-white/80">
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-white/40" />
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Signing in...' : 'Sign In'}
-                </Button>
-              </CardFooter>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="signup">
-            <form onSubmit={handleSignUp}>
-              <CardHeader>
-                <CardDescription className="text-white/60">
-                  Create your reseller account
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-company" className="text-white/80">
-                    Company Name
-                  </Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-3 h-4 w-4 text-white/40" />
-                    <Input
-                      id="signup-company"
-                      type="text"
-                      placeholder="Your Company Ltd."
+                      placeholder="Your Company Name"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-white/80">
-                    Email
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-white/40" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-10 bg-white/5 border-[#0097b2]/30 text-white placeholder:text-white/30"
                       required
-                      className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-white/80">
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-white/40" />
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/30"
-                    />
-                  </div>
-                  <p className="text-xs text-white/40">
-                    Must be at least 6 characters
-                  </p>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-white/80">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                  <Input
+                    type="email"
+                    placeholder="reseller@omnivergeglobal.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 bg-white/5 border-[#0097b2]/30 text-white placeholder:text-white/30"
+                    required
+                  />
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Creating account...' : 'Create Account'}
-                </Button>
-              </CardFooter>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-white/80">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 bg-white/5 border-[#0097b2]/30 text-white placeholder:text-white/30"
+                    required
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-[#0097b2] hover:bg-[#00829c]"
+                disabled={isLoading}
+              >
+                {isLoading 
+                  ? (isSignUp ? 'Creating account...' : 'Signing in...') 
+                  : (isSignUp ? 'Create Account' : 'Sign In')
+                }
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
             </form>
-          </TabsContent>
-        </Tabs>
-      </Card>
+
+            {/* Toggle link at bottom */}
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-[#0097b2] hover:text-[#38bdf8] text-sm transition-colors"
+              >
+                {isSignUp
+                  ? 'Already have an account? Sign In'
+                  : "Don't have an account? Sign Up"
+                }
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <p className="text-center text-white/40 text-xs mt-8">
+          © 2026 OmniVerge Global. All rights reserved.
+        </p>
+      </div>
     </div>
   );
 }

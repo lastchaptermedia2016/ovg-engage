@@ -176,7 +176,7 @@ export default function CustomServices() {
       return;
     }
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('custom_services')
       .insert({
         tenant_id: tenantId,
@@ -188,7 +188,7 @@ export default function CustomServices() {
         priority: newServicePriority,
         notes: newServiceNotes.trim(),
         status: 'pending',
-      } as any);
+      });
 
     if (error) {
       toast.error(error.message);
@@ -217,7 +217,7 @@ export default function CustomServices() {
     if (newStatus === 'in_progress') updates.started_at = new Date().toISOString();
     if (newStatus === 'completed') updates.completed_at = new Date().toISOString();
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('custom_services')
       .update(updates)
       .eq('id', serviceId);
@@ -249,14 +249,14 @@ export default function CustomServices() {
       return;
     }
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('time_entries')
       .insert({
         service_id: serviceId,
         user_id: resellerData.user_id,
         description: 'Work session',
         is_running: true,
-      } as any);
+      });
 
     if (error) {
       toast.error(error.message);
@@ -268,12 +268,12 @@ export default function CustomServices() {
   };
 
   const stopTimer = async (entryId: string) => {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('time_entries')
       .update({ 
         is_running: false,
         ended_at: new Date().toISOString()
-      } as any)
+      })
       .eq('id', entryId);
 
     if (error) {
@@ -311,7 +311,7 @@ export default function CustomServices() {
     const now = new Date();
     const startTime = new Date(now.getTime() - parseFloat(manualMinutes) * 60000);
 
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('time_entries')
       .insert({
         service_id: serviceId,
@@ -320,7 +320,7 @@ export default function CustomServices() {
         started_at: startTime.toISOString(),
         ended_at: now.toISOString(),
         is_running: false,
-      } as any);
+      });
 
     if (error) {
       toast.error(error.message);
@@ -395,7 +395,7 @@ export default function CustomServices() {
     // Generate invoice
     const invoiceNumber = `INV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
     
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('invoices')
       .insert({
         tenant_id: tenantId,
@@ -405,7 +405,7 @@ export default function CustomServices() {
         status: 'draft',
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         notes: `Monthly invoice for ${tenant?.name}`,
-      } as any);
+      });
 
     if (error) {
       toast.error(error.message);
@@ -426,18 +426,11 @@ export default function CustomServices() {
   return (
     <div className="min-h-screen bg-[#0A0505]">
       {/* Header */}
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-xl sticky top-0 z-50">
+      <header className="border-b border-white/10 bg-gradient-to-r from-black/80 to-[#0A0505]/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/reseller/dashboard')}
-              className="text-white/60 hover:text-white"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
+            <img src="/images/omnivergeglobal.svg" alt="OmniVerge" className="h-10 w-auto" />
+            <div className="border-l border-white/10 pl-4">
               <h1 className="text-xl font-bold text-white">
                 {tenant?.name} - Custom Services
               </h1>
@@ -456,7 +449,7 @@ export default function CustomServices() {
             </Button>
             <Button
               onClick={() => setShowAddService(true)}
-              className="bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600"
+              className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30]"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Service

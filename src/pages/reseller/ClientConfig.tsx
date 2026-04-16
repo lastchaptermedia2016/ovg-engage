@@ -168,13 +168,13 @@ export default function ClientConfig() {
       .from('widget_configs')
       .upsert({
         tenant_id: tenantId,
-        branding: config.branding as any,
-        ai_config: config.ai_config as any,
-        offerings: config.offerings as any,
-        addons: config.addons as any,
-        allowed_domains: config.allowed_domains as any,
-        special_offers: config.special_offers as any,
-      }, {
+        branding: config.branding,
+        ai_config: config.ai_config,
+        offerings: config.offerings,
+        addons: config.addons,
+        allowed_domains: config.allowed_domains,
+        special_offers: config.special_offers,
+      } as any, {
         onConflict: 'tenant_id',
       });
 
@@ -260,18 +260,11 @@ export default function ClientConfig() {
   return (
     <div className="min-h-screen bg-[#0A0505]">
       {/* Header */}
-      <header className="border-b border-white/10 bg-black/20 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3 w-full box-border">
+      <header className="border-b border-white/10 bg-gradient-to-r from-black/80 to-[#0A0505]/80 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/reseller/dashboard')}
-              className="text-white/60 hover:text-white"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
+            <img src="/images/omnivergeglobal.svg" alt="OmniVerge" className="h-10 w-auto" />
+            <div className="border-l border-white/10 pl-4">
               <h1 className="text-xl font-bold text-white">
                 {tenant?.name || 'Client Configuration'}
               </h1>
@@ -281,20 +274,19 @@ export default function ClientConfig() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
+          <div className="flex items-center gap-4">
             <Button
               variant="outline"
               onClick={copyEmbedCode}
-              className="border-white/10 text-white hover:bg-white/5 text-sm"
+              className="border-white/10 text-white hover:bg-white/5"
             >
               <Code className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Copy Embed Code</span>
-              <span className="sm:hidden">Embed</span>
+              Copy Embed Code
             </Button>
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600 text-sm"
+              className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30]"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save Changes'}

@@ -11,6 +11,7 @@ import ResellerChatWidget from "./components/widget/ResellerChatWidget";
 import VIPCustomerConsole from "./components/widget/VIPCustomerConsole";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
+import CommandAuth from "./pages/command/Auth";
 import ResellerLogin from "./pages/reseller/Login";
 import ResellerDashboard from "./pages/reseller/Dashboard";
 import ClientConfig from "./pages/reseller/ClientConfig";
@@ -26,7 +27,7 @@ import { toast } from 'sonner';
 const queryClient = new QueryClient();
 
 // ✅ PUBLIC PATHS - Never guard these routes
-const PUBLIC_PATHS = ['/', '/login', '/reseller/login', '/test-omniverge'];
+const PUBLIC_PATHS = ['/', '/login', '/reseller/login', '/command/auth', '/test-omniverge'];
 
 // ✅ Widget Manager - conditionally renders widgets based on route
 // All hooks are called unconditionally to comply with React Rules of Hooks
@@ -36,7 +37,7 @@ const WidgetManager = () => {
   // Determine visibility based on current path
   const currentPath = window.location.pathname;
   const isResellerPath = currentPath.startsWith('/reseller');
-  const isLoginPath = currentPath === '/login';
+  const isLoginPath = currentPath === '/login' || currentPath === '/command/auth';
   const isAdminPath = currentPath.startsWith('/admin');
 
   // Kill-switch: no widgets on reseller, login, or admin paths
@@ -87,6 +88,8 @@ const RouteGuard = () => {
         if (!session?.user) {
           if (currentPath.startsWith('/reseller')) {
             navigate('/reseller/login', { replace: true });
+          } else if (currentPath.startsWith('/command')) {
+            navigate('/command/auth', { replace: true });
           } else if (currentPath.startsWith('/portal')) {
             navigate('/login', { replace: true });
           } else {
@@ -247,6 +250,7 @@ const AppNew = () => {
             <Route path="/luxe-console" element={<AdminDashboard />} />
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/command/auth" element={<CommandAuth />} />
             <Route path="/reseller/login" element={<ResellerLogin />} />
             {/* Reseller Console Routes */}
             <Route path="/reseller/dashboard" element={<ResellerDashboard />} />

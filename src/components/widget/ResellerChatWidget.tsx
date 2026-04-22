@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ZillionConfig } from '../../ZillionConfig';
+import "@/styles/animations.css"; // Import animations.css
 
 // Fixed: Importing type from mock-ai to break circular dependency
 import { generateAIResponse, type ChatMessage } from "@/lib/mock-ai";
@@ -48,7 +49,7 @@ const defaultConfig: WidgetConfig = {
   primaryColor: "#0097b2",
   aiName: "Assistant",
   greeting: `Welcome to The Luxe Med Spa ✨ My name is Kim, I'm your personal concierge. How can I help you book your perfect treatment today?`,
-  peekText: `Your sanctuary awaits... How may we pamper you today?`,
+  peekText: `Ready to scale your revenue with AI-powered automation?`,
   syncBadgeText: "VIP BOOKING SECURED • SYNCED TO SANCTUARY",
   phone: "27760330046",
   whatsappMessageTemplate: `Hello {title} {lastName}, your bespoke {treatment} ($` + `{price}) at {brandName} is confirmed for {time}. We have your {refreshment} ready for your arrival. See you in the sanctuary!`,
@@ -60,14 +61,159 @@ const omnivergeDefaultConfig: WidgetConfig = {
   logo: "/images/omniverge-global.svg",
   brandName: "OmniVerge Global",
   primaryColor: "#c2aa6f",
-  aiName: "Nova",
-  greeting: `Welcome to OmniVerge Global ✨ I'm Nova, your AI-powered growth strategist. How can we help you master both tradition and innovation to transform challenges into opportunities and bold ideas into lasting success?`,
-  peekText: `Welcome to the future... How may we assist you today?`,
+  aiName: "OVG",
+  greeting: `Welcome to OmniVerge Global ✨ I'm OVG, your AI-powered growth strategist. How can we help you master both tradition and innovation to transform challenges into opportunities and bold ideas into lasting success?`,
+  peekText: `Ready to see the future of AI-powered business?`,
   syncBadgeText: "BOOKING CONFIRMED • SYNCED TO OMNIVERGE GLOBAL",
   phone: "0636658016",
   whatsappMessageTemplate: `Hello {title} {lastName}, your consultation with OmniVerge Global is confirmed for {time}. We look forward to helping you achieve unprecedented growth.`,
   headerImage: "/images/omniverge-header.jpg",
 };
+
+// === OVG STATE MACHINE ===
+type StateID =
+  | "S_WAKE"
+  | "S_GREETING"
+  | "S_INFO_PRICING"
+  | "S_INFO_FEATURES"
+  | "S_LEAD_CAPTURE_NAME"
+  | "S_LEAD_CAPTURE_EMAIL"
+  | "S_LEAD_CAPTURE_PHONE"
+  | "S_LEAD_CAPTURE_CONFIRM"
+  | "S_SOFT_CLOSE"
+  | "S_HUMAN_HANDOFF"
+  | "S_HANDLE_OBJ_COMPARE"
+  | "S_HANDLE_OBJ_BUDGET"
+  | "S_HANDLE_OBJ_TIME"
+  | "S_HANDLE_OBJ_TRUST";
+
+// State transition mapping
+const STATE_TRANSITIONS: Record<StateID, StateID[]> = {
+  S_WAKE: ["S_GREETING"],
+  S_GREETING: ["S_INFO_PRICING", "S_INFO_FEATURES", "S_LEAD_CAPTURE_NAME", "S_HUMAN_HANDOFF"],
+  S_INFO_PRICING: ["S_SOFT_CLOSE", "S_LEAD_CAPTURE_NAME", "S_HUMAN_HANDOFF", "S_HANDLE_OBJ_COMPARE", "S_HANDLE_OBJ_BUDGET"],
+  S_INFO_FEATURES: ["S_SOFT_CLOSE", "S_LEAD_CAPTURE_NAME", "S_HUMAN_HANDOFF"],
+  S_LEAD_CAPTURE_NAME: ["S_LEAD_CAPTURE_EMAIL"],
+  S_LEAD_CAPTURE_EMAIL: ["S_LEAD_CAPTURE_PHONE"],
+  S_LEAD_CAPTURE_PHONE: ["S_LEAD_CAPTURE_CONFIRM"],
+  S_LEAD_CAPTURE_CONFIRM: ["S_SOFT_CLOSE", "S_HUMAN_HANDOFF"],
+  S_SOFT_CLOSE: ["S_LEAD_CAPTURE_NAME", "S_HUMAN_HANDOFF"],
+  S_HUMAN_HANDOFF: ["S_WAKE"],
+  S_HANDLE_OBJ_COMPARE: ["S_SOFT_CLOSE", "S_LEAD_CAPTURE_NAME"],
+  S_HANDLE_OBJ_BUDGET: ["S_SOFT_CLOSE", "S_LEAD_CAPTURE_NAME"],
+  S_HANDLE_OBJ_TIME: ["S_SOFT_CLOSE", "S_LEAD_CAPTURE_NAME"],
+  S_HANDLE_OBJ_TRUST: ["S_SOFT_CLOSE", "S_LEAD_CAPTURE_NAME"],
+};
+
+// Prompt templates with dynamic variable support
+const PROMPT_TEMPLATES: Record<StateID, string> = {
+  S_WAKE: "",
+  S_GREETING: "Hi there! I'm OVG, your AI concierge for OmniVerge Global. We help businesses like yours grow smarter using strategic marketing and AI. What brings you to our site today?",
+  S_INFO_PRICING: `Here are our OVG Engage Widget Plans:
+• Starter Plan: R349/month
+• Professional Plan: R799/month
+• Business Plan: R1,499/month
+• Enterprise Plan: Custom pricing
+
+The widget plans start at R349, but for full-spectrum agency work led by Dona and Jason, services start at R2,500.`,
+  S_INFO_FEATURES: `OVG Engage provides:
+• Custom AI chatbots with your branding
+• Voice input/output capabilities
+• Lead capture and CRM integration
+• Booking and appointment scheduling
+• Full analytics and insights
+• Multilingual support for all 11 official South African languages`,
+  S_LEAD_CAPTURE_NAME: "Great! To get started, what's your name?",
+  S_LEAD_CAPTURE_EMAIL: "Thanks, {{first_name}}! What's your email address so I can send you more information?",
+  S_LEAD_CAPTURE_PHONE: "Perfect! What's the best phone number to reach you?",
+  S_LEAD_CAPTURE_CONFIRM: `Thanks, {{first_name}}! I've got:
+• Email: {{email}}
+• Phone: {{phone}}
+
+Is this correct? I'll send you a proposal shortly.`,
+  S_SOFT_CLOSE: "Shall I send you a proposal for that?",
+  S_HUMAN_HANDOFF: "Dona Handcock, our founder, or one of our strategists can call you back within the hour. Just tell me your name and phone number, and I'll arrange the call immediately.",
+  // Objection override states with exact scripts (no LLM improvisation)
+  S_HANDLE_OBJ_COMPARE: "I understand you're comparing options. Our 50/50 profit split model ensures we're invested in your success. Unlike competitors who charge flat fees, we only win when you win.",
+  S_HANDLE_OBJ_BUDGET: "Budget is important. Our plans start at R349/month, and we offer flexible terms. What budget range did you have in mind?",
+  S_HANDLE_OBJ_TIME: "I hear you on timing. Our setup is quick—we can have you live in under 48 hours. When would be a good time to start?",
+  S_HANDLE_OBJ_TRUST: "Trust is earned. We've helped over 100 businesses transform with AI. Would you like to speak with one of our founders directly?",
+};
+
+// Dynamic variable substitution
+function substituteVariables(template: string, variables: Record<string, string>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(variables)) {
+    result = result.replace(new RegExp(`{{${key}}}`, "g"), value);
+  }
+  return result;
+}
+
+// Apply soft close guardrail to INFO states
+function applySoftCloseGuardrail(text: string, state: StateID): string {
+  if (state === "S_INFO_PRICING" || state === "S_INFO_FEATURES") {
+    return text + "\n\n" + PROMPT_TEMPLATES.S_SOFT_CLOSE;
+  }
+  return text;
+}
+
+// === TTS NORMALIZATION FOR TEMPLATES ===
+const cleanTextForSpeech = (text: string) => {
+  return text
+    // 1. Remove commas from within numbers (e.g., 1,500 -> 1500)
+    // This prevents the TTS from pausing and splitting the number.
+    .replace(/(\d),(\d{3})/g, '$1$2')
+    // 2. Handle R<number>/month -> "<number> rands per month"
+    .replace(/R\s?(\d+)\s?\/\s?month/gi, '$1 rands per month')
+    // 3. Handle standalone R<number> -> "<number> rands"
+    .replace(/R\s?(\d+)/g, '$1 rands')
+    // 4. Clean up slashes and formatting
+    .replace(/\//g, ' per ')
+    .replace(/\*/g, '')
+    .trim();
+};
+
+// Apply TTS normalization to all templates
+function applyTTSToTemplate(template: string): string {
+  return cleanTextForSpeech(template);
+}
+
+// Strip vocal direction tags (e.g., [professionally], [cheerful]) for UI display only
+// TTS receives full text with brackets for expressive voice control
+const stripVocalDirections = (text: string): string => {
+  return text.replace(/\[.*?\]/g, '').trim();
+};
+
+// === WEBHOOK: Send lead data to OVG endpoint ===
+async function sendLeadToOVG(leadData: { first_name: string; email: string; phone: string; plan_interest: string }) {
+  try {
+    const response = await fetch("https://api.omniverge.global/leads", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: leadData.first_name,
+        email: leadData.email,
+        phone: leadData.phone,
+        plan_interest: leadData.plan_interest,
+        source: "ovg-engage-widget",
+        timestamp: new Date().toISOString(),
+      }),
+    });
+
+    if (response.ok) {
+      console.log("✅ Lead data sent to OVG endpoint successfully");
+      return true;
+    } else {
+      console.warn("⚠️ Failed to send lead data to OVG endpoint:", response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error("❌ Error sending lead data to OVG endpoint:", error);
+    return false;
+  }
+}
 
 const ResellerChatWidget = () => {
   const { toast } = useToast();
@@ -117,21 +263,73 @@ const ResellerChatWidget = () => {
     };
   }, []);
 
+  const [isTyping, setIsTyping] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isGroqListening, setIsGroqListening] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [hasConsent, setHasConsent] = useState(() => localStorage.getItem("ovgweb_ai_consent") === "true");
   const [showPeek, setShowPeek] = useState(false);
   const [showSyncBadge, setShowSyncBadge] = useState(false);
 
+  // === STATE MACHINE ===
+  const [currentState, setCurrentState] = useState<StateID>("S_WAKE");
+  const [leadData, setLeadData] = useState({
+    first_name: "",
+    email: "",
+    phone: "",
+  });
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    try { return JSON.parse(localStorage.getItem("ovgweb_chat_messages") || "[]"); } catch { return []; }
+    try {
+      const saved = JSON.parse(localStorage.getItem("ovgweb_chat_messages") || "[]");
+      if (saved.length === 0) {
+        const initialGreeting: ChatMessage = {
+          id: Date.now().toString(),
+          role: "ai",
+          text: "Hi there! I'm OVG, the AI concierge for Omniverge Global. We help businesses like yours grow smarter using strategic marketing and AI. What brings you to our site today?",
+          timestamp: Date.now()
+        };
+        localStorage.setItem("ovgweb_chat_messages", JSON.stringify([initialGreeting]));
+        return [initialGreeting];
+      }
+      return saved;
+    } catch { 
+      const initialGreeting: ChatMessage = {
+        id: Date.now().toString(),
+        role: "ai",
+        text: "Hi there! I'm OVG, the AI concierge for Omniverge Global. We help businesses like yours grow smarter using strategic marketing and AI. What brings you to our site today?",
+        timestamp: Date.now()
+      };
+      localStorage.setItem("ovgweb_chat_messages", JSON.stringify([initialGreeting]));
+      return [initialGreeting];
+    }
   });
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+
+  // Hot keywords for priority lead detection
+  const hot_keywords = ["buy", "price", "human", "now", "sign", "cost"];
+  const [alertLevel, setAlertLevel] = useState<'NORMAL' | 'CRITICAL'>('NORMAL');
+
+  // Check messages for hot keywords and update alert level
+  useEffect(() => {
+    const latestMessage = messages[messages.length - 1];
+    if (latestMessage && latestMessage.role === 'user') {
+      const messageText = latestMessage.text.toLowerCase();
+      const hasHotKeyword = hot_keywords.some(keyword => messageText.includes(keyword));
+      if (hasHotKeyword) {
+        setAlertLevel('CRITICAL');
+      } else {
+        setAlertLevel('NORMAL');
+      }
+    }
+  }, [messages, hot_keywords]);
+
   const [hasGreeted, setHasGreeted] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(() => localStorage.getItem("ovgweb_voice_mute") !== "true");
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetNotification, setResetNotification] = useState<{show: boolean; title: string; description: string} | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -139,12 +337,35 @@ const ResellerChatWidget = () => {
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const [isGroqListening, setIsGroqListening] = useState(false);
+  const silenceDetectionRef = useRef<NodeJS.Timeout | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
 
   // --- GROQ STT (Speech-to-Text) ---
+  const stopGroqRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsGroqListening(false);
+      console.log("🎤 Groq STT recording stopped.");
+    }
+  }, []);
   const startGroqRecording = useCallback(async () => {
     try {
+      console.log("🎤 Requesting microphone access...");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("✅ Microphone stream initialized successfully");
+      console.log("📊 Stream tracks:", stream.getTracks().map(t => ({ kind: t.kind, enabled: t.enabled, muted: t.muted })));
+      
+      // Set up AudioContext for silence detection
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 256;
+      
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm',
       });
@@ -155,52 +376,118 @@ const ResellerChatWidget = () => {
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          console.log("📦 Audio chunk received, size:", event.data.size, "bytes");
         }
       };
       
       mediaRecorder.onstop = async () => {
+        console.log("🎤 Recording stopped, processing audio...");
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log("📦 Audio blob created, size:", audioBlob.size, "bytes, type:", audioBlob.type);
+        
+        // Clean up audio context
+        if (audioContextRef.current) {
+          audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
+        if (silenceDetectionRef.current) {
+          clearTimeout(silenceDetectionRef.current);
+          silenceDetectionRef.current = null;
+        }
+        
         await sendAudioToGroqSTT(audioBlob);
         stream.getTracks().forEach(track => track.stop());
+        console.log("✅ Audio tracks stopped");
       };
       
       mediaRecorder.start();
       setIsGroqListening(true);
-      console.log("🎤 Groq STT recording started...");
+      console.log("🎤 Groq STT recording started with silence detection...");
+      
+      // Silence detection: stop recording after 1.5 seconds of silence
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const SILENCE_THRESHOLD = 20;
+      const SILENCE_DURATION = 1500; // 1.5 seconds
+      
+      const checkSilence = () => {
+        if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
+          return;
+        }
+        
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        
+        if (average < SILENCE_THRESHOLD) {
+          // Silence detected
+          if (!silenceDetectionRef.current) {
+            console.log("🤫 Silence detected, starting timer...");
+            silenceDetectionRef.current = setTimeout(() => {
+              if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                console.log("⏹️ Auto-stopping recording due to silence");
+                stopGroqRecording();
+              }
+            }, SILENCE_DURATION);
+          }
+        } else {
+          // Sound detected, reset silence timer
+          if (silenceDetectionRef.current) {
+            clearTimeout(silenceDetectionRef.current);
+            silenceDetectionRef.current = null;
+          }
+        }
+        
+        requestAnimationFrame(checkSilence);
+      };
+      
+      checkSilence();
     } catch (err) {
       console.error("❌ Microphone access denied:", err);
+      console.error("❌ Error details:", err instanceof Error ? err.message : String(err));
       toast({ title: "Microphone Error", description: "Could not access microphone.", variant: "destructive" });
     }
-  }, [toast]);
-
-  const stopGroqRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      setIsGroqListening(false);
-      console.log("🎤 Groq STT recording stopped.");
-    }
-  }, []);
+  }, [toast, stopGroqRecording]);
 
   const sendAudioToGroqSTT = async (audioBlob: Blob) => {
     try {
-      console.log("📤 Sending audio to Groq STT...");
+      console.log("📤 Sending audio to Groq STT directly...");
+      
+      const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+      
+      if (!apiKey) {
+        console.error("❌ VITE_GROQ_API_KEY not configured");
+        toast({ title: "Configuration Error", description: "API key not configured.", variant: "destructive" });
+        return;
+      }
+      
+      console.log("🔑 Groq API key found, length:", apiKey.length);
       
       const formData = new FormData();
       formData.append('file', audioBlob, 'audio.webm');
+      formData.append('model', 'whisper-large-v3');
+      formData.append('response_format', 'json');
 
-      const response = await fetch('/api/groq-stt', {
+      const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+        },
         body: formData,
       });
 
+      console.log("📥 Groq STT response status:", response.status);
+
       if (!response.ok) {
-        throw new Error(`Groq STT failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error("❌ Groq STT error:", response.status, errorText);
+        throw new Error(`Groq STT failed: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
       if (data.text) {
         console.log("✅ Groq STT result:", data.text);
         sendMessageDirect(data.text);
+      } else {
+        console.warn("⚠️ No text in Groq STT response");
       }
     } catch (err) {
       console.error("❌ Groq STT error:", err);
@@ -406,7 +693,7 @@ const ResellerChatWidget = () => {
   // --- AUTO-SCROLL ---
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isSpeaking]);
 
   // Auto-send after browser voice input finishes
   useEffect(() => {
@@ -445,23 +732,49 @@ const ResellerChatWidget = () => {
 
   // --- RESET CHAT ---
   const resetChat = useCallback(() => {
-    setMessages([]);
-    localStorage.removeItem("ovgweb_chat_messages");
+    const initialGreeting: ChatMessage = {
+      id: Date.now().toString(),
+      role: "ai",
+      text: "Hi there! I'm OVG, the AI concierge for Omniverge Global. We help businesses like yours grow smarter using strategic marketing and AI. What brings you to our site today?",
+      timestamp: Date.now()
+    };
+    setMessages([initialGreeting]);
+    localStorage.setItem("ovgweb_chat_messages", JSON.stringify([initialGreeting]));
     setShowResetConfirm(false);
-    toast({ title: "Chat Reset", description: "History cleared successfully." });
-  }, [toast]);
+    setResetNotification({ show: true, title: "Chat Reset", description: "History cleared successfully." });
+    setTimeout(() => setResetNotification(null), 3000);
+  }, []);
 
   // === TTS WITH FULL FALLBACK CHAIN ===
+  const cleanTextForSpeech = (text: string) => {
+    return text
+      // 1. Remove commas from within numbers (e.g., 1,500 -> 1500)
+      // This prevents the TTS from pausing and splitting the number.
+      .replace(/(\d),(\d{3})/g, '$1$2')
+      // 2. Handle R<number>/month -> "<number> rands per month"
+      .replace(/R\s?(\d+)\s?\/\s?month/gi, '$1 rands per month')
+      // 3. Handle standalone R<number> -> "<number> rands"
+      .replace(/R\s?(\d+)/g, '$1 rands')
+      // 4. Clean up slashes and formatting
+      .replace(/\//g, ' per ')
+      .replace(/\*/g, '')
+      .trim();
+  };
+
   const speak = useCallback(async (text: string) => {
     if (!voiceEnabled || !text.trim()) return;
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    setIsSpeaking(true);
 
-    // Clean text for TTS (remove emojis, markdown, JSON blocks)
+    // Clean text for TTS (remove emojis, markdown, JSON blocks, and normalize pricing)
     let cleanText = text
       .replace(/\[JSON CODE BLOCK\][\s\S]*?\[\/JSON CODE BLOCK\]/g, '')
       .replace(/```[\s\S]*?```/g, '')
       .replace(/[*#_`]/g, '')
       .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '');
+
+    // Apply pricing and currency normalization for speech
+    cleanText = cleanTextForSpeech(cleanText);
 
     // Fix time pronunciation: convert "10am" to "ten A M", "2pm" to "two P M", "9:30am" to "nine thirty A M"
     const numberWords: Record<string, string> = {
@@ -509,37 +822,122 @@ const ResellerChatWidget = () => {
       } catch (e) { clearTimeout(id); throw e; }
     };
 
-    // === 1. GROQ TTS ===
+    // === 1. GROQ TTS WITH CHUNKED STREAMING ===
     if (keys.groq) {
       try {
-        console.log("🔊 Trying Groq TTS...");
-        const res = await fetchWithTimeout(
-          "https://api.groq.com/openai/v1/audio/speech",
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${keys.groq}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "canopylabs/orpheus-v1-english",
-              voice: "autumn",
-              input: cleanText.slice(0, 8000),
-              response_format: "wav",
-            }),
-          },
-          1500
-        );
-        if (res.ok) {
-          audioRef.current = new Audio(URL.createObjectURL(await res.blob()));
-          audioRef.current.volume = 0.85;
-          await audioRef.current.play();
-          audioRef.current.onended = () => { audioRef.current = null; };
-          console.log("✅ Groq TTS playing audio...");
-          return;
-        }
+        console.log("🔊 Trying Groq TTS with chunked streaming...");
+        
+        // Helper: Split text into chunks under 200 chars (Orpheus limit)
+        const chunkText = (text: string, maxLen = 180): string[] => {
+          const chunks: string[] = [];
+          const sentences = text.match(/[^.!?]+[.!?]+\s*/g) || [text];
+          let current = '';
+          for (const sentence of sentences) {
+            if ((current + sentence).length > maxLen && current.length > 0) {
+              chunks.push(current.trim());
+              current = sentence;
+            } else {
+              current += sentence;
+            }
+          }
+          if (current.trim()) chunks.push(current.trim());
+          // If any single chunk still too long, word-split
+          return chunks.flatMap(chunk => 
+            chunk.length > maxLen 
+              ? chunk.match(new RegExp(`.{1,${maxLen}}\\b`, 'g')) || [chunk]
+              : [chunk]
+          );
+        };
+
+        const chunks = chunkText(cleanText);
+        console.log(`🎵 Split into ${chunks.length} chunks for streaming TTS`);
+
+        // Audio queue for pre-buffering
+        const audioQueue: { audio: HTMLAudioElement; url: string }[] = [];
+        let currentChunk = 0;
+
+        // Prefetch first 2 chunks immediately
+        const prefetchChunk = async (index: number): Promise<{ audio: HTMLAudioElement; url: string } | null> => {
+          if (index >= chunks.length) return null;
+          try {
+            const res = await fetchWithTimeout(
+              "https://api.groq.com/openai/v1/audio/speech",
+              {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${keys.groq}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "canopylabs/orpheus-v1-english",
+                  voice: "autumn",
+                  input: chunks[index].slice(0, 200), // Hard limit for Orpheus
+                  response_format: "wav",
+                }),
+              },
+              3000
+            );
+            if (!res.ok) return null;
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            audio.volume = 0.85;
+            return { audio, url };
+          } catch (e) {
+            console.log(`⚠️ Chunk ${index} prefetch failed`);
+            return null;
+          }
+        };
+
+        // Start playing first chunk immediately while prefetching next
+        const playNext = async () => {
+          if (currentChunk >= chunks.length) {
+            setIsSpeaking(false);
+            return;
+          }
+
+          // Ensure current chunk is loaded
+          if (audioQueue.length === 0) {
+            const prefetched = await prefetchChunk(currentChunk);
+            if (!prefetched) {
+              setIsSpeaking(false);
+              return;
+            }
+            audioQueue.push(prefetched);
+          }
+
+          const current = audioQueue.shift()!;
+          audioRef.current = current.audio;
+
+          // Prefetch next chunk while current plays
+          const nextIndex = currentChunk + 1;
+          if (nextIndex < chunks.length && audioQueue.length === 0) {
+            prefetchChunk(nextIndex).then(next => {
+              if (next) audioQueue.push(next);
+            });
+          }
+
+          current.audio.onended = () => {
+            URL.revokeObjectURL(current.url);
+            currentChunk++;
+            playNext();
+          };
+          current.audio.onerror = () => {
+            URL.revokeObjectURL(current.url);
+            currentChunk++;
+            playNext();
+          };
+
+          await current.audio.play();
+          console.log(`🎵 Playing chunk ${currentChunk + 1}/${chunks.length}`);
+        };
+
+        // Start the pipeline
+        await playNext();
+        console.log("✅ Groq TTS streaming started...");
+        return;
       } catch (e) {
-        console.log("⚠️ Groq failed, trying next...");
+        console.log("⚠️ Groq chunked TTS failed, trying next...");
       }
     }
 
@@ -565,8 +963,8 @@ const ResellerChatWidget = () => {
         if (res.ok) {
           audioRef.current = new Audio(URL.createObjectURL(await res.blob()));
           audioRef.current.volume = 0.85;
+          audioRef.current.onended = () => { audioRef.current = null; setIsSpeaking(false); };
           await audioRef.current.play();
-          audioRef.current.onended = () => { audioRef.current = null; };
           console.log("✅ ElevenLabs TTS playing audio...");
           return;
         }
@@ -598,8 +996,8 @@ const ResellerChatWidget = () => {
         if (res.ok) {
           audioRef.current = new Audio(URL.createObjectURL(await res.blob()));
           audioRef.current.volume = 0.85;
+          audioRef.current.onended = () => { audioRef.current = null; setIsSpeaking(false); };
           await audioRef.current.play();
-          audioRef.current.onended = () => { audioRef.current = null; };
           console.log("✅ xAI TTS playing audio...");
           return;
         }
@@ -632,8 +1030,8 @@ const ResellerChatWidget = () => {
         if (res.ok) {
           audioRef.current = new Audio(URL.createObjectURL(await res.blob()));
           audioRef.current.volume = 0.85;
+          audioRef.current.onended = () => { audioRef.current = null; setIsSpeaking(false); };
           await audioRef.current.play();
-          audioRef.current.onended = () => { audioRef.current = null; };
           console.log("✅ OpenAI TTS playing audio...");
           return;
         }
@@ -650,8 +1048,8 @@ const ResellerChatWidget = () => {
         const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(cleanText.slice(0, 200))}`;
         audioRef.current = new Audio(url);
         audioRef.current.volume = 0.85;
+        audioRef.current.onended = () => { audioRef.current = null; setIsSpeaking(false); };
         await audioRef.current.play();
-        audioRef.current.onended = () => { audioRef.current = null; };
         console.log("✅ Google TTS playing audio...");
         return;
       } catch (e) {
@@ -696,8 +1094,8 @@ const ResellerChatWidget = () => {
           if (res.ok) {
             audioRef.current = new Audio(URL.createObjectURL(await res.blob()));
             audioRef.current.volume = 0.85;
+            audioRef.current.onended = () => { audioRef.current = null; setIsSpeaking(false); };
             await audioRef.current.play();
-            audioRef.current.onended = () => { audioRef.current = null; };
             console.log("✅ Azure Speech TTS playing audio...");
             return;
           }
@@ -759,6 +1157,7 @@ const ResellerChatWidget = () => {
           window.speechSynthesis.speak(u);
         });
       }
+      setIsSpeaking(false);
     } else {
       const utterance = new SpeechSynthesisUtterance(cleanText);
       if (premiumVoice) utterance.voice = premiumVoice;
@@ -766,6 +1165,8 @@ const ResellerChatWidget = () => {
       utterance.pitch = 1.08;
       utterance.volume = 1.0;
       utterance.lang = "en-US";
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
 
       window.speechSynthesis.speak(utterance);
     }
@@ -799,14 +1200,11 @@ const ResellerChatWidget = () => {
     setMessages(newMsgs);
     localStorage.setItem("ovgweb_chat_messages", JSON.stringify(newMsgs));
     setInput("");
-    setIsTyping(true);
+    setIsSpeaking(true);
 
     try {
-      // Check if we should use OmniVerge AI (for OmniVerge Global branding)
-      const useOmniVergeAI = config.brandName?.toLowerCase().includes("omniverge");
-      let response = useOmniVergeAI 
-        ? await generateOmniVergeAI(userInputText, newMsgs)
-        : await generateAIResponse(userInputText, newMsgs);
+      // Always use OmniVerge AI for Reseller Demo
+      let response = await generateOmniVergeAI(userInputText, newMsgs);
       
       const hasBookingJsonBacktick = /```json\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?```/.test(response);
       const hasBookingJsonBracket = /\[JSON CODE BLOCK\]\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?\[\/JSON CODE BLOCK\]/.test(response);
@@ -817,13 +1215,13 @@ const ResellerChatWidget = () => {
 
       const displayResponse = stripJsonFromResponse(response);
 
-      const aiMsg: ChatMessage = { 
-        id: (Date.now() + 1).toString(), 
-        role: "ai", 
-        text: displayResponse, 
-        timestamp: Date.now() 
+      const aiMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "ai",
+        text: displayResponse.replace(/\$/g, 'R'),
+        timestamp: Date.now()
       };
-      
+
       const finalMsgs = [...newMsgs, aiMsg];
       setMessages(finalMsgs);
       localStorage.setItem("ovgweb_chat_messages", JSON.stringify(finalMsgs));
@@ -860,7 +1258,7 @@ const ResellerChatWidget = () => {
         variant: "destructive" 
       });
     } finally {
-      setIsTyping(false);
+      setIsSpeaking(false);
     }
   };
 
@@ -876,11 +1274,13 @@ const ResellerChatWidget = () => {
   };
 
   useEffect(() => {
-    if (isOpen && messages.length === 0 && !hasGreeted && hasConsent) {
+    if (isOpen && messages.length === 1 && !hasGreeted && hasConsent) {
       setHasGreeted(true);
-      handleAcceptConsent();
+      // Extract the initial greeting text and speak it
+      const initialGreetingText = messages[0].text;
+      speak(initialGreetingText);
     }
-  }, [isOpen, messages.length, hasGreeted, hasConsent]);
+  }, [isOpen, messages.length, hasGreeted, hasConsent, speak]);
 
   const handleOpenChat = () => {
     if ('speechSynthesis' in window) {
@@ -907,6 +1307,15 @@ const ResellerChatWidget = () => {
 
   return (
     <>
+      <style>{`
+        @keyframes float-pulse {
+          0%, 100% { transform: translateY(0); box-shadow: 0 10px 25px rgba(0, 151, 178, 0.4); }
+          50% { transform: translateY(-4px); box-shadow: 0 15px 35px rgba(0, 151, 178, 0.6); }
+        }
+        .animate-float-pulse {
+          animation: float-pulse 3s ease-in-out infinite;
+        }
+      `}</style>
       {/* ===== PEEK TEASER ===== */}
       <AnimatePresence>
         {!isOpen && !showConsent && showPeek && (
@@ -915,7 +1324,12 @@ const ResellerChatWidget = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
-            className="fixed bottom-24 right-6 z-[9998] max-w-[280px] rounded-2xl border border-pink-300/40 bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl p-5 shadow-2xl"
+            className="fixed bottom-[136px] right-6 z-[9998] max-w-[280px] rounded-2xl border border-[#FFD700]/30 p-5 shadow-2xl backdrop-blur-xl"
+            style={{
+              backgroundImage: "url('/images/ovg-header-bg.jpg')",
+              backgroundSize: "cover",
+              backgroundPosition: "center"
+            }}
           >
             <button
               onClick={() => setShowPeek(false)}
@@ -923,11 +1337,10 @@ const ResellerChatWidget = () => {
             >
               <X className="h-3.5 w-3.5" />
             </button>
-            <p className="text-sm text-white/90 leading-relaxed">{config.peekText}</p>
+            <p className="text-sm text-[#FFD700] leading-relaxed">{config.peekText}</p>
             <button
               onClick={handleOpenChat}
-              className="mt-3 text-sm font-semibold hover:opacity-80 transition-opacity"
-              style={{ color: config.primaryColor }}
+              className="mt-3 text-sm font-semibold text-white hover:opacity-80 transition-opacity animate-pulse"
             >
               Chat with us →
             </button>
@@ -943,7 +1356,12 @@ const ResellerChatWidget = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 24 }}
-            className="fixed bottom-24 right-6 z-[10002] max-w-[280px] rounded-2xl border border-pink-300/40 bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl p-5 shadow-2xl"
+            className="fixed bottom-[136px] right-6 z-[10002] max-w-[280px] rounded-2xl border border-[#FFD700]/30 p-5 shadow-2xl backdrop-blur-xl"
+            style={{
+              backgroundImage: "url('/images/ovg-header-bg.jpg')",
+              backgroundSize: "cover",
+              backgroundPosition: "center"
+            }}
           >
             <button
               onClick={() => setShowResetConfirm(false)}
@@ -951,18 +1369,17 @@ const ResellerChatWidget = () => {
             >
               <X className="h-3.5 w-3.5" />
             </button>
-            <p className="text-sm text-white/90 leading-relaxed">Are you sure you want to reset the chat? This will clear all messages.</p>
+            <p className="text-sm text-[#FFD700] leading-relaxed">Are you sure you want to reset the chat? This will clear all messages.</p>
             <div className="flex gap-2 mt-3">
               <button
                 onClick={() => setShowResetConfirm(false)}
-                className="text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+                className="text-sm font-semibold text-[#9CA3AF] hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={resetChat}
-                className="text-sm font-semibold hover:opacity-80 transition-opacity"
-                style={{ color: config.primaryColor }}
+                className="text-sm font-semibold text-white hover:opacity-80 transition-opacity animate-pulse"
               >
                 Reset Chat →
               </button>
@@ -1032,22 +1449,38 @@ const ResellerChatWidget = () => {
 
       {/* ===== MAIN CHAT WINDOW ===== */}
       {isOpen && (
-      <div 
-          className="fixed z-[9999] 
-                     bottom-[max(1.5rem,env(safe-area-inset-bottom))] 
+      <div
+          className="fixed z-[9999]
+                     bottom-[max(4rem,env(safe-area-inset-bottom))]
                      right-[max(1rem,env(safe-area-inset-right))]
-                     w-[94vw] max-w-[380px] sm:max-w-[420px] 
-                     rounded-3xl border-2 overflow-hidden overflow-x-hidden shadow-2xl bg-transparent max-w-full"
-          style={{ borderColor: config.primaryColor }}
+                     w-[94vw] max-w-[380px] sm:max-w-[420px]
+                     rounded-3xl overflow-hidden overflow-x-hidden shadow-2xl bg-transparent max-w-full"
+          style={{
+            boxShadow: "0 0 0 2px #BF953F, 0 0 15px rgba(191, 149, 63, 0.5)"
+          }}
         >
           {/* Header */}
-          <div className="relative p-4 flex justify-between items-center overflow-hidden bg-gradient-to-r from-[#0f0f23] via-[#1a1a2e] to-[#16213e]">
-            <div className="relative flex items-center justify-between w-full min-w-0">
-              <img 
-                src={config.logo || config.logoUrl || "/images/luxemedspa.svg"} 
-                alt={config.brandName} 
-                className="h-32 w-32 object-contain shrink-0"
+          <div
+            className="relative flex justify-between items-center overflow-hidden"
+            style={{
+              backgroundImage: "url('/images/ovg-header-bg.jpg')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              borderBottom: "1px solid #FFD700",
+              padding: "0 16px",
+              height: "72px"
+            }}
+          >
+            <div className="relative flex items-center gap-2">
+              <img
+                src={config.logo || config.logoUrl || "/images/luxemedspa.svg"}
+                alt={config.brandName}
+                className="h-[26px] w-auto object-contain shrink-0"
+                style={{ filter: "drop-shadow(0px 2px 3px rgba(0,0,0,0.3))" }}
               />
+            </div>
+
+            <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <span className="relative flex h-1 w-1">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -1055,13 +1488,12 @@ const ResellerChatWidget = () => {
                 </span>
                 <span className="text-[8px] text-white/60 font-medium">Online</span>
               </div>
-            </div>
 
-            {/* Controls */}
-            <div className="relative flex items-center gap-1.5">
+              {/* Controls */}
+              <div className="relative flex items-center gap-1.5">
               <Button
                 size="icon"
-                className="h-6 w-6 rounded-full text-white shrink-0"
+                className="h-6 w-6 rounded-full text-white shrink-0 shadow-md"
                 style={{ backgroundColor: config.primaryColor }}
                 onClick={() => {
                   const next = !voiceEnabled;
@@ -1074,28 +1506,69 @@ const ResellerChatWidget = () => {
               >
                 {voiceEnabled ? <Volume2 className="h-3 w-3 text-white" /> : <VolumeX className="h-3 w-3 text-white" />}
               </Button>
-              <Button size="icon" className="h-6 w-6 rounded-full text-white shrink-0" style={{ backgroundColor: config.primaryColor }} onClick={() => setShowResetConfirm(true)}>
+              <Button size="icon" className="h-6 w-6 rounded-full text-white shrink-0 shadow-md" style={{ backgroundColor: config.primaryColor }} onClick={() => setShowResetConfirm(true)}>
                 <RefreshCw className="h-3 w-3 text-white" />
               </Button>
-              <Button size="icon" className="h-6 w-6 rounded-full text-white shrink-0" style={{ backgroundColor: config.primaryColor }} onClick={() => setIsOpen(false)}>
+              <Button size="icon" className="h-6 w-6 rounded-full text-white shrink-0 shadow-md" style={{ backgroundColor: config.primaryColor }} onClick={() => setIsOpen(false)}>
                 <X className="h-3 w-3 text-white" />
               </Button>
+              </div>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="relative overflow-y-auto p-4 space-y-2 bg-transparent h-[40vh] sm:h-[320px] max-h-[450px]">
+          <div
+            className="relative overflow-y-auto p-4 space-y-2 bg-transparent h-[40vh] sm:h-[320px] max-h-[450px]"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(156, 163, 175, 0.5) transparent',
+              boxShadow: 'inset 0 2px 10px rgba(0, 0, 0, 0.3)'
+            }}
+          >
+            <style>{`
+              div::-webkit-scrollbar {
+                width: 6px;
+              }
+              div::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              div::-webkit-scrollbar-thumb {
+                background-color: rgba(156, 163, 175, 0.5);
+                border-radius: 3px;
+              }
+              div::-webkit-scrollbar-thumb:hover {
+                background-color: rgba(156, 163, 175, 0.7);
+              }
+            `}</style>
             <AnimatePresence>
               {showSyncBadge && (
-                <motion.div 
-                  initial={{ y: -50, opacity: 0 }} 
+                <motion.div
+                  initial={{ y: -50, opacity: 0 }}
                   animate={{ y: 10, opacity: 1 }}
-                  exit={{ y: -20, opacity: 0 }} 
+                  exit={{ y: -20, opacity: 0 }}
                   className="absolute left-1/2 -translate-x-1/2 z-[9999] w-[90%] pointer-events-none"
                 >
                   <div className="bg-emerald-600 text-white text-[10px] font-bold py-2 px-4 rounded-full shadow-2xl flex items-center justify-center gap-2 border border-white/30 backdrop-blur-md">
-                    <ShieldCheck className="h-3.5 w-3.5 animate-pulse" /> 
+                    <ShieldCheck className="h-3.5 w-3.5 animate-pulse" />
                     {config.syncBadgeText || "BOOKING SECURED"}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Reset Success Notification - Centered Overlay */}
+            <AnimatePresence>
+              {resetNotification?.show && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="absolute inset-0 flex items-center justify-center z-[100] pointer-events-none"
+                >
+                  <div className="bg-black/80 backdrop-blur-md px-6 py-4 rounded-2xl shadow-2xl border border-[#FFD700]/40 text-center max-w-[80%]">
+                    <p className="text-[#FFD700] font-bold text-base">{resetNotification.title}</p>
+                    <p className="text-white/90 text-sm mt-1">{resetNotification.description}</p>
                   </div>
                 </motion.div>
               )}
@@ -1109,65 +1582,113 @@ const ResellerChatWidget = () => {
                   <div
                     className={`relative max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed backdrop-blur-md border-b-2 ${
                       isUser
-                        ? "bg-gradient-to-br from-pink-100/95 to-pink-50/95 text-amber-800 rounded-tr-sm border-b-pink-400 shadow-lg shadow-pink-100/30"
-                        : "bg-gradient-to-br from-white/95 to-gray-50/95 text-amber-800 rounded-tl-sm border-b-pink-400 shadow-lg shadow-gray-100/30"
+                        ? "bg-[#226683] text-white rounded-tr-sm border-b-[#1a5266] shadow-lg shadow-blue-900/20"
+                        : "bg-gradient-to-br from-white/95 to-gray-50/95 text-amber-900 rounded-tl-sm border-b-pink-400 shadow-lg shadow-gray-100/30"
                     }`}
                   >
-                    <span className="font-light">{msg.text}</span>
-                    <span className="ml-2 inline-flex items-end float-right text-[9px] text-amber-600/70 mt-1.5 pl-2 leading-none whitespace-nowrap font-mono">
+                    <span className="font-light">{stripVocalDirections(msg.text)}</span>
+                    <span className="ml-2 inline-flex items-end float-right text-[9px] text-amber-700/70 mt-1.5 pl-2 leading-none whitespace-nowrap font-mono">
                       {time}
                     </span>
                   </div>
                 </div>
               );
             })}
-            {isTyping && (
-              <div className="px-2 py-3">
-                <div className="flex items-center gap-2 text-amber-800 text-sm font-light">
-                  <span className="animate-pulse">Concierge is typing</span>
-                  <span className="animate-bounce delay-100">.</span>
-                  <span className="animate-bounce delay-200">.</span>
-                  <span className="animate-bounce delay-300">.</span>
-                </div>
-                <div className="mt-2 h-1 rounded-full overflow-hidden">
-                  <div className="h-full w-full animate-pulse bg-gradient-to-r from-pink-400 via-amber-400 to-pink-400 bg-[length:200%_100%]"></div>
-                </div>
-              </div>
-            )}
-            
-            {messages.length <= 1 && !isTyping && isSupported && (
-              <div className="flex items-center gap-2 px-2 py-2 text-xs text-pink-600 bg-pink-50/80 rounded-lg backdrop-blur-sm border border-pink-200/50">
-                <Mic className="h-3.5 w-3.5" />
-                <span>Click the mic icon to speak to us</span>
+
+            {messages.length <= 1 && !isSpeaking && isSupported && (
+              <div className="flex items-center gap-2 px-2 py-2 text-xs text-[#FFD700]/80 rounded-lg backdrop-blur-sm">
+                <Mic className="h-3.5 w-3.5 text-[#FFD700]/80 animate-pulse" />
+                <span>Click the mic icon in the message box to speak to me</span>
               </div>
             )}
 
-            {messages.length <= 2 && !isTyping && (
-              <div className="flex flex-wrap gap-2 px-1 pt-2">
-                {["Book a treatment", "I need prices"].map((label) => (
-                  <button
-                    key={label}
-                    onClick={() => sendMessageDirect(label)}
-                    className="px-3 py-1.5 text-xs font-medium rounded-full border border-pink-400/60 bg-pink-50/70 backdrop-blur-sm text-pink-700 hover:bg-pink-100/80 transition-colors shadow-sm"
-                  >
-                    {label}
-                  </button>
-                ))}
-                
+            {messages.length <= 2 && !isSpeaking && (
+              <div className="flex flex-wrap gap-2 px-1 pt-2 justify-center">
+                {/* Button 1: Primary - Get a Custom Quote */}
                 <button
-                  onClick={() => openWhatsApp(config.phone || "27760330046", `Hi ${config.brandName || "there"}, I'd like to speak to a consultant.`)}
-                  className="px-3 py-1.5 text-xs font-bold rounded-full border border-green-400/50 bg-green-50 text-green-700 hover:bg-green-100 transition-colors shadow-sm flex items-center gap-1"
+                  onClick={() => sendMessageDirect("Get a Custom Quote")}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#0097b2] text-white hover:shadow-[0_0_10px_rgba(255,215,0,0.5)] transition-all shadow-sm"
                 >
-                  💬 Speak to a consultant
+                  Get a Custom Quote
+                </button>
+
+                {/* Button 2: Secondary - Explore Platform Plans */}
+                <button
+                  onClick={() => sendMessageDirect("Explore Platform Plans")}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#0097b2] bg-transparent text-[#0097b2] hover:bg-[#0097b2]/10 transition-colors shadow-sm"
+                >
+                  Explore Platform Plans
+                </button>
+
+                {/* Button 3: Expert - Speak with an AI Automation Specialist */}
+                <button
+                  onClick={() => openWhatsApp(config.phone || "27760330046", `Hi ${config.brandName || "there"}, I'd like to speak with an AI Automation Specialist.`)}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#FFD700] text-[#0f172a] hover:bg-[#FFD700]/90 transition-colors shadow-sm"
+                >
+                  Speak with an AI Automation Specialist
                 </button>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Fixed Position OVG Speaking Indicator - Bottom of message window, above input */}
+          {isSpeaking && (
+            <div className="sticky bottom-0 left-0 w-full bg-transparent z-10 pointer-events-none">
+              <div className="px-4 py-2">
+                <div className="flex items-center gap-2 text-amber-900 text-sm font-light">
+                  <Volume2 className="h-4 w-4 animate-pulse" />
+                  <span className="animate-pulse">OVG is speaking</span>
+                  <span className="animate-pulse delay-100">♪</span>
+                  <span className="animate-pulse delay-200">♪</span>
+                  <span className="animate-pulse delay-300">♪</span>
+                </div>
+                <div className="mt-2 h-[2px] rounded-full overflow-hidden bg-gray-200">
+                  <div
+                    className="h-full w-full"
+                    style={{
+                      background: "linear-gradient(90deg, #0097b2 0%, #FFD700 50%, #0097b2 100%)",
+                      backgroundSize: "200% 100%",
+                      animation: "geminiFlow 2s infinite linear"
+                    }}
+                  />
+                  <style>{`
+                    @keyframes geminiFlow {
+                      0% { background-position: 200% 0; }
+                      100% { background-position: -200% 0; }
+                    }
+                  `}</style>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Input / Footer Area */}
-          <div className="relative p-4 border-t border-[#c2aa6f]/30 overflow-hidden bg-gradient-to-t from-[#0f0f23] via-[#1a1a2e] to-[#16213e]">
-            
+          <div
+            className="relative p-4 border-t border-[#c2aa6f]/30 overflow-hidden"
+            style={{
+              backgroundImage: "url('/images/bg.jpg')",
+              backgroundSize: "cover",
+              backgroundBlendMode: "multiply",
+              backgroundColor: "#0f172a"
+            }}
+          >
+            {/* Gold Shimmer Line */}
+            <div
+              className="absolute top-0 left-0 w-full h-[2px] opacity-70"
+              style={{
+                background: "linear-gradient(90deg, transparent, #FFD700, transparent)",
+                backgroundSize: "200% 100%",
+                animation: "shimmer 3s infinite"
+              }}
+            />
+            <style>{`
+              @keyframes shimmer {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+              }
+            `}</style>
+
             <div className="relative flex gap-2 items-center">
               {/* Microphone Button - Use Groq STT */}
               <Button
@@ -1180,7 +1701,7 @@ const ResellerChatWidget = () => {
                     startGroqRecording();
                   }
                 }}
-                className={`shrink-0 ${isGroqListening ? "text-blue-500 animate-pulse scale-110" : "text-pink-500 hover:text-pink-600"}`}
+                className={`shrink-0 ${isGroqListening ? "text-blue-500 animate-pulse scale-110" : "text-[#FFD700] hover:text-[#FFD700]/80 animate-pulse"}`}
               >
                 {isGroqListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
               </Button>
@@ -1195,10 +1716,10 @@ const ResellerChatWidget = () => {
               />
 
               {/* Send Button */}
-              <Button 
+              <Button
                 onClick={() => sendMessageDirect(input)}
                 style={{ backgroundColor: config.primaryColor }}
-                className="text-white px-4 shrink-0"
+                className={`text-white px-4 shrink-0 transition-all duration-200 ${input.trim() ? 'opacity-100 scale-105 shadow-lg' : 'opacity-70'}`}
               >
                 <Send className="h-4 w-4" />
               </Button>
@@ -1211,8 +1732,8 @@ const ResellerChatWidget = () => {
       {!isOpen && !showConsent && (
         <button
           onClick={handleOpenChat}
-          className="fixed bottom-6 right-6 z-[10000] h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-all flex items-center justify-center"
-          style={{ background: `linear-gradient(to bottom right, ${config.primaryColor}, #ff69b4)` }}
+          className="fixed bottom-16 right-6 z-[10000] h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-all flex items-center justify-center border-2 border-[#FFD700] animate-float-pulse"
+          style={{ backgroundColor: "#0097b2" }}
         >
           <MessageCircle className="h-6 w-6 text-white" />
         </button>

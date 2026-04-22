@@ -48,10 +48,10 @@ export default function WidgetSettings() {
   }, [clientId]);
 
   const loadConfig = async () => {
-    // ✅ Use widget_configs table (same as reseller ClientConfig.tsx)
+    // Use tenants table for branding
     const { data: configData } = await supabase
-      .from('widget_configs')
-      .select('*')
+      .from('tenants')
+      .select('branding')
       .eq('tenant_id', clientId)
       .maybeSingle();
 
@@ -98,9 +98,9 @@ export default function WidgetSettings() {
   const handleSave = async () => {
     setIsSaving(true);
 
-    // ✅ Use widget_configs table (same as reseller ClientConfig.tsx)
+    // Use tenants table for branding
     const { error } = await (supabase as any)
-      .from('widget_configs')
+      .from('tenants')
       .upsert({
         tenant_id: clientId,
         branding: config.branding,

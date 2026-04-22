@@ -1,0 +1,68 @@
+@keyframes atmospheric-pulse {
+  0% {
+    opacity: 0.7;
+    filter: brightness(100%);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(130%);
+  }
+  100% {
+    opacity: 0.7;
+    filter: brightness(100%);
+  }
+}
+
+@keyframes atmospheric-pulse-critical {
+  0% {
+    opacity: 0.5;
+    filter: brightness(50%);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(150%);
+  }
+  100% {
+    opacity: 0.5;
+    filter: brightness(50%);
+  }
+}
+
+@keyframes dynamic-pulse-gold {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 15px rgba(212, 175, 55, 0);
+  }
+}
+
+@keyframes dynamic-pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 20px rgba(255, 0, 0, 0);
+  }
+}
+
+.atmospheric-pulse {
+  animation: atmospheric-pulse 3s ease-in-out infinite;
+}
+
+.atmospheric-pulse-critical {
+  animation: atmospheric-pulse-critical 1.5s ease-in-out infinite;
+}
+
+.dynamic-pulse-gold {
+  animation: dynamic-pulse-gold 2s ease-in-out infinite;
+}
+
+.dynamic-pulse-red {
+  animation: dynamic-pulse-red 1s ease-in-out infinite;
+}
+
+/* Ensure text on gold buttons remains 100% opaque for readability */
+.text-gold-button {
+  opacity: 1 !important;
+}

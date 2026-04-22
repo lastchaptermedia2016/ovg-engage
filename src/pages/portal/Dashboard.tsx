@@ -131,7 +131,7 @@ export default function ClientPortalDashboard() {
              )}
              <div>
                <h1 className="text-xl font-bold text-white">
-                 {tenant?.name || 'OVG-Engage'}
+                 {tenant?.name || 'OVG Engage'}
                </h1>
                <p className="text-xs text-white/40 uppercase tracking-widest">
                  My Dashboard

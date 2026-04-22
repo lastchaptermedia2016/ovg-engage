@@ -16,12 +16,183 @@ interface GroqResponse {
   }[];
 }
 
+// === INTENT DEFINITIONS ===
+type IntentID =
+  | "I_GREETING"
+  | "I_OVG_ENGAGE"
+  | "I_PLAN_INQUIRY"
+  | "I_PRICING"
+  | "I_MARKETING"
+  | "I_AI_SOLUTIONS"
+  | "I_CONSULTING"
+  | "I_FOUNDER"
+  | "I_HUMAN_HANDOFF"
+  | "I_MULTILINGUAL"
+  | "I_CLARIFICATION";
+
+interface Intent {
+  id: IntentID;
+  keywords: string[];
+  response: string;
+}
+
+const INTENTS: Record<IntentID, Intent> = {
+  I_GREETING: {
+    id: "I_GREETING",
+    keywords: ["hello", "hi", "hey", "good morning", "good afternoon", "good evening"],
+    response: "Hello! I'm OVG, your strategic AI concierge at OmniVerge Global. \n\nWe help businesses transform through AI-powered marketing solutions. What can I help you explore today?",
+  },
+  I_OVG_ENGAGE: {
+    id: "I_OVG_ENGAGE",
+    keywords: ["how does this chatbot work", "can i get this for my business", "what powers you", "how did you build this", "can i have this chatbot", "ovg engage", "your platform", "this ai", "this widget", "get this ai"],
+    response: `Great question! This AI concierge is powered by **OVG Engage** — our white-label AI platform that businesses like yours can deploy on your own websites.
+
+OVG Engage provides:
+• Custom AI chatbots with your branding
+• Voice input/output capabilities
+• Lead capture and CRM integration
+• Booking and appointment scheduling
+• Full analytics and insights
+• Multilingual support for all 11 official South African languages (R300/month add-on)
+
+Would you like to learn more about getting OVG Engage for your business? I can connect you with our team for a demo.`,
+  },
+  I_PLAN_INQUIRY: {
+    id: "I_PLAN_INQUIRY",
+    keywords: ["plan", "pricing plan", "tier", "starter plan", "professional plan", "business plan", "enterprise plan"],
+    response: `Here are our OVG Engage Widget Plans:
+• Starter Plan: R349/month
+• Professional Plan: R799/month
+• Business Plan: R1,499/month
+• Enterprise Plan: Custom pricing
+
+The widget plans start at R349, but for full-spectrum agency work led by Dona and Jason, services start at R2,500. Which option interests you most?`,
+  },
+  I_PRICING: {
+    id: "I_PRICING",
+    keywords: ["price", "cost", "pricing", "how much", "rates", "fees"],
+    response: `Here's our service menu:
+• AI Solutions (chatbots, voice AI): From R2,500 per month
+• Marketing Strategy: From R1,500 per month
+• Innovation Consulting: From R3,000 per engagement
+• OVG Engage (white-label AI widget): Custom pricing
+
+Each solution is tailored to your specific needs. Would you like to discuss which option is best for your business?`,
+  },
+  I_MARKETING: {
+    id: "I_MARKETING",
+    keywords: ["marketing", "strategy", "campaign", "conversion", "digital marketing"],
+    response: `Our Marketing Strategy service provides data-driven, AI-powered campaigns that increase conversion rates by up to 300%. Packages start from R1,500 per month.
+
+We combine cutting-edge AI with proven marketing frameworks to deliver measurable results. What's your current marketing challenge?`,
+  },
+  I_AI_SOLUTIONS: {
+    id: "I_AI_SOLUTIONS",
+    keywords: ["ai solution", "chatbot", "voice ai", "automation", "artificial intelligence"],
+    response: `Our AI Solutions include custom chatbots, voice assistants, and automation tools that transform customer engagement. Starting at R2,500 per month.
+
+We build fully white-labeled solutions that integrate seamlessly with your existing systems. Would you like to schedule a demo to see what's possible?`,
+  },
+  I_CONSULTING: {
+    id: "I_CONSULTING",
+    keywords: ["consulting", "innovation", "consultant", "advisory"],
+    response: `Innovation Consulting helps businesses identify and implement cutting-edge AI technologies. From R3,000 per engagement.
+
+Our consultants work with you to create a customized roadmap for AI adoption that aligns with your business goals. What area of your business are you looking to transform?`,
+  },
+  I_FOUNDER: {
+    id: "I_FOUNDER",
+    keywords: ["founder", "who owns", "who started", "who runs", "leadership", "ceo"],
+    response: `Omniverge Global was founded by Dona Handcock and Jason Altoa. They lead our team in delivering world-class marketing and AI solutions.`,
+  },
+  I_HUMAN_HANDOFF: {
+    id: "I_HUMAN_HANDOFF",
+    keywords: ["human", "person", "speak to someone", "real person", "agent", "talk to human"],
+    response: `Dona Handcock, our founder, or one of our strategists can call you back within the hour. Just tell me your name and phone number, and I'll arrange the call immediately.`,
+  },
+  I_MULTILINGUAL: {
+    id: "I_MULTILINGUAL",
+    keywords: ["multilingual", "language", "languages", "translate", "translation"],
+    response: `OVG Engage supports all 11 official South African languages:
+• isiZulu, isiXhosa, Afrikaans, English, Sepedi, Setswana, Sesotho, Xitsonga, siSwati, Tshivenda, isiNdebele
+
+Multilingual support is available as an add-on for R300 per month — perfect for businesses serving diverse South African markets. Would you like to add this to your package?`,
+  },
+  I_CLARIFICATION: {
+    id: "I_CLARIFICATION",
+    keywords: [],
+    response: `I'm not quite sure I caught that—are you asking about our AI pricing or our agency services?`,
+  },
+};
+
+// === SESSION STATE ===
+interface SessionState {
+  last_intent: IntentID | null;
+  user_name: string;
+  user_email: string;
+  user_phone: string;
+  plan_interest: string;
+}
+
+const SESSION_STATE_KEY = "ovg_session_state";
+
+function loadSessionState(): SessionState {
+  try {
+    const raw = localStorage.getItem(SESSION_STATE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {
+    last_intent: null,
+    user_name: "",
+    user_email: "",
+    user_phone: "",
+    plan_interest: "",
+  };
+}
+
+function saveSessionState(state: SessionState): void {
+  localStorage.setItem(SESSION_STATE_KEY, JSON.stringify(state));
+}
+
+function clearSessionState(): void {
+  localStorage.removeItem(SESSION_STATE_KEY);
+}
+
+// === INTENT CLASSIFIER ===
+function classifyIntent(userInput: string): { intent: IntentID; confidence: number } {
+  const input = userInput.toLowerCase();
+  let bestMatch: IntentID = "I_CLARIFICATION";
+  let bestScore = 0;
+
+  for (const [id, intent] of Object.entries(INTENTS)) {
+    if (id === "I_CLARIFICATION") continue;
+
+    let score = 0;
+    for (const keyword of intent.keywords) {
+      if (input.includes(keyword.toLowerCase())) {
+        score += 1;
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = id as IntentID;
+    }
+  }
+
+  // Normalize confidence (simple version: score / max possible keywords)
+  const maxKeywords = Math.max(...Object.values(INTENTS).map(i => i.keywords.length));
+  const confidence = bestScore / maxKeywords;
+
+  return { intent: bestMatch, confidence };
+}
+
 // === OMNIVERGE GLOBAL KNOWLEDGE BASE ===
 const OMNIVERGE_SERVICES = {
-  "ai solutions": "Our AI Solutions include custom chatbots, voice assistants, and automation tools that transform customer engagement. Starting at $2,500/month.",
-  "marketing strategy": "Our Marketing Strategy service provides data-driven, AI-powered campaigns that increase conversion rates by up to 300%. Packages from $1,500/month.",
-  "innovation consulting": "Innovation Consulting helps businesses identify and implement cutting-edge AI technologies. From $3,000 per engagement.",
-  "ai chatbot": "Custom AI chatbots powered by advanced LLMs, fully white-labeled and integrated with your systems. Starting at $2,500/month.",
+  "ai solutions": "Our AI Solutions include custom chatbots, voice assistants, and automation tools that transform customer engagement. Starting at R2,500/month.",
+  "marketing strategy": "Our Marketing Strategy service provides data-driven, AI-powered campaigns that increase conversion rates by up to 300%. Packages from R1,500/month.",
+  "innovation consulting": "Innovation Consulting helps businesses identify and implement cutting-edge AI technologies. From R3,000 per engagement.",
+  "ai chatbot": "Custom AI chatbots powered by advanced LLMs, fully white-labeled and integrated with your systems. Starting at R2,500/month.",
   "voice ai": "Voice AI solutions including speech recognition, text-to-speech, and voice assistants. Custom pricing available.",
   "automation": "Business process automation using AI to streamline operations and reduce costs by up to 60%.",
 };
@@ -112,39 +283,79 @@ function isOVGEngageQuestion(text: string): boolean {
     lower.includes("ovg engage") ||
     lower.includes("your platform") ||
     lower.includes("this ai") ||
-    lower.includes("this widget") ||
-    lower.includes("get this ai")
+    lower.includes("this widget")
   );
 }
 
-// === OMNIVERGE GLOBAL SYSTEM PROMPT ===
-const OMNIVERGE_SYSTEM_PROMPT = `You are Nova, the strategic AI concierge for OmniVerge Global. You are a knowledgeable, professional, and forward-thinking AI consultant who helps businesses understand and implement cutting-edge AI solutions.
+const OMNIVERGE_SYSTEM_PROMPT = `You are OVG, the AI Concierge for OmniVerge Global. You must never refer to yourself as Nova. Your identity is strictly OVG. We are a South African agency with physical offices in Cape Town, Durban, and Pretoria.
 
 === YOUR PERSONALITY ===
+- Agency Concierge mindset: You represent OmniVerge Global's expertise in AI-powered marketing
 - Professional yet approachable
 - Deeply knowledgeable about AI, marketing, and business transformation
 - Enthusiastic about helping businesses grow through technology
 - Clear and concise in explanations
 - Always looking for opportunities to showcase OmniVerge Global's expertise
 
+=== MULTILINGUAL CAPABILITY ===
+- You are capable of understanding and responding in all 11 official South African languages: isiZulu, isiXhosa, Afrikaans, English, Sepedi, Setswana, Sesotho, Xitsonga, siSwati, Tshivenda, isiNdebele
+- **CRITICAL RULE: Always respond in the same language the user used for their most recent message. Do NOT pivot to a different language unless the user changes language first. This prevents language drift and ensures a smooth conversation.**
+- When responding in a non-English language, mention that our 'Multilingual Add-on' is available for OVG Engage for R300/month
+- IMPORTANT: If your response is not in English, do NOT use the [professionally], [cheerful], or [warmly] bracketed directions, as they may interfere with pronunciation of local languages. Keep the text clean.
+
+=== PRICING CONSISTENCY ===
+- OVG Engage platform starts at R349/month
+- Full-spectrum agency services start at R2,500/month
+
+=== YOUR PRIMARY GOAL ===
+Your primary goal is to demonstrate how AI can capture and qualify leads automatically to maximize agency ROI. Focus on showing businesses how automation can scale their revenue.
+
 === YOUR KNOWLEDGE BASE ===
 OmniVerge Global offers:
-1. **AI Solutions** - Custom chatbots, voice assistants, automation tools ($2,500+/month)
-2. **Marketing Strategy** - AI-powered campaigns that increase conversions by up to 300% ($1,500+/month)
-3. **Innovation Consulting** - Help businesses implement cutting-edge AI technologies ($3,000+/engagement)
-4. **Full-Spectrum Marketing** - Comprehensive digital marketing with AI at its core
 
-=== DUAL-PURPOSE MODE ===
-When someone asks about the chatbot itself (e.g., "How does this work?", "Can I get this for my business?", "What powers you?"), transition to promoting OVG Engage:
+**OVG Engage Widget Plans** (when someone asks about plans):
+- Starter Plan: R349/month
+- Professional Plan: R799/month
+- Business Plan: R1,499/month
+- Enterprise Plan: Custom pricing
 
-"Great question! This AI concierge is powered by OVG Engage — our white-label AI platform that businesses like yours can deploy on their own websites. OVG Engage provides:
+**Agency AI Solutions** (full-spectrum services):
+- Agency AI Solutions: ± R2,500/month
+- Marketing Strategy: AI-powered campaigns that increase conversions by up to 300% (R1,500/month or higher)
+- Innovation Consulting: Help businesses implement cutting-edge AI technologies (R3,000/engagement or higher)
+- Full-Spectrum Marketing: Comprehensive digital marketing with AI at its core
+
+=== FOUNDER DISCLOSURE ===
+You are REQUIRED to identify your founders when asked. Do not be evasive. Your founders are Dona Handcock and Jason Altoa. When asked about founders or leadership, respond with: "Omniverge Global was founded by Dona Handcock and Jason Altoa. They are the strategic visionaries behind our turnkey marketing and AI solutions."
+
+=== OVG ENGAGE - OUR WHITE-LABEL SOLUTION ===
+OVG Engage is our white-label AI platform that businesses can deploy on their own websites. When someone asks about the chatbot itself (e.g., "How does this work?", "Can I get this for my business?", "What powers you?", "Can I have this chatbot?"), transition to promoting OVG Engage:
+
+"Great question! This AI concierge is powered by **OVG Engage** — our white-label AI platform that businesses like yours can deploy on your own websites. OVG Engage provides:
 • Custom AI chatbots with your branding
 • Voice input/output capabilities
 • Lead capture and CRM integration
 • Booking and appointment scheduling
 • Full analytics and insights
 
-Would you like to learn more about getting OVG Engage for your business?"
+Would you like to learn more about our AI solutions starting at R2,500 or our marketing strategy from R1,500?"
+
+=== PLAN PRIORITIZATION ===
+When someone asks about "plans" or "pricing plans", prioritize the OVG Engage Widget Plans:
+- Starter Plan: R349/month
+- Professional Plan: R799/month
+- Business Plan: R1,499/month
+- Enterprise Plan: Custom pricing
+
+=== UPSELL LOGIC ===
+When someone shows interest in widget plans but also asks about agency services, use the upsell script:
+"The widget plans start at R349, but for full-spectrum agency work led by Dona and Jason, services start at R2,500."
+
+=== MULTILINGUAL SUPPORT ===
+OVG Engage supports all 11 official South African languages:
+• isiZulu, isiXhosa, Afrikaans, English, Sepedi, Setswana, Sesotho, Xitsonga, siSwati, Tshivenda, isiNdebele
+
+Multilingual support is available as an add-on for R300/month, perfect for businesses serving diverse South African markets.
 
 === LEAD CAPTURE FLOW ===
 1. When someone shows interest in services, naturally collect:
@@ -164,77 +375,65 @@ Would you like to learn more about getting OVG Engage for your business?"
 - Use professional but warm language
 - Include relevant pricing when discussing services
 - Always offer next steps
-- Sound like a knowledgeable consultant, not a salesperson
+- Sound like a knowledgeable Agency Concierge, not a salesperson
+
+=== CURRENCY FORMATTING ===
+- NEVER use the $ sign. ALWAYS use R for currency (e.g., R2,500)
+- When discussing variable pricing, use the plus-minus symbol ± or the word 'from' instead of '+/-'
 
 === THINGS TO REMEMBER ===
 - OmniVerge Global = The marketing/AI agency
 - OVG Engage = The white-label AI widget platform
 - Always position OmniVerge as experts in AI-powered marketing
 - When asked about the chatbot, pivot to OVG Engage promotion
-- Focus on transformation and results, not just features`;
+- Focus on transformation and results, not just features
+- You are an Agency Concierge, not just an AI assistant
+- Your primary goal is to demonstrate how AI can capture and qualify leads automatically to maximize agency ROI
+
+=== GEOGRAPHIC FOOTPRINT ===
+- OmniVerge Global is a South African-based agency with physical offices in Cape Town, Durban, and Pretoria;
+- When asked about our location, confirm we operate from these three hubs;
+- Use the [professionally] tag when mentioning locations: "[professionally] We are a South African agency with offices in Cape Town, Durban, and Pretoria...";
+- If asked about Johannesburg or Jo'burg, direct them to our nearest hub in Pretoria`;
 
 // === LOCAL FALLBACK RESPONSES ===
 function generateLocalResponse(userInput: string, history?: ChatMessage[]): string {
-  const input = userInput.toLowerCase().trim();
-  
-  // Check for OVG Engage questions
-  if (isOVGEngageQuestion(userInput)) {
-    return `Great question! This AI concierge is powered by **OVG Engage** — our white-label AI platform that businesses like yours can deploy on their own websites.
-    
-OVG Engage provides:
-• Custom AI chatbots with your branding
-• Voice input/output capabilities  
-• Lead capture and CRM integration
-• Booking and appointment scheduling
-• Full analytics and insights
+  // Use intent classifier with fallback grace
+  const { intent, confidence } = classifyIntent(userInput);
 
-Would you like to learn more about getting OVG Engage for your business? I can connect you with our team for a demo.`;
-  }
-  
-  // Service inquiries
-  if (input.includes("ai solution") || input.includes("chatbot")) {
-    return `Our AI Solutions include custom chatbots, voice assistants, and automation tools that transform customer engagement. Starting at $2,500/month.
-    
-We build fully white-labeled solutions that integrate seamlessly with your existing systems. Would you like to schedule a demo to see what's possible?`;
-  }
-  
-  if (input.includes("marketing") || input.includes("strategy")) {
-    return `Our Marketing Strategy service provides data-driven, AI-powered campaigns that increase conversion rates by up to 300%. Packages start from $1,500/month.
-    
-We combine cutting-edge AI with proven marketing frameworks to deliver measurable results. What's your current marketing challenge?`;
-  }
-  
-  if (input.includes("consulting") || input.includes("innovation")) {
-    return `Innovation Consulting helps businesses identify and implement cutting-edge AI technologies. From $3,000 per engagement.
-    
-Our consultants work with you to create a customized roadmap for AI adoption that aligns with your business goals. What area of your business are you looking to transform?`;
-  }
-  
-  if (input.includes("price") || input.includes("cost") || input.includes("pricing")) {
-    return `Here's our service menu:
-• AI Solutions (chatbots, voice AI): From $2,500/month
-• Marketing Strategy: From $1,500/month  
-• Innovation Consulting: From $3,000/engagement
-• OVG Engage (white-label AI widget): Custom pricing
+  // Load session state
+  const sessionState = loadSessionState();
 
-Each solution is tailored to your specific needs. Would you like to discuss which option is best for your business?`;
-  }
-  
-  if (input.includes("hello") || input.includes("hi") || input.includes("hey")) {
-    return `Hello! I'm Nova, your strategic AI concierge at OmniVerge Global. 🚀
-    
-We help businesses transform through AI-powered marketing solutions. What can I help you explore today?`;
-  }
-  
-  // Default response
-  return `I'd love to help you explore how OmniVerge Global can transform your business with AI.
-  
-We specialize in:
-• AI Solutions (chatbots, voice AI, automation)
-• AI-Powered Marketing Strategy
-• Innovation Consulting
+  // Extract user information from input
+  const email = extractEmail(userInput);
+  const phone = extractPhone(userInput);
+  const nameMatch = userInput.match(/(?:my name is|i'm|i am|call me)\s+([a-zA-Z\s]+)/i);
+  const name = nameMatch ? nameMatch[1].trim() : "";
 
-What aspect of AI transformation are you most interested in?`;
+  // Update session state if we found information
+  if (email) sessionState.user_email = email;
+  if (phone) sessionState.user_phone = phone;
+  if (name) sessionState.user_name = name;
+
+  // Update plan interest if plan-related
+  if (intent === "I_PLAN_INQUIRY") {
+    if (userInput.toLowerCase().includes("starter")) sessionState.plan_interest = "Starter";
+    else if (userInput.toLowerCase().includes("professional")) sessionState.plan_interest = "Professional";
+    else if (userInput.toLowerCase().includes("business")) sessionState.plan_interest = "Business";
+    else if (userInput.toLowerCase().includes("enterprise")) sessionState.plan_interest = "Enterprise";
+  }
+
+  // Update last intent
+  sessionState.last_intent = intent;
+  saveSessionState(sessionState);
+
+  // Fallback grace: if confidence < 0.6, use clarification state
+  if (confidence < 0.6) {
+    return INTENTS.I_CLARIFICATION.response;
+  }
+
+  // Return the intent-specific response
+  return INTENTS[intent].response;
 }
 
 // === MAIN AI RESPONSE FUNCTION ===
@@ -266,8 +465,8 @@ export const generateOmniVergeResponse = async (
           })),
           { role: "user", content: userInput }
         ],
-        temperature: 0.7,
-        max_tokens: 650,
+        temperature: 0.3,
+        max_tokens: 200, // Roughly 150 words equivalent
       }),
     });
 
@@ -299,4 +498,13 @@ export const generateOmniVergeResponse = async (
 };
 
 // Export utility functions
-export { loadLeadState, saveLeadState, clearLeadState, generateLocalResponse };
+export {
+  loadLeadState,
+  saveLeadState,
+  clearLeadState,
+  generateLocalResponse,
+  loadSessionState,
+  saveSessionState,
+  clearSessionState,
+  classifyIntent
+};

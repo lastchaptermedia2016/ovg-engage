@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
       {/* Video as sole background */}
@@ -37,7 +40,7 @@ const HeroSection = () => {
           >
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm text-primary">
               <Play className="h-3 w-3 fill-current" />
-              AI-Powered Engagement
+              AI-Powered OVG Engagement
             </div>
             <h1 className="font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl text-white">
               Turn passive browsers into{" "}
@@ -49,9 +52,19 @@ const HeroSection = () => {
               Deploy an AI concierge on your website in 60 seconds. Greet visitors, answer questions, and capture leads—24/7, without lifting a finger.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Button size="lg" className="gap-2 shadow-lg shadow-primary/25">
-                Get Started Free <ArrowRight className="h-4 w-4" />
-              </Button>
+              <div className="relative z-[9999] pointer-events-auto">
+                <button
+                  onClick={() => {
+                    console.log("Button Clicked!");
+                    navigate('/dashboard');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  className="px-8 py-4 border-2 border-[#0097b2]/60 rounded-lg font-bold tracking-[0.2em] text-sm bg-clip-text text-transparent bg-gradient-to-tr from-[#226683] via-[#0097b2] to-[#226683] shadow-[0_0_20px_rgba(0,151,178,0.3)] hover:shadow-[0_0_30px_rgba(0,151,178,0.5)] hover:scale-105 transition-all duration-300"
+                >
+                  INITIATE ACTION
+                </button>
+              </div>
               <Button variant="outline" size="lg">
                 See Demo
               </Button>
@@ -62,7 +75,7 @@ const HeroSection = () => {
               </div>
               <div className="h-8 w-px bg-border" />
               <div>
-                <span className="font-display text-2xl font-bold text-white">24/7</span> engagement
+                <span className="font-display text-2xl font-bold text-white">24/7</span> OVG engagement
               </div>
               <div className="h-8 w-px bg-border" />
               <div>

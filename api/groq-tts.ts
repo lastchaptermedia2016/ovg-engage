@@ -1,5 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Force-load environment variables using require for Vercel Edge Functions compatibility
+if (typeof require !== 'undefined') {
+  const path = require('path');
+  const dotenv = require('dotenv');
+
+  // Look for the .env file in the project root
+  dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+  console.log('DEBUG: Checking path:', path.resolve(process.cwd(), '.env'));
+  console.log('DEBUG: Groq API Key found?', !!process.env.GROQ_API_KEY);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Ensure the request method is POST
   if (req.method !== 'POST') {
@@ -7,8 +19,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Extract text from the request body
-    const { text } = req.body;
+    // Extract text and optional voice from the request body
+    const { text, voice } = req.body;
 
     // Validate the presence of text
     if (!text || typeof text !== 'string') {
@@ -26,17 +38,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log("🔊 Calling Groq TTS API with text:", text.substring(0, 50) + "...");
 
     // Make a request to the GROQ TTS API
-    const response = await fetch('https://api.groq.com/openai/v1/audio/speech', {
-      method: 'POST',
+    const response = await fetch("https://api.groq.com/openai/v1/audio/speech", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'canopylabs/orpheus-v1-english',
-        input: text,
-        voice: 'autumn',
-        response_format: 'wav',
+        model: "canopylabs/orpheus-v1-english",
+        voice: voice || "autumn",
+        input: text.slice(0, 8000),
+        response_format: "wav",
       }),
     });
 

@@ -162,7 +162,7 @@ export default function ClientConfig() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full">
             <Button variant="outline" className="border-[#D4AF37]/50 text-white hover:bg-white/10 min-h-[44px] w-full" onClick={copyEmbedCode}><Code className="h-4 w-4 mr-2" />Embed</Button>
-            <Button className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] min-h-[44px] w-full" onClick={handleSave} disabled={isSaving}>
+            <Button className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] min-h-[44px] w-full text-[#0A2540] font-bold" onClick={handleSave} disabled={isSaving}>
               <Save className="h-4 w-4 mr-2" />{isSaving ? 'Saving...' : 'Save'}
             </Button>
           </div>

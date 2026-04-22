@@ -180,7 +180,7 @@ export default function Login() {
 
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30]"
+                    className="w-full bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30] text-[#0A2540] font-bold"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Signing in...' : 'Sign In'}

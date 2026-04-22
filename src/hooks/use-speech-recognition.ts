@@ -7,6 +7,7 @@ interface SpeechRecognitionHookResult {
   startListening: () => void;
   stopListening: () => void;
   resetTranscript: () => void;
+  recognitionRef: React.RefObject<any>;
 }
 
 interface SpeechRecognitionEvent extends Event {
@@ -58,7 +59,12 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
 
     recognition.onerror = (event) => {
       console.error("Speech recognition error:", event.error);
-      setIsListening(false);
+      if (event.error === 'no-speech') {
+        console.log('⚠️ No speech detected, resetting listening state');
+        setIsListening(false);
+      } else {
+        setIsListening(false);
+      }
     };
 
     recognition.onend = () => {
@@ -73,14 +79,29 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
   }, []);
 
   const startListening = useCallback(() => {
-    if (!recognitionRef.current || isListening) return;
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      console.log('⚠️ Speech recognition already active, skipping start');
+      return;
+    }
+
     setTranscript("");
-    finalTranscriptRef.current = "";
     try {
       recognitionRef.current.start();
       setIsListening(true);
-    } catch (err) {
-      console.error("Start failed:", err);
+      console.log('✅ Speech recognition started');
+    } catch (err: any) {
+      if (err.name === 'InvalidStateError') {
+        // Only reset if we're not supposed to be listening
+        if (!isListening) {
+          console.warn('⚠️ Speech recognition already in invalid state, resetting');
+          setIsListening(false);
+        } else {
+          console.log('⚠️ Invalid state but mic should be on, ignoring');
+        }
+      } else {
+        console.error("❌ Start failed:", err);
+      }
     }
   }, [isListening]);
 
@@ -95,5 +116,5 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
     finalTranscriptRef.current = "";
   }, []);
 
-  return { isListening, transcript, isSupported, startListening, stopListening, resetTranscript };
+  return { isListening, transcript, isSupported, startListening, stopListening, resetTranscript, recognitionRef };
 }

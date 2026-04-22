@@ -1,9 +1,34 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&display=scan");
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Montserrat:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;500&family=Open+Sans:wght@400;600&family=Poppins:wght@400;500;600&family=Lora:wght@400;500&family=Fira+Code:wght@400;500&display=swap');
+
+/* Kill the white curtain on every possible layer */
+html, body, main, #__next, .min-h-screen {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Ensure the master canvas is the only thing with a background */
+#master-canvas {
+  background-image: url('/images/bg.jpg') !important;
+  background-color: #060b0d !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+body {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Global Reset - Kill background colors in all divs except master-canvas */
+div:not(#master-canvas) {
+  background-color: transparent !important;
+}
 
 @tailwind base;
 @tailwind components;
@@ -13,7 +38,7 @@
   :root {
     --primary: 45 100% 50%;
     --primary-foreground: 0 0% 0%;
-    --background: 0 0% 0%;
+    --background: transparent;
     --foreground: 45 100% 50%;
     --card: 0 0% 5%;
     --card-foreground: 45 100% 50%;
@@ -51,7 +76,7 @@
   }
 
   .dark {
-    --background: 0 0% 4%;
+    --background: transparent;
     --foreground: 45 100% 50%;
     --card: 0 0% 8%;
     --card-foreground: 45 100% 50%;
@@ -74,16 +99,15 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased overflow-x-hidden;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    @apply text-foreground font-sans antialiased;
     font-family: var(--font-sans);
   }
 
   html {
     @apply overflow-x-hidden;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
   }
 
   /* Animations for chat bubble */
@@ -112,5 +136,10 @@
     0%, 100% { opacity: 0; transform: scale(0.5) translate(0, 0); }
     20%, 60% { opacity: 0.8; transform: scale(1.3) translate(2px, -2px); }
     40%      { opacity: 1; transform: scale(1.8) translate(-1px, 1px); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
   }
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Shield, Gift, Star, Clock, Calendar, Phone, Mail, 
@@ -105,6 +106,7 @@ interface Booking {
 
 const VIPCustomerConsole = () => {
   const { toast } = useToast();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -116,12 +118,13 @@ const VIPCustomerConsole = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Get tenant_id from route state or fallback to window.ovgConfig
+  const tenantId = (location.state as any)?.tenantId || localStorage.getItem('current_tenant_id') || 'dev-admin-001';
+
   // Load configuration from widget_configs
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const tenantId = (window as any).ovgConfig?.tenantId;
-        
         if (!tenantId) {
           console.log("🎨 No tenant ID found for VIP console");
           setLoading(false);
@@ -177,7 +180,6 @@ const VIPCustomerConsole = () => {
   // Load customer data
   const loadCustomerData = async () => {
     try {
-      const tenantId = (window as any).ovgConfig?.tenantId;
       if (!tenantId) return;
 
       // Get customer email from localStorage or leads
@@ -197,13 +199,13 @@ const VIPCustomerConsole = () => {
       const rawStats = localStorage.getItem('luxe_live_stats');
       if (rawStats) {
         const stats = JSON.parse(rawStats);
-        const customerBookings = stats.bookings?.filter((b: any) => 
+        const customerBookings = stats.bookings?.filter((b: any) =>
           b.email === customerEmail
         ) || [];
         setBookings(customerBookings.slice(0, 10));
 
         // Calculate total spent
-        const totalSpent = customerBookings.reduce((sum: number, b: any) => 
+        const totalSpent = customerBookings.reduce((sum: number, b: any) =>
           sum + (Number(b.price) || 0), 0
         );
 
@@ -239,42 +241,9 @@ const VIPCustomerConsole = () => {
     }
   };
 
-  // Keyboard shortcut handler
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!config?.vipConsoleEnabled) return;
-
-      // Parse shortcut (e.g., "SHIFT+V")
-      const shortcut = config.vipShortcut || 'SHIFT+V';
-      const keys = shortcut.split('+').map(k => k.trim().toUpperCase());
-      
-      const shiftPressed = e.shiftKey && keys.includes('SHIFT');
-      const keyPressed = keys.includes(e.key.toUpperCase());
-      
-      if (shiftPressed && keyPressed && keys.length === 2) {
-        e.preventDefault();
-        
-        if (config.vipAccessMethod === 'shortcut') {
-          if (!isAuthorized) {
-            setIsAuthorized(true);
-            localStorage.setItem(`vip_auth_${(window as any).ovgConfig?.tenantId}`, 'true');
-            loadCustomerData();
-          }
-          setIsOpen(prev => !prev);
-        } else {
-          setShowPasswordModal(true);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [config, isAuthorized]);
-
   // Verify access code/password
   const verifyAccess = async () => {
     try {
-      const tenantId = (window as any).ovgConfig?.tenantId;
       if (!tenantId) return;
       
       // Rate limiting - block after 5 failed attempts for 10 minutes

@@ -449,7 +449,7 @@ export default function CustomServices() {
             </Button>
             <Button
               onClick={() => setShowAddService(true)}
-              className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30]"
+              className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30] text-[#0A2540] font-bold"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Service

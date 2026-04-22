@@ -581,7 +581,7 @@ export default function ResellerDashboard() {
               <h2 className="text-2xl font-bold text-white">Your Clients</h2>
               <Button
                 onClick={() => setShowAddClient(true)}
-                className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30] w-full sm:w-auto"
+                className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30] w-full sm:w-auto text-[#0A2540] font-bold"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Client
@@ -608,7 +608,7 @@ export default function ResellerDashboard() {
                       </span>
                     </div>
                     <Button
-                      className="w-full bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30] min-h-[44px]"
+                      className="w-full bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30] min-h-[44px] text-[#0A2540] font-bold"
                       onClick={() => navigate(`/reseller/client/${tenant.id}`)}
                     >
                       Configure Widget
@@ -677,8 +677,8 @@ export default function ResellerDashboard() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    className={`flex-1 min-h-[44px] ${!timerState.isRunning ? 'bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30]' : 'bg-yellow-600 hover:bg-yellow-700'}`}
+                  <Button
+                    className={`flex-1 min-h-[44px] ${!timerState.isRunning ? 'bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30] text-[#0A2540] font-bold' : 'bg-yellow-600 hover:bg-yellow-700 text-white font-bold'}`}
                     onClick={() => !timerState.isRunning ? startTimer() : resumeTimer()}
                   >
                     <Play className="h-4 w-4 mr-2" /> {timerState.isRunning ? (timerState.isPaused ? 'Resume' : 'Running') : 'Start'}
@@ -866,7 +866,7 @@ export default function ResellerDashboard() {
 
             {/* Save Button */}
             <div className="flex justify-center pt-4">
-              <Button className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30] min-h-[44px] px-8">
+              <Button className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#c49f30] min-h-[44px] px-8 text-[#0A2540] font-bold">
                 Save Pricing
               </Button>
             </div>
@@ -914,7 +914,7 @@ export default function ResellerDashboard() {
           </div>
           <DialogFooter>
             <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" onClick={() => setShowAddClient(false)}>Cancel</Button>
-            <Button className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#B89630]" onClick={handleAddClient}>Add Client</Button>
+            <Button className="bg-gradient-to-r from-[#0097b2] to-[#D4AF37] hover:from-[#008aa3] hover:to-[#B89630] text-[#0A2540] font-bold" onClick={handleAddClient}>Add Client</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

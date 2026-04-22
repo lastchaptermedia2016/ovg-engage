@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,9 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, useMatch, useNavigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import ChatWidget from "./components/widget/ChatWidget"; 
+import ChatWidget from "./components/widget/ChatWidget";
 import ResellerChatWidget from "./components/widget/ResellerChatWidget";
-import VIPCustomerConsole from "./components/widget/VIPCustomerConsole";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
 import CommandAuth from "./pages/command/Auth";
@@ -21,19 +21,23 @@ import ClientPortalDashboard from "./pages/portal/Dashboard";
 import WidgetSettings from "./pages/portal/WidgetSettings";
 import Analytics from "./pages/portal/Analytics";
 import Support from "./pages/portal/Support";
+import ClientDashboard from "./pages/portal/ClientDashboard";
+import VIPCustomerConsole from "./components/widget/VIPCustomerConsole";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+// This is the new Client login you just created
+import ClientAuth from "./pages/portal/ClientAuth";
 
 const queryClient = new QueryClient();
 
 // ✅ PUBLIC PATHS - Never guard these routes
-const PUBLIC_PATHS = ['/', '/login', '/reseller/login', '/command/auth', '/test-omniverge'];
+const PUBLIC_PATHS = ['/', '/login', '/reseller/login', '/command/auth', '/test-omniverge', '/dashboard', '/vip'];
 
 // ✅ Widget Manager - conditionally renders widgets based on route
 // All hooks are called unconditionally to comply with React Rules of Hooks
 const WidgetManager = () => {
   const isTestOmniVerge = useMatch("/test-omniverge");
-  
+
   // Determine visibility based on current path
   const currentPath = window.location.pathname;
   const isResellerPath = currentPath.startsWith('/reseller');
@@ -49,7 +53,6 @@ const WidgetManager = () => {
     <>
       {!isTestOmniVerge && <ResellerChatWidget />}
       {isTestOmniVerge && <ChatWidget />}
-      <VIPCustomerConsole />
     </>
   );
 };
@@ -123,7 +126,8 @@ const RouteGuard = () => {
         }
 
         // ✅ DOMAIN ISOLATION: Reseller/Admin on client portal → bounce to reseller dashboard
-        if (['reseller', 'admin', 'developer', 'support'].includes(userData.role)) {
+        // DEVELOPER BYPASS: Allow developer to access portal for testing excellence
+        if (['reseller', 'admin', 'support'].includes(userData.role) && userData.role !== 'developer') {
           if (currentPath.startsWith('/portal/') || currentPath.startsWith('/client/')) {
             navigate('/reseller/dashboard', { replace: true });
             setGuardState('ready');
@@ -207,22 +211,56 @@ const RouteGuard = () => {
 
 const AppNew = () => {
   const [showJillConsole, setShowJillConsole] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const handleGlobalStealth = (e: KeyboardEvent) => {
-      // SHIFT + J to toggle the console ON/OFF
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleGlobalKeyboard = (e: KeyboardEvent) => {
+      // SHIFT + J to toggle Jill Console (Admin)
       if (e.shiftKey && e.key === 'J') {
+        e.preventDefault();
         localStorage.setItem("luxe-admin-stealth-access", "true");
         setShowJillConsole(prev => !prev);
       }
+
+      // SHIFT + V to navigate to VIP Console route
+      if (e.shiftKey && e.key === 'V') {
+        e.preventDefault();
+        // Get current tenant_id from localStorage or context
+        const tenantId = localStorage.getItem('current_tenant_id') || 'dev-admin-001';
+        navigate('/vip', { state: { tenantId } });
+      }
     };
 
-    window.addEventListener("keydown", handleGlobalStealth);
-    return () => window.removeEventListener("keydown", handleGlobalStealth);
-  }, []);
+    window.addEventListener("keydown", handleGlobalKeyboard);
+    return () => window.removeEventListener("keydown", handleGlobalKeyboard);
+  }, [navigate]);
 
   return (
     <QueryClientProvider client={queryClient}>
+      {/* Master Canvas - Physical Background Layer */}
+      <div
+        id="master-canvas"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: -1,
+          backgroundImage: 'url("/images/bg.jpg")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: '#060b0d',
+          opacity: 1,
+          pointerEvents: 'none'
+        }}
+      />
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -246,11 +284,14 @@ const AppNew = () => {
         <>
           <RouteGuard />
           <Routes>
+            {/* Client Portal Routes - Moved to top for testing */}
+            <Route path="/dashboard" element={<ClientDashboard />} />
             <Route path="/" element={<Index />} />
             <Route path="/luxe-console" element={<AdminDashboard />} />
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/command/auth" element={<CommandAuth />} />
+            <Route path="/portal/auth" element={<ClientAuth />} />
             <Route path="/reseller/login" element={<ResellerLogin />} />
             {/* Reseller Console Routes */}
             <Route path="/reseller/dashboard" element={<ResellerDashboard />} />
@@ -258,13 +299,14 @@ const AppNew = () => {
             <Route path="/reseller/client/:tenantId/services" element={<CustomServices />} />
             {/* Test page for OmniVerge Global widget */}
             <Route path="/test-omniverge" element={<TestOmniVerge />} />
-            {/* Client Portal Routes */}
+            <Route path="/portal/dashboard" element={<ClientDashboard />} />
             <Route path="/portal/:clientId" element={<ClientPortalDashboard />}>
               <Route index element={<WidgetSettings />} />
               <Route path="settings" element={<WidgetSettings />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="support" element={<Support />} />
             </Route>
+            <Route path="/vip" element={<VIPCustomerConsole />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <WidgetManager />

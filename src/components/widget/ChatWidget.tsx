@@ -46,7 +46,7 @@ const defaultConfig: WidgetConfig = {
   primaryColor: "#0097b2",
   aiName: "Assistant",
   greeting: `Welcome to Omniverge Global ✨ My name is your virtual assistant. How can I help you today?`,
-  peekText: `How may we assist you today?`,
+  peekText: `Ready to see the future of AI-powered business?`,
   syncBadgeText: "VIP BOOKING SECURED • SYNCED TO SANCTUARY",
   phone: "27760330046",
   whatsappMessageTemplate: `Hello {title} {lastName}, your bespoke {treatment} ($` + `{price}) at {brandName} is confirmed for {time}. We have your {refreshment} ready for your arrival. See you in the sanctuary!`,
@@ -68,7 +68,31 @@ const ChatWidget = () => {
   const [showSyncBadge, setShowSyncBadge] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    try { return JSON.parse(localStorage.getItem("ovgweb_chat_messages") || "[]"); } catch { return []; }
+    try {
+      const saved = JSON.parse(localStorage.getItem("ovgweb_chat_messages") || "[]");
+      if (saved.length === 0) {
+        // Initialize with OVG greeting if no messages exist
+        const initialGreeting: ChatMessage = {
+          id: Date.now().toString(),
+          role: "ai",
+          text: "Hi there! I'm OVG, the AI concierge for Omniverge Global. We help businesses like yours grow smarter using strategic marketing and AI. What brings you to our site today?",
+          timestamp: Date.now()
+        };
+        localStorage.setItem("ovgweb_chat_messages", JSON.stringify([initialGreeting]));
+        return [initialGreeting];
+      }
+      return saved;
+    } catch {
+      // Initialize with OVG greeting on error
+      const initialGreeting: ChatMessage = {
+        id: Date.now().toString(),
+        role: "ai",
+        text: "Hi there! I'm OVG, the AI concierge for Omniverge Global. We help businesses like yours grow smarter using strategic marketing and AI. What brings you to our site today?",
+        timestamp: Date.now()
+      };
+      localStorage.setItem("ovgweb_chat_messages", JSON.stringify([initialGreeting]));
+      return [initialGreeting];
+    }
   });
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -389,23 +413,47 @@ const ChatWidget = () => {
 
   // --- RESET CHAT ---
   const resetChat = useCallback(() => {
-    setMessages([]);
-    localStorage.removeItem("ovgweb_chat_messages");
+    const initialGreeting: ChatMessage = {
+      id: Date.now().toString(),
+      role: "ai",
+      text: "Hi there! I'm OVG, the AI concierge for Omniverge Global. We help businesses like yours grow smarter using strategic marketing and AI. What brings you to our site today?",
+      timestamp: Date.now()
+    };
+    setMessages([initialGreeting]);
+    localStorage.setItem("ovgweb_chat_messages", JSON.stringify([initialGreeting]));
     setShowResetConfirm(false);
     toast({ title: "Chat Reset", description: "History cleared successfully." });
   }, [toast]);
 
   // === TTS WITH FULL FALLBACK CHAIN ===
+  const cleanTextForSpeech = (text: string) => {
+    return text
+      // 1. Remove commas from within numbers (e.g., 1,500 -> 1500)
+      // This prevents the TTS from pausing and splitting the number.
+      .replace(/(\d),(\d{3})/g, '$1$2')
+      // 2. Handle R<number>/month -> "<number> rands per month"
+      .replace(/R\s?(\d+)\s?\/\s?month/gi, '$1 rands per month')
+      // 3. Handle standalone R<number> -> "<number> rands"
+      .replace(/R\s?(\d+)/g, '$1 rands')
+      // 4. Clean up slashes and formatting
+      .replace(/\//g, ' per ')
+      .replace(/\*/g, '')
+      .trim();
+  };
+
   const speak = useCallback(async (text: string) => {
     if (!voiceEnabled || !text.trim()) return;
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
 
-    // Clean text for TTS (remove emojis, markdown, JSON blocks)
+    // Clean text for TTS (remove emojis, markdown, JSON blocks, and normalize pricing)
     let cleanText = text
       .replace(/\[JSON CODE BLOCK\][\s\S]*?\[\/JSON CODE BLOCK\]/g, '')
       .replace(/```[\s\S]*?```/g, '')
       .replace(/[*#_`]/g, '')
       .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}]/gu, '');
+
+    // Apply pricing and currency normalization for speech
+    cleanText = cleanTextForSpeech(cleanText);
 
     // Fix time pronunciation: convert "10am" to "ten A M", "2pm" to "two P M", "9:30am" to "nine thirty A M"
     const numberWords: Record<string, string> = {

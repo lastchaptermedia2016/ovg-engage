@@ -24,7 +24,7 @@ const CTASection = () => {
               Ready to turn visitors into leads?
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-lg text-primary-foreground/80">
-              Join hundreds of businesses using OVGweb AI to engage customers the moment they land on their site.
+              Join hundreds of businesses using OVGweb AI to OVG engage customers the moment they land on their site.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Button

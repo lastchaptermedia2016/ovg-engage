@@ -2,12 +2,40 @@
 declare const process: any;
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Force-load environment variables using require for Vercel Edge Functions compatibility
+if (typeof require !== 'undefined') {
+  const path = require('path');
+  const dotenv = require('dotenv');
+
+  // Look for the .env file in the project root
+  dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+  console.log('DEBUG: Checking path:', path.resolve(process.cwd(), '.env'));
+  console.log('DEBUG: Groq API Key found?', !!process.env.GROQ_API_KEY);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { messages } = req.body;
+    const { message, tenantId, systemInstructions, history, stream } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
+
+    if (!apiKey) {
+      console.log('DEBUG: Groq API Key is None/Empty in groq-chat');
+      return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
+    }
+
+    console.log('🔑 Groq API key found in groq-chat, length:', apiKey.length);
+
+    // Build messages array from request
+    const messages = [
+      { role: 'system', content: systemInstructions || 'You are a helpful assistant.' },
+      ...(history || []).map((msg: any) => ({ role: msg.role, content: msg.text })),
+      { role: 'user', content: message }
+    ];
+
+    console.log('📤 Processing message:', message);
 
     const tools = [
       {

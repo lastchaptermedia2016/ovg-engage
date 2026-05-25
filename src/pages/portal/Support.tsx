@@ -10,7 +10,8 @@ import { toast } from 'sonner';
 import { Send } from 'lucide-react';
 
 export default function Support() {
-  const { clientId, tenant } = useOutletContext<any>();
+  const context = useOutletContext<{ clientId: string; tenant: { name: string } | null }>();
+  const { clientId, tenant } = context;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -27,14 +28,14 @@ export default function Support() {
 
     try {
       // Create support ticket in database
-      const { error } = await supabase
-        .from('support_tickets')
+      
+      const { error } = await (supabase.from('support_tickets') as any)
         .insert({
           client_id: clientId,
           subject: subject.trim(),
           message: message.trim(),
           status: 'open',
-        }) as any;
+        });
 
       if (error) throw error;
 
@@ -56,9 +57,9 @@ export default function Support() {
       setSubject('');
       setMessage('');
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Support ticket error:', error);
-      toast.error(error.message || 'Failed to submit support ticket');
+      toast.error(error instanceof Error ? error.message : 'Failed to submit support ticket');
     } finally {
       setIsSubmitting(false);
     }

@@ -5,7 +5,20 @@ const TestOmniVerge = () => {
 
     useEffect(() => {
       // Set up mock configuration - THIS is what the widget reads from
-      (window as any).ovgConfig = {
+      interface OvGConfig {
+        tenantId: string;
+        widgetUrl: string;
+        logo: string;
+        brandName: string;
+        primaryColor: string;
+        aiName: string;
+        greeting: string;
+        peekText: string;
+        syncBadgeText: string;
+        phone: string;
+        headerImage: string;
+      }
+      (window as unknown as { ovgConfig?: OvGConfig }).ovgConfig = {
         tenantId: "test-omniverge-local",
         widgetUrl: "http://localhost:5173",
         // OmniVerge Global branding - overrides default Luxe Med Spa config

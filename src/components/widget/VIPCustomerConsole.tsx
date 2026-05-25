@@ -20,7 +20,7 @@ const VIP_TIERS = {
 };
 
 // Import icons for tiers
-function Trophy(props: any) {
+function Trophy(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
@@ -44,7 +44,7 @@ function Trophy(props: any) {
   );
 }
 
-function Crown(props: any) {
+function Crown(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
@@ -119,7 +119,7 @@ const VIPCustomerConsole = () => {
   const [loading, setLoading] = useState(true);
 
   // Get tenant_id from route state or fallback to window.ovgConfig
-  const tenantId = (location.state as any)?.tenantId || localStorage.getItem('current_tenant_id') || 'dev-admin-001';
+  const tenantId = (location.state as Record<string, unknown>)?.tenantId as string || localStorage.getItem('current_tenant_id') || 'dev-admin-001';
 
   // Load configuration from widget_configs
   useEffect(() => {
@@ -142,7 +142,12 @@ const VIPCustomerConsole = () => {
           return;
         }
 
-        const widgetData = data as any;
+        const widgetData = data as { 
+          branding?: { brandName?: string; primaryColor?: string; logo?: string };
+          vip_console_enabled?: boolean;
+          vip_shortcut?: string;
+          vip_access_method?: 'shortcut' | 'password' | 'code';
+        };
         const vipConfig: VIPConsoleConfig = {
           brandName: widgetData.branding?.brandName || 'Omniverge Global',
           primaryColor: widgetData.branding?.primaryColor || '#0097b2',
@@ -199,13 +204,13 @@ const VIPCustomerConsole = () => {
       const rawStats = localStorage.getItem('luxe_live_stats');
       if (rawStats) {
         const stats = JSON.parse(rawStats);
-        const customerBookings = stats.bookings?.filter((b: any) =>
+        const customerBookings = stats.bookings?.filter((b: Record<string, unknown>) =>
           b.email === customerEmail
         ) || [];
         setBookings(customerBookings.slice(0, 10));
 
         // Calculate total spent
-        const totalSpent = customerBookings.reduce((sum: number, b: any) =>
+        const totalSpent = customerBookings.reduce((sum: number, b: Record<string, unknown>) =>
           sum + (Number(b.price) || 0), 0
         );
 
@@ -286,18 +291,17 @@ const VIPCustomerConsole = () => {
           return;
         }
 
-        // Check if expired (cast to any to access properties)
-        const accessData = data as any;
+        // Check if expired (cast to unknown record to access properties)
+        const accessData = data as { expires_at?: string; current_uses?: number; id?: string };
         if (accessData.expires_at && new Date(accessData.expires_at) < new Date()) {
           toast({ title: 'Expired Code', description: 'This access code has expired.', variant: 'destructive' });
           return;
         }
 
-        // Increment usage (cast to any to bypass type issues)
-        await (supabase as any)
-          .from('vip_access_codes')
-          .update({ current_uses: accessData.current_uses + 1 })
-          .eq('id', accessData.id);
+        // Increment usage
+        await (supabase.from('vip_access_codes') as unknown as { update: (data: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<unknown> } })
+          .update({ current_uses: (accessData.current_uses || 0) + 1 })
+          .eq('id', accessData.id || '');
       } else if (config?.vipAccessMethod === 'password') {
         // Password check - read from environment variable with secure fallback
         const defaultPassword = import.meta.env.VITE_VIP_DEFAULT_PASSWORD || '';

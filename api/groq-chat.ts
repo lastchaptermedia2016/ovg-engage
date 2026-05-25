@@ -1,10 +1,10 @@
-/** @ts-ignore */
-declare const process: any;
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Force-load environment variables using require for Vercel Edge Functions compatibility
+// Force-load environment variables for Vercel Edge Functions compatibility
 if (typeof require !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const path = require('path');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const dotenv = require('dotenv');
 
   // Look for the .env file in the project root
@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Build messages array from request
     const messages = [
       { role: 'system', content: systemInstructions || 'You are a helpful assistant.' },
-      ...(history || []).map((msg: any) => ({ role: msg.role, content: msg.text })),
+      ...(history || []).map((msg: { role: string; text: string }) => ({ role: msg.role, content: msg.text })),
       { role: 'user', content: message }
     ];
 
@@ -120,7 +120,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.status(200).json({ reply: aiMessage.content || "Please provide a date or treatment to continue." });
 
-  } catch (err: any) {
-    res.status(500).json({ error: 'Server error' });
+  } catch (err: unknown) {
+    console.error('Groq chat error:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: 'Server error: ' + errorMessage });
   }
 }

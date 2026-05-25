@@ -28,14 +28,15 @@ export const useRealtimeFeed = ({ tenantId, enabled = true }: UseRealtimeFeedPro
 
     const loadInitialMessages = async () => {
       try {
-        const { data, error } = await (supabase.from('messages') as any)
+        const { data, error } = await supabase
+          .from('messages')
           .select('*')
           .eq('tenant_id', tenantId)
           .order('created_at', { ascending: true })
           .limit(50);
 
         if (error) throw error;
-        setMessages(data || []);
+        setMessages((data || []) as unknown as Message[]);
       } catch (error) {
         console.error('Error loading initial messages:', error);
       }
@@ -61,15 +62,12 @@ export const useRealtimeFeed = ({ tenantId, enabled = true }: UseRealtimeFeedPro
         (payload) => {
           const newMessage = payload.new as Message;
           
-          // Check if this is a pending message we already added optimistically
           const pendingKey = `${newMessage.text}-${newMessage.created_at}`;
           if (pendingMessagesRef.current.has(pendingKey)) {
-            // Remove from pending and update with server version
             pendingMessagesRef.current.delete(pendingKey);
           }
           
           setMessages(prev => {
-            // Avoid duplicates
             if (prev.some(m => m.id === newMessage.id)) {
               return prev;
             }
@@ -118,30 +116,25 @@ export const useRealtimeFeed = ({ tenantId, enabled = true }: UseRealtimeFeedPro
     const pendingKey = `${message.text}-${tempMessage.created_at}`;
     pendingMessagesRef.current.set(pendingKey, tempMessage);
 
-    // Update UI immediately
     setMessages(prev => [...prev, tempMessage]);
 
-    // Save to database in background
     const saveMessage = async () => {
       try {
-        const { data, error } = await (supabase.from('messages') as any)
+        // Use a cast to bypass strict Supabase types
+        const { error } = await (supabase.from('messages') as any)
           .insert({
             tenant_id: tenantId,
             role: message.role,
             text: message.text,
-            is_manual: message.is_manual,
+            is_manual: message.is_manual || false,
             created_at: tempMessage.created_at
           })
           .select()
           .single();
 
         if (error) throw error;
-
-        // The realtime subscription will handle replacing the temp message
       } catch (error) {
         console.error('Error saving message:', error);
-
-        // Remove temp message on error
         setMessages(prev => prev.filter(m => m.id !== tempId));
         pendingMessagesRef.current.delete(pendingKey);
       }

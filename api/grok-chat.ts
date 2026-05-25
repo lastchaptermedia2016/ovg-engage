@@ -1,5 +1,6 @@
-/** @ts-ignore */
-declare const process: any;
+declare const process: {
+  env: Record<string, string | undefined>;
+};
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -110,7 +111,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.status(200).json({ reply: aiMessage.content.trim() });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
+    console.error('Groq chat error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -46,6 +46,7 @@ A modern, floating chat widget designed for beauty and wellness businesses. Help
 - **Icons:** Lucide React
 - **Routing:** React Router v6
 - **State Management:** React Query (@tanstack/react-query)
+- **Code Splitting:** Route-level `React.lazy()` + vendor `manualChunks` (granular caching)
 - **Forms:** React Hook Form + Zod validation
 - **Voice:** Browser SpeechSynthesis (TTS) & SpeechRecognition (STT) + ElevenLabs API
 - **AI Backend:** Groq API (Llama 3.3 70B) + Grok/XAI API
@@ -121,6 +122,31 @@ A modern, floating chat widget designed for beauty and wellness businesses. Help
 | `npm run test` | Run tests with Vitest |
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run preview` | Preview production build |
+
+### Bundle Optimization
+
+The production build uses code-splitting to deliver a fast initial page load:
+
+- **Route-level splitting**: Every page is loaded on demand via `React.lazy()`. A user visiting `/` never downloads the code for the Reseller Dashboard or Client Configuration pages.
+- **Vendor chunking**: Third-party dependencies are split into independently cacheable chunks by category (React, UI components, animations, Supabase, icons, utilities, forms, charts).
+- **Granular caching**: When you update app code, the user's browser keeps cached vendor files. They only download the small diff for your specific change.
+
+Expected build output (chunk sizes will vary):
+
+```
+dist/assets/vendor-react-xxx.js        ~160 kB  (cached rarely changes)
+dist/assets/vendor-ui-xxx.js           ~154 kB  (@radix-ui, shadcn/ui)
+dist/assets/vendor-supabase-xxx.js     ~196 kB  (Supabase client)
+dist/assets/vendor-animation-xxx.js    ~124 kB  (framer-motion)
+dist/assets/vendor-icons-xxx.js        ~23 kB   (lucide-react)
+dist/assets/index-xxx.js               ~45 kB   (main entry — app shell)
+dist/assets/Login-xxx.js               ~5 kB    (loaded on /login)
+dist/assets/Dashboard-xxx.js           ~25 kB   (loaded on /dashboard)
+dist/assets/ResellerChatWidget-xxx.js  ~31 kB   (loaded on pages with widget)
+...
+```
+
+> **Note:** No single JS chunk exceeds 200 kB after gzip compression.
 
 ## Environment Variables
 

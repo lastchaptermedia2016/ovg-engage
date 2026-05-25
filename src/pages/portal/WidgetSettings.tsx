@@ -2,21 +2,11 @@ import { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import {
-  Save,
-  Upload,
-  Palette,
-} from 'lucide-react';
-
-const PRESET_COLORS = [
-  '#ec4899', '#8b5cf6', '#3b82f6', '#14b8a6', '#22c55e',
-  '#eab308', '#f97316', '#ef4444', '#06b6d4', '#84cc16',
-  '#D4AF37', '#be185d', '#7c3aed', '#0891b2', '#059669',
-];
+import { Save, Upload, Eye, Palette, Type, Image as ImageIcon } from 'lucide-react';
 
 interface WidgetConfig {
   branding: {
@@ -28,7 +18,7 @@ interface WidgetConfig {
 }
 
 export default function WidgetSettings() {
-  const { clientId, tenant } = useOutletContext<any>();
+  const { clientId } = useOutletContext<{ clientId: string }>();
   const [isSaving, setIsSaving] = useState(false);
   const [config, setConfig] = useState<WidgetConfig>({
     branding: {
@@ -39,7 +29,7 @@ export default function WidgetSettings() {
     },
   });
 
-  const [originalConfig, setOriginalConfig] = useState<any>(null);
+  const [originalConfig, setOriginalConfig] = useState<Record<string, string> | null>(null);
 
   useEffect(() => {
     if (clientId) {
@@ -56,7 +46,7 @@ export default function WidgetSettings() {
       .maybeSingle();
 
     if (configData) {
-      const loadedBranding = (configData as any).branding;
+      const loadedBranding = (configData as unknown as { branding: WidgetConfig['branding'] }).branding;
       setConfig({
         branding: loadedBranding,
       });
@@ -99,17 +89,17 @@ export default function WidgetSettings() {
     setIsSaving(true);
 
     // Use tenants table for branding
-    const { error } = await (supabase as any)
-      .from('tenants')
-      .upsert({
-        tenant_id: clientId,
-        branding: config.branding,
-      }, {
-        onConflict: 'tenant_id',
-      });
+    const { error } = await (supabase.from('tenants') as unknown as {
+      upsert: (data: Record<string, unknown>, opts?: Record<string, unknown>) => Promise<{ error: unknown }>;
+    }).upsert({
+      tenant_id: clientId,
+      branding: config.branding,
+    }, {
+      onConflict: 'tenant_id',
+    });
 
     // Calculate delta changes
-    const changes: any = { old: {}, new: {} };
+    const changes: { old: Record<string, string>; new: Record<string, string> } = { old: {}, new: {} };
     
     Object.keys(config.branding).forEach(key => {
       if (originalConfig && config.branding[key as keyof typeof config.branding] !== originalConfig[key]) {
@@ -119,154 +109,185 @@ export default function WidgetSettings() {
     });
 
     // Create audit log entry
-    await (supabase as any)
-      .from('audit_logs')
-      .insert({
-        client_id: clientId,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        action: 'widget_settings_updated',
-        description: 'Client updated widget branding settings',
-        changes: Object.keys(changes.old).length > 0 ? changes : config.branding,
-      });
-
-    // Update original config after save
-    setOriginalConfig(structuredClone(config.branding));
-
-    if (error) {
-      toast.error('Failed to save configuration');
-      console.error(error);
-    } else {
-      toast.success('Widget settings saved successfully! Changes will be live immediately.');
-    }
+    await (supabase.from('audit_logs') as unknown as {
+      insert: (data: Record<string, unknown>) => Promise<unknown>;
+    }).insert({
+      client_id: clientId,
+      user_id: (await supabase.auth.getUser()).data.user?.id,
+      action: 'widget_settings_updated',
+      description: 'Client updated widget branding settings',
+      changes: Object.keys(changes.old).length > 0 ? changes : config.branding,
+    });
 
     setIsSaving(false);
+
+    if (!error) {
+      toast.success('Saved successfully!');
+    } else {
+      toast.error('Failed to save');
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto px-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Widget Settings</h2>
-          <p className="text-sm text-white/40 mt-1">
-            Customize your chat widget appearance to match your brand
+          <h2 className="text-2xl font-bold text-white">Widget Branding</h2>
+          <p className="text-white/40 text-sm mt-1">
+            Customize the look and feel of your AI widget
           </p>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="bg-gradient-to-r from-pink-500 to-gold-500 hover:from-pink-600 hover:to-gold-600"
-        >
+        <Button onClick={handleSave} disabled={isSaving} className="bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600">
           <Save className="h-4 w-4 mr-2" />
           {isSaving ? 'Saving...' : 'Save Changes'}
         </Button>
       </div>
 
+      {/* Preview Card */}
+      <Card className="bg-black/40 border-white/10 backdrop-blur-3xl">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Eye className="h-4 w-4 text-pink-400" />
+            Live Preview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div 
+            className="rounded-xl p-8 text-center"
+            style={{
+              background: `linear-gradient(135deg, ${config.branding.primaryColor}22, ${config.branding.primaryGold}22)`,
+              border: `1px solid ${config.branding.primaryColor}44`,
+            }}
+          >
+            <div className="text-4xl mb-3">
+              {config.branding.logoUrl ? (
+                <img src={config.branding.logoUrl} alt="Logo" className="h-12 mx-auto object-contain" />
+              ) : (
+                <div className="h-12 w-12 mx-auto rounded-full flex items-center justify-center" style={{ backgroundColor: config.branding.primaryColor }}>
+                  <ImageIcon className="h-6 w-6 text-white" />
+                </div>
+              )}
+            </div>
+            <h3 className="text-xl font-bold text-white mb-1">
+              Widget Preview
+            </h3>
+            <p className="text-sm text-white/60" style={{ fontFamily: config.branding.font }}>
+              This is how your widget will appear to visitors using the {config.branding.font} font.
+            </p>
+            <div className="flex gap-2 justify-center mt-4">
+              <span className="px-3 py-1 text-xs rounded-full text-white" style={{ backgroundColor: config.branding.primaryColor }}>
+                Primary
+              </span>
+              <span className="px-3 py-1 text-xs rounded-full text-white" style={{ backgroundColor: config.branding.primaryGold }}>
+                Gold
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Branding Settings */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-black/40 border-white/10 backdrop-blur-xl">
+        {/* Primary Color */}
+        <Card className="bg-black/40 border-white/10 backdrop-blur-3xl">
           <CardHeader>
-            <CardTitle className="text-white">Colors</CardTitle>
-            <CardDescription className="text-white/60">
-              Customize the widget colors to match your brand
-            </CardDescription>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Palette className="h-4 w-4 text-pink-400" />
+              Primary Color
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label className="text-white/80">Primary Color</Label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={config.branding.primaryColor}
-                  onChange={(e) => updateBranding('primaryColor', e.target.value)}
-                  className="h-10 w-10 rounded cursor-pointer border-0"
-                />
-                <Input
-                  value={config.branding.primaryColor}
-                  onChange={(e) => updateBranding('primaryColor', e.target.value)}
-                  className="flex-1 bg-white/5 border-white/10 text-white"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-white/80">Accent Color</Label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={config.branding.primaryGold}
-                  onChange={(e) => updateBranding('primaryGold', e.target.value)}
-                  className="h-10 w-10 rounded cursor-pointer border-0"
-                />
-                <Input
-                  value={config.branding.primaryGold}
-                  onChange={(e) => updateBranding('primaryGold', e.target.value)}
-                  className="flex-1 bg-white/5 border-white/10 text-white"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-white/80">Quick Colors</Label>
-              <div className="flex flex-wrap gap-2">
-                {PRESET_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => updateBranding('primaryColor', color)}
-                    className="h-8 w-8 rounded-full border border-white/10 hover:scale-110 transition-transform"
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
+          <CardContent className="space-y-3">
+            <div className="flex gap-3 items-center">
+              <input
+                type="color"
+                value={config.branding.primaryColor}
+                onChange={e => updateBranding('primaryColor', e.target.value)}
+                className="h-10 w-16 rounded cursor-pointer bg-transparent border border-white/10"
+              />
+              <Input
+                value={config.branding.primaryColor}
+                onChange={e => updateBranding('primaryColor', e.target.value)}
+                className="flex-1 bg-white/5 border-white/10 text-white"
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-black/40 border-white/10 backdrop-blur-xl">
+        {/* Gold Accent */}
+        <Card className="bg-black/40 border-white/10 backdrop-blur-3xl">
           <CardHeader>
-            <CardTitle className="text-white">Brand Logo</CardTitle>
-            <CardDescription className="text-white/60">
-              Upload your company logo
-            </CardDescription>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Palette className="h-4 w-4 text-amber-400" />
+              Gold Accent
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-white/80">Logo URL</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="https://example.com/logo.png"
-                  value={config.branding.logoUrl}
-                  onChange={(e) => updateBranding('logoUrl', e.target.value)}
-                  className="flex-1 bg-white/5 border-white/10 text-white"
-                />
-                <Button 
-                  variant="outline" 
-                  className="border-white/10"
-                  onClick={() => {
-                    const input = document.getElementById('logo-upload-input') as HTMLInputElement;
-                    input?.click();
-                  }}
-                >
-                  <Upload className="h-4 w-4" />
-                </Button>
-                <input
-                  id="logo-upload-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileUpload('logoUrl', e)}
-                  className="hidden"
-                />
-              </div>
+          <CardContent className="space-y-3">
+            <div className="flex gap-3 items-center">
+              <input
+                type="color"
+                value={config.branding.primaryGold}
+                onChange={e => updateBranding('primaryGold', e.target.value)}
+                className="h-10 w-16 rounded cursor-pointer bg-transparent border border-white/10"
+              />
+              <Input
+                value={config.branding.primaryGold}
+                onChange={e => updateBranding('primaryGold', e.target.value)}
+                className="flex-1 bg-white/5 border-white/10 text-white"
+              />
             </div>
+          </CardContent>
+        </Card>
 
-            {config.branding.logoUrl && (
-              <div className="mt-4 rounded-lg overflow-hidden border border-white/10 p-4 bg-white/5">
-                <img 
-                  src={config.branding.logoUrl} 
-                  alt="Logo preview" 
-                  className="max-h-20 mx-auto"
-                  onError={(e) => (e.currentTarget.style.display = 'none')}
-                />
-              </div>
-            )}
+        {/* Typography */}
+        <Card className="bg-black/40 border-white/10 backdrop-blur-3xl">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Type className="h-4 w-4 text-blue-400" />
+              Typography
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-3 items-center">
+              <select
+                value={config.branding.font}
+                onChange={e => updateBranding('font', e.target.value)}
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"
+              >
+                <option value="Inter, sans-serif" className="bg-gray-900">Inter (Modern)</option>
+                <option value="Playfair Display, serif" className="bg-gray-900">Playfair Display (Elegant)</option>
+                <option value="Poppins, sans-serif" className="bg-gray-900">Poppins (Clean)</option>
+                <option value="Georgia, serif" className="bg-gray-900">Georgia (Classic)</option>
+              </select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Logo Upload */}
+        <Card className="bg-black/40 border-white/10 backdrop-blur-3xl">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Upload className="h-4 w-4 text-green-400" />
+              Logo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-3 items-center">
+              <Input
+                value={config.branding.logoUrl}
+                onChange={e => updateBranding('logoUrl', e.target.value)}
+                placeholder="Or paste image URL..."
+                className="flex-1 bg-white/5 border-white/10 text-white"
+              />
+            </div>
+            <label className="block">
+              <span className="sr-only">Choose logo file</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={e => handleFileUpload('logoUrl', e)}
+                className="block w-full text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pink-500 file:text-white hover:file:bg-pink-600"
+              />
+            </label>
           </CardContent>
         </Card>
       </div>

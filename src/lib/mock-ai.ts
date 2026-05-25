@@ -55,7 +55,9 @@ function loadBookingState(): BookingState {
   try {
     const raw = localStorage.getItem(getLowKey());
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch {
+    // localStorage access may fail
+  }
   return createEmptyState();
 }
 
@@ -188,7 +190,7 @@ function hasAllRequiredInfo(state: BookingState): boolean {
   );
 }
 
-function generateLocalResponse(userInput: string, history?: any[]): { response: string; state: BookingState } {
+function generateLocalResponse(userInput: string, history?: ChatMessage[]): { response: string; state: BookingState } {
   let state = loadBookingState();
   const input = userInput.trim();
   
@@ -197,8 +199,8 @@ function generateLocalResponse(userInput: string, history?: any[]): { response: 
   
   // Scan ALL messages (including current input) to extract info
   for (const msg of allMessages) {
-    const msgText = msg.text || msg.content || "";
-    if (msg.role === "user" || msg.role === "assistant") {
+    const msgText = msg.text || "";
+    if (msg.role === "user") {
       // Extract treatment
       if (!state.treatment) {
         const t = extractTreatment(msgText);
@@ -590,7 +592,7 @@ Keep responses to two to four sentences. Warm, efficient, unmistakably human.`;
     // Even when Groq responds, we need to update the local booking state
     // so that logBookingForJill can find the data
     try {
-      let currentState = loadBookingState();
+      const currentState = loadBookingState();
       
       // Extract booking info from Groq response + user input
       const combinedText = userInput;
@@ -652,21 +654,23 @@ Keep responses to two to four sentences. Warm, efficient, unmistakably human.`;
             if (json.price) currentState.treatmentPrice = json.price;
             if (json.preferredDrink) currentState.refreshment = json.preferredDrink;
             currentState.hasConfirmed = true;
-          } catch {}
+      } catch {
+        // JSON parse failure is non-critical
+      }
         }
       }
 
       saveBookingState(currentState);
       console.log("📋 [Groq State Sync] Updated local state:", currentState);
-    } catch (err) {
-      console.warn("⚠️ State sync error:", err);
+  } catch (_err) {
+      console.warn("⚠️ State sync error:", _err);
     }
 
     console.log("✅ Groq AI responded with Luxe CRM Protocol");
     return reply;
 
-  } catch (error) {
-    console.warn("Groq error, switching to local fallback:", error);
+  } catch (_error) {
+    console.warn("Groq error, switching to local fallback:", _error);
     const { response: localResponse } = generateLocalResponse(userInput, history);
     return localResponse;
   }

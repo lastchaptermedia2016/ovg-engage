@@ -1,32 +1,33 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useLocation } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, useMatch, useNavigate } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import ChatWidget from "./components/widget/ChatWidget";
-import ResellerChatWidget from "./components/widget/ResellerChatWidget";
-import AdminDashboard from "./pages/AdminDashboard";
-import Login from "./pages/Login";
-import CommandAuth from "./pages/command/Auth";
-import ResellerLogin from "./pages/reseller/Login";
-import ResellerDashboard from "./pages/reseller/Dashboard";
-import ClientConfig from "./pages/reseller/ClientConfig";
-import CustomServices from "./pages/reseller/CustomServices";
-import TestOmniVerge from "./pages/TestOmniVerge";
-import ClientPortalDashboard from "./pages/portal/Dashboard";
-import WidgetSettings from "./pages/portal/WidgetSettings";
-import Analytics from "./pages/portal/Analytics";
-import Support from "./pages/portal/Support";
-import ClientDashboard from "./pages/portal/ClientDashboard";
-import VIPCustomerConsole from "./components/widget/VIPCustomerConsole";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-// This is the new Client login you just created
-import ClientAuth from "./pages/portal/ClientAuth";
+
+// Lazy-loaded page components — split into separate chunks, loaded on demand
+const Index = lazy(() => import("./pages/Index"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const ChatWidget = lazy(() => import("./components/widget/ChatWidget"));
+const ResellerChatWidget = lazy(() => import("./components/widget/ResellerChatWidget"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Login = lazy(() => import("./pages/Login"));
+const CommandAuth = lazy(() => import("./pages/command/Auth"));
+const ResellerLogin = lazy(() => import("./pages/reseller/Login"));
+const ResellerDashboard = lazy(() => import("./pages/reseller/Dashboard"));
+const ClientConfig = lazy(() => import("./pages/reseller/ClientConfig"));
+const CustomServices = lazy(() => import("./pages/reseller/CustomServices"));
+const TestOmniVerge = lazy(() => import("./pages/TestOmniVerge"));
+const ClientPortalDashboard = lazy(() => import("./pages/portal/Dashboard"));
+const WidgetSettings = lazy(() => import("./pages/portal/WidgetSettings"));
+const Analytics = lazy(() => import("./pages/portal/Analytics"));
+const Support = lazy(() => import("./pages/portal/Support"));
+const ClientDashboard = lazy(() => import("./pages/portal/ClientDashboard"));
+const VIPCustomerConsole = lazy(() => import("./components/widget/VIPCustomerConsole"));
+const ClientAuth = lazy(() => import("./pages/portal/ClientAuth"));
 
 const queryClient = new QueryClient();
 
@@ -103,11 +104,17 @@ const RouteGuard = () => {
         }
 
         // ✅ Fetch user role for domain isolation
-        const { data: userData, error: userError } = await supabase
+        interface UserRecord {
+          role: string;
+          tenant_id: string;
+        }
+        const result = await supabase
           .from('users')
           .select('role, tenant_id')
           .eq('id', session.user.id)
-          .maybeSingle() as any;
+          .maybeSingle();
+        const userData: UserRecord | null = result.data as UserRecord | null;
+        const userError = result.error;
 
         if (!isMounted) return;
 
@@ -145,9 +152,10 @@ const RouteGuard = () => {
         }
 
         setGuardState('ready');
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (isMounted) {
-          setErrorMessage(`Guard error: ${err.message}`);
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          setErrorMessage(`Guard error: ${errorMessage}`);
           setGuardState('error');
         }
       }
@@ -208,6 +216,13 @@ const RouteGuard = () => {
 
   return null;
 };
+
+// ✅ Lightweight Suspense fallback — just a subtle background pulse, no heavy animations
+const PageFallback = () => (
+  <div className="fixed inset-0 bg-[#060b0d] flex items-center justify-center">
+    <div className="animate-pulse h-6 w-6 rounded-full bg-[#0097b2]/30" />
+  </div>
+);
 
 const AppNew = () => {
   const [showJillConsole, setShowJillConsole] = useState(false);
@@ -283,32 +298,34 @@ const AppNew = () => {
 
         <>
           <RouteGuard />
-          <Routes>
-            {/* Client Portal Routes - Moved to top for testing */}
-            <Route path="/dashboard" element={<ClientDashboard />} />
-            <Route path="/" element={<Index />} />
-            <Route path="/luxe-console" element={<AdminDashboard />} />
-            {/* Auth Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/command/auth" element={<CommandAuth />} />
-            <Route path="/portal/auth" element={<ClientAuth />} />
-            <Route path="/reseller/login" element={<ResellerLogin />} />
-            {/* Reseller Console Routes */}
-            <Route path="/reseller/dashboard" element={<ResellerDashboard />} />
-            <Route path="/reseller/client/:tenantId" element={<ClientConfig />} />
-            <Route path="/reseller/client/:tenantId/services" element={<CustomServices />} />
-            {/* Test page for OmniVerge Global widget */}
-            <Route path="/test-omniverge" element={<TestOmniVerge />} />
-            <Route path="/portal/dashboard" element={<ClientDashboard />} />
-            <Route path="/portal/:clientId" element={<ClientPortalDashboard />}>
-              <Route index element={<WidgetSettings />} />
-              <Route path="settings" element={<WidgetSettings />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="support" element={<Support />} />
-            </Route>
-            <Route path="/vip" element={<VIPCustomerConsole />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              {/* Client Portal Routes - Moved to top for testing */}
+              <Route path="/dashboard" element={<ClientDashboard />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/luxe-console" element={<AdminDashboard />} />
+              {/* Auth Routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/command/auth" element={<CommandAuth />} />
+              <Route path="/portal/auth" element={<ClientAuth />} />
+              <Route path="/reseller/login" element={<ResellerLogin />} />
+              {/* Reseller Console Routes */}
+              <Route path="/reseller/dashboard" element={<ResellerDashboard />} />
+              <Route path="/reseller/client/:tenantId" element={<ClientConfig />} />
+              <Route path="/reseller/client/:tenantId/services" element={<CustomServices />} />
+              {/* Test page for OmniVerge Global widget */}
+              <Route path="/test-omniverge" element={<TestOmniVerge />} />
+              <Route path="/portal/dashboard" element={<ClientDashboard />} />
+              <Route path="/portal/:clientId" element={<ClientPortalDashboard />}>
+                <Route index element={<WidgetSettings />} />
+                <Route path="settings" element={<WidgetSettings />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="support" element={<Support />} />
+              </Route>
+              <Route path="/vip" element={<VIPCustomerConsole />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
           <WidgetManager />
         </>
         

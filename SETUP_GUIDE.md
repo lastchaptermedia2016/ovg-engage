@@ -159,6 +159,30 @@ npm run dev
 # 4. Test the embed code
 ```
 
+### Step 7: Verify Production Build
+
+Run the production build to confirm code-splitting is working:
+
+```bash
+npm run build
+```
+
+The output should show multiple vendor and page chunks — no single JS file should exceed ~200 kB:
+
+```
+dist/assets/vendor-react-xxx.js        ~160 kB   (React core — cached long-term)
+dist/assets/vendor-ui-xxx.js           ~154 kB   (shadcn/ui components)
+dist/assets/vendor-supabase-xxx.js     ~196 kB   (Supabase client)
+dist/assets/vendor-animation-xxx.js    ~124 kB   (framer-motion)
+dist/assets/vendor-icons-xxx.js        ~23 kB    (lucide-react icons)
+dist/assets/index-xxx.js               ~45 kB    (main app shell)
+dist/assets/Login-xxx.js               ~5 kB     (lazy-loaded)
+dist/assets/Dashboard-xxx.js           ~25 kB    (lazy-loaded)
+...
+```
+
+> ✅ **Expected:** No "chunk larger than 500 kB" warnings. All vendor chunks are independently cacheable.
+
 ## 📋 Migration Order
 
 The migrations must be run in this specific order:

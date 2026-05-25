@@ -1108,7 +1108,7 @@ const ResellerChatWidget = () => {
     // === 7. BROWSER FALLBACK - Female Voice Selection ===
     window.speechSynthesis.cancel();
 
-    let voices = window.speechSynthesis.getVoices();
+    const voices = window.speechSynthesis.getVoices();
 
     const getBestMidwesternVoice = (v: SpeechSynthesisVoice[]) => {
       // Prioritize smooth Midwestern-sounding American English voices
@@ -1204,7 +1204,7 @@ const ResellerChatWidget = () => {
 
     try {
       // Always use OmniVerge AI for Reseller Demo
-      let response = await generateOmniVergeAI(userInputText, newMsgs);
+      const response = await generateOmniVergeAI(userInputText, newMsgs);
       
       const hasBookingJsonBacktick = /```json\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?```/.test(response);
       const hasBookingJsonBracket = /\[JSON CODE BLOCK\]\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?\[\/JSON CODE BLOCK\]/.test(response);

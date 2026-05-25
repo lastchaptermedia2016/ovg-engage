@@ -115,7 +115,7 @@ const EngageWidget: React.FC<EngageWidgetProps> = ({
           filter: `tenant_id=eq.${tenantId}`
         },
         (payload) => {
-          const newPausedState = (payload.new as any).is_paused;
+          const newPausedState = (payload.new as Record<string, unknown>).is_paused as boolean | undefined;
           setIsPaused(newPausedState || false);
           
           if (newPausedState && !humanJoined) {

@@ -1,10 +1,12 @@
-/** @ts-ignore */
-declare const process: any;
+declare const process: {
+  env: Record<string, string | undefined>;
+};
 import { createClient } from '@supabase/supabase-js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data, error } = await supabase
     .from('analytics')
     .select('*')

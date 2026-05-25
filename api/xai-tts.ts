@@ -33,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const buffer = await response.arrayBuffer();
     res.setHeader('Content-Type', 'audio/mpeg');
     res.send(Buffer.from(buffer));
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Proxy error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }

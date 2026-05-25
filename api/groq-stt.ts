@@ -1,9 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-// Force-load environment variables using require for Vercel Edge Functions compatibility
+// Force-load environment variables for Vercel Edge Functions compatibility
 if (typeof require !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const path = require('path');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const dotenv = require('dotenv');
 
   // Look for the .env file in the project root
@@ -122,8 +124,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ text: data.text || '' });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('❌ Groq STT internal error:', err);
-    return res.status(500).json({ error: 'Internal server error', details: err.message });
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return res.status(500).json({ error: 'Internal server error', details: errorMessage });
   }
 }

@@ -54,7 +54,7 @@ const ResellerConsole = () => {
           table: 'tenant_credits'
         },
         (payload) => {
-          const updatedCredit = payload.new as any;
+          const updatedCredit = payload.new as { tenant_id: string; groq_credits?: number; elevenlabs_credits?: number };
           setTenants(prev => prev.map(tenant => 
             tenant.id === updatedCredit.tenant_id 
               ? { 

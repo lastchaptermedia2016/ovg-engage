@@ -1,13 +1,33 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-interface SpeechRecognitionHookResult {
-  isListening: boolean;
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionError) => void) | null;
+  onend: (() => void) | null;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance;
+}
+
+interface SpeechRecognitionResult {
   transcript: string;
-  isSupported: boolean;
-  startListening: () => void;
-  stopListening: () => void;
-  resetTranscript: () => void;
-  recognitionRef: React.RefObject<any>;
+}
+
+interface SpeechRecognitionResultItem {
+  isFinal: boolean;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  [index: number]: SpeechRecognitionResultItem;
 }
 
 interface SpeechRecognitionEvent extends Event {
@@ -15,15 +35,31 @@ interface SpeechRecognitionEvent extends Event {
   resultIndex: number;
 }
 
+interface SpeechRecognitionError extends Event {
+  error: string;
+}
+
+interface SpeechRecognitionHookResult {
+  isListening: boolean;
+  transcript: string;
+  isSupported: boolean;
+  startListening: () => void;
+  stopListening: () => void;
+  resetTranscript: () => void;
+  recognitionRef: React.RefObject<SpeechRecognitionInstance | null>;
+}
+
 export function useSpeechRecognition(): SpeechRecognitionHookResult {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const finalTranscriptRef = useRef("");
 
-  const SpeechRecognition =
+  const SpeechRecognition: SpeechRecognitionConstructor | null =
     typeof window !== "undefined"
-      ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      ? (window as unknown as { SpeechRecognition?: SpeechRecognitionConstructor }).SpeechRecognition ||
+        (window as unknown as { webkitSpeechRecognition?: SpeechRecognitionConstructor }).webkitSpeechRecognition ||
+        null
       : null;
 
   const isSupported = !!SpeechRecognition;
@@ -57,7 +93,7 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
       }
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: SpeechRecognitionError) => {
       console.error("Speech recognition error:", event.error);
       if (event.error === 'no-speech') {
         console.log('⚠️ No speech detected, resetting listening state');
@@ -76,7 +112,7 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
     return () => {
       recognition.abort();
     };
-  }, []);
+  }, [SpeechRecognition]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) return;
@@ -90,8 +126,8 @@ export function useSpeechRecognition(): SpeechRecognitionHookResult {
       recognitionRef.current.start();
       setIsListening(true);
       console.log('✅ Speech recognition started');
-    } catch (err: any) {
-      if (err.name === 'InvalidStateError') {
+    } catch (err: unknown) {
+      if (!(err instanceof Error) || err.name === 'InvalidStateError') {
         // Only reset if we're not supposed to be listening
         if (!isListening) {
           console.warn('⚠️ Speech recognition already in invalid state, resetting');

@@ -27,7 +27,8 @@ export const useVoiceSynthesis = ({ onAudioAnalysis, orpheusAudioRef }: UseVoice
 
     const setupAudioAnalysis = () => {
       try {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const audioContext = new AudioContextClass();
         const analyser = audioContext.createAnalyser();
 
         // Configure for FFT analysis

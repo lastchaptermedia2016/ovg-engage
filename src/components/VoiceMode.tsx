@@ -38,6 +38,12 @@ const MOCK_VOICE_CONFIG = {
   temperature: 0.7
 };
 
+// Inline type for the speech recognition reference
+interface SpeechRecogRef {
+  abort: () => void;
+  stop?: () => void;
+}
+
 const VoiceMode: React.FC<VoiceModeProps> = ({
   selectedVoice,
   onVoiceChange,
@@ -49,7 +55,7 @@ const VoiceMode: React.FC<VoiceModeProps> = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecogRef | null>(null);
 
   // STANDALONE: Get API key directly from env - no server needed
   const getApiKey = () => {
@@ -122,7 +128,7 @@ const VoiceMode: React.FC<VoiceModeProps> = ({
       // Reuse existing AudioContext from silent wakeup if available
       let audioContext = audioContextRef.current;
       if (!audioContext || audioContext.state === 'closed') {
-        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
         audioContextRef.current = audioContext;
       }
       
@@ -306,7 +312,7 @@ const VoiceMode: React.FC<VoiceModeProps> = ({
     
     // Silent Wakeup: Bless the tab with audioContext on first enable
     if (newState && window.AudioContext && !audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       audioContextRef.current.resume();
       console.log('[Voice-Engine: ENABLE] AudioContext pre-warmed (silent wakeup)');
     } else if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
@@ -417,7 +423,7 @@ Pricing: OVG Engage platform starts at R349/month. Full-spectrum agency services
       const decoder = new TextDecoder();
       let buffer = '';
       let accumulatedText = '';
-      let sentenceQueue: string[] = [];
+      const sentenceQueue: string[] = [];
       const audioQueue: string[] = [];
       let isPlaying = false;
 

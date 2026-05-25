@@ -1,10 +1,10 @@
-/** @ts-ignore */
-declare const process: any;
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Force-load environment variables using require for Vercel Edge Functions compatibility
+// Force-load environment variables for Vercel Edge Functions compatibility
 if (typeof require !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const path = require('path');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const dotenv = require('dotenv');
 
   // Look for the .env file in the project root
@@ -138,8 +138,9 @@ Pricing: OVG Engage platform starts at R349/month. Full-spectrum agency services
       res.status(200).json(data);
     }
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('GROQ Voice Chat proxy error:', err);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: 'Server error: ' + errorMessage });
   }
 }

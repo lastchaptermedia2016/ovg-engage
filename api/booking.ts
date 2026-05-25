@@ -140,7 +140,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ...result
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Booking endpoint error:', error);
     return res.status(500).json({
       success: false,

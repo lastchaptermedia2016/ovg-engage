@@ -62,11 +62,12 @@ export default function Login() {
       } else {
         // Fallback: role not in metadata, try DB lookup
         console.log('⚠️ Role not in metadata, checking database...');
-        const { data: userData } = await supabase
-          .from('users')
+        
+        const userResult = await (supabase.from('users') as any)
           .select('role, tenant_id')
           .eq('id', data.user!.id)
-          .maybeSingle() as any;
+          .maybeSingle();
+        const userData: { role: string; tenant_id: string } | null = userResult.data;
 
         if (userData) {
           if (['reseller', 'admin', 'developer', 'support'].includes(userData.role)) {
@@ -82,9 +83,9 @@ export default function Login() {
           setIsLoading(false);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Login exception:', err);
-      toast.error(`Login failed: ${err.message}`);
+      toast.error(`Login failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setIsLoading(false);
     }
   };
@@ -108,8 +109,8 @@ export default function Login() {
 
       console.log('✅ Signup successful:', data.user);
       toast.success('Account created! Check your email for confirmation.');
-    } catch (err: any) {
-      toast.error(`Signup failed: ${err.message}`);
+    } catch (err: unknown) {
+      toast.error(`Signup failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }

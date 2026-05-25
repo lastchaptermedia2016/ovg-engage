@@ -77,7 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const audioBuffer = await response.arrayBuffer();
     res.send(Buffer.from(audioBuffer));
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('TTS endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }

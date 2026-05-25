@@ -5,7 +5,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 // --- STEALTH CONFIGURATION ---
 const AUTHORIZED_KEY = "luxe-admin-stealth-access"; 
 
-const StatCard = ({ title, value, icon, sub, className = "" }: any) => (
+interface BookingData {
+  isNew?: boolean;
+  title?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+  refreshment?: string;
+  time?: string;
+  timestamp?: string;
+  treatment?: string;
+  price?: string;
+}
+
+interface StatCardProps {
+  title: React.ReactNode;
+  value: React.ReactNode;
+  icon: React.ReactNode;
+  sub: React.ReactNode;
+  className?: string;
+}
+const StatCard = ({ title, value, icon, sub, className = "" }: StatCardProps) => (
   <div className={`relative overflow-hidden rounded-[2rem] p-8 border backdrop-blur-3xl bg-white/[0.02] ${className}`}>
     <div className="flex justify-between items-start mb-4">
       {title}
@@ -21,7 +42,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalBookings: 0,
-    bookings: [] as any[],
+    bookings: [] as BookingData[],
   });
 
   // 1. SYNC WITH THE SHIFT+J BYPASS
@@ -120,7 +141,7 @@ const AdminDashboard = () => {
 
             {/* DATA ROWS */}
             <div className="divide-y divide-[#D4AF37]/5 max-h-[600px] overflow-auto">
-              {stats.bookings.length > 0 ? stats.bookings.map((b: any, i: number) => (
+              {stats.bookings.length > 0 ? stats.bookings.map((b: BookingData, i: number) => (
                 <div key={i} className="grid grid-cols-11 gap-2 px-10 py-6 text-[11px] items-center hover:bg-white/[0.01] transition-colors">
                   <div className={b.isNew ? "text-emerald-400" : "text-blue-400"}>{b.isNew ? "✨ NEW" : "🔄 RET"}</div>
                   <div className="opacity-50">{b.title || "-"}</div>

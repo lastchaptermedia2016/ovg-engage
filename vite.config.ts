@@ -168,10 +168,10 @@ function apiProxyPlugin(): Plugin {
               return
             }
 
-            const data = await groqResponse.json()
+            const data = await groqResponse.json() as Record<string, unknown>
             res.statusCode = 200
             res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify({ text: (data as any).text || '' }))
+            res.end(JSON.stringify({ text: (data.text as string) || '' }))
             return
           }
 
@@ -207,10 +207,10 @@ function apiProxyPlugin(): Plugin {
               return
             }
 
-            const data = await groqResponse.json()
+            const data = await groqResponse.json() as Record<string, unknown>
             res.statusCode = 200
             res.setHeader('Content-Type', 'application/json')
-            res.end(JSON.stringify(data as any))
+            res.end(JSON.stringify(data))
             return
           }
 
@@ -325,21 +325,22 @@ Voice Logic Rules:
                 res.end()
               }
             } else {
-              const data = await groqResponse.json()
+              const data = await groqResponse.json() as Record<string, unknown>
               res.statusCode = 200
               res.setHeader('Content-Type', 'application/json')
-              res.end(JSON.stringify(data as any))
+              res.end(JSON.stringify(data))
             }
             return
           }
 
           // For other routes, pass through
           return next()
-        } catch (err: any) {
-          console.error('API proxy error:', err.message)
+        } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+          console.error('API proxy error:', errorMessage)
           res.statusCode = 500
           res.setHeader('Content-Type', 'application/json')
-          res.end(JSON.stringify({ error: err.message || 'Internal server error' }))
+          res.end(JSON.stringify({ error: errorMessage || 'Internal server error' }))
         }
       })
     },
@@ -360,5 +361,59 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': [
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-aspect-ratio',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-collapsible',
+            '@radix-ui/react-context-menu',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-hover-card',
+            '@radix-ui/react-label',
+            '@radix-ui/react-menubar',
+            '@radix-ui/react-navigation-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-radio-group',
+            '@radix-ui/react-scroll-area',
+            '@radix-ui/react-select',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-slider',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-toggle',
+            '@radix-ui/react-toggle-group',
+            '@radix-ui/react-tooltip',
+            'cmdk',
+            'vaul',
+            'input-otp',
+            'react-day-picker',
+            'sonner',
+            'embla-carousel-react',
+          ],
+          'vendor-animation': ['framer-motion'],
+          'vendor-charts': ['recharts'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'vendor-icons': ['lucide-react'],
+          'vendor-utils': [
+            'date-fns',
+            'clsx',
+            'tailwind-merge',
+            'class-variance-authority',
+            'tailwindcss-animate',
+          ],
+        },
+      },
+    },
   },
 })

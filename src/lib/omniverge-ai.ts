@@ -140,7 +140,9 @@ function loadSessionState(): SessionState {
   try {
     const raw = localStorage.getItem(SESSION_STATE_KEY);
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch {
+    // localStorage access may fail
+  }
   return {
     last_intent: null,
     user_name: "",
@@ -236,7 +238,9 @@ function loadLeadState(): LeadState {
   try {
     const raw = localStorage.getItem("omniverge_lead_state");
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch {
+    // localStorage access may fail
+  }
   return createEmptyLeadState();
 }
 

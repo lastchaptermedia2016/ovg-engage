@@ -17,7 +17,7 @@ export default function ClientPortalDashboard() {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [tenant, setTenant] = useState<any>(null);
+  const [tenant, setTenant] = useState<Record<string, unknown> | null>(null);
   const [stats, setStats] = useState({
     totalLeads: 0,
     totalConversions: 0,
@@ -43,11 +43,11 @@ export default function ClientPortalDashboard() {
     }
 
     // Verify user has 'client' role and matches tenant ID
-    const { data: userData, error } = await supabase
+    const { data: userData, error } = await (supabase
       .from('users')
       .select('role, tenant_id')
       .eq('id', session.user.id)
-      .maybeSingle() as any;
+      .maybeSingle() as unknown as Promise<{ data: { role: string; tenant_id: string } | null; error: unknown }>);
 
     if (error || !userData || userData.role !== 'client') {
       toast.error('Unauthorized access');
@@ -68,16 +68,16 @@ export default function ClientPortalDashboard() {
       .eq('client_id', clientId)
       .single();
 
-    setTenant(tenantData);
+    setTenant(tenantData as Record<string, unknown> | null);
     setIsLoading(false);
   };
 
   const loadStats = async () => {
-    const { data: statsData } = await supabase
+    const { data: statsData } = await (supabase
       .from('daily_stats')
       .select('total_leads, conversions')
       .eq('tenant_id', clientId)
-      .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) as any;
+      .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]) as unknown as Promise<{ data: { total_leads: number; conversions: number }[] | null; error: unknown }>);
 
     const totalLeads = statsData?.reduce((sum, s) => sum + (s.total_leads || 0), 0) || 0;
     const totalConversions = statsData?.reduce((sum, s) => sum + (s.conversions || 0), 0) || 0;
@@ -118,8 +118,8 @@ export default function ClientPortalDashboard() {
            <div className="flex items-center gap-3">
              {tenant?.logo_url ? (
                <img 
-                 src={tenant.logo_url} 
-                 alt={tenant.name || 'Client Logo'} 
+                 src={tenant.logo_url as string} 
+                 alt={(tenant.name as string) || 'Client Logo'} 
                  className="h-8 object-contain"
                />
              ) : (
@@ -131,7 +131,7 @@ export default function ClientPortalDashboard() {
              )}
              <div>
                <h1 className="text-xl font-bold text-white">
-                 {tenant?.name || 'OVG Engage'}
+                 {(tenant?.name as string) || 'OVG Engage'}
                </h1>
                <p className="text-xs text-white/40 uppercase tracking-widest">
                  My Dashboard

@@ -40,6 +40,7 @@ export default function CommandAuth() {
       }
 
       // If client, check status
+      
       const { data: clientData, error: clientError } = await (supabase as any)
         .from('clients')
         .select('status')
@@ -57,8 +58,8 @@ export default function CommandAuth() {
         toast.error('Access denied.');
         await supabase.auth.signOut();
       }
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }
@@ -80,6 +81,7 @@ export default function CommandAuth() {
 
       if (error) throw error;
 
+      
       const { error: clientError } = await (supabase as any)
         .from('clients')
         .insert({
@@ -92,8 +94,8 @@ export default function CommandAuth() {
       if (clientError) throw clientError;
 
       toast.success('Account created! Your account is pending review.');
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
     }

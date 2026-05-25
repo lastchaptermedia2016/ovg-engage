@@ -1,6 +1,32 @@
 // src/ZillionOVG Engage | AI Concierge
 // White-label configuration - can be overridden via window.ovgConfig
 
+interface LeadData {
+  status?: string;
+  title?: string;
+  name?: string;
+  surname?: string;
+  phone?: string;
+  email?: string;
+  drinks?: string;
+  time?: string;
+  treatment?: string;
+  price?: string;
+  timestamp?: string;
+  firstName?: string;
+  givenName?: string;
+  lastName?: string;
+  familyName?: string;
+  refreshment?: string;
+  preference?: string;
+  isNew?: boolean;
+  [key: string]: unknown;
+}
+
+interface SyncedLead {
+  [key: string]: string;
+}
+
 // Default configuration for The Luxe Med Spa
 const defaultConfig = {
   tenant: {
@@ -47,12 +73,12 @@ const defaultConfig = {
    * This forces any raw AI data into a perfectly aligned 11-point object.
    * If a field is missing, it inserts the fallback "—" so the grid never slides.
    */
-  syncLead: (raw: any) => {
-    const synced: any = {};
+  syncLead: (raw: LeadData): SyncedLead => {
+    const synced: SyncedLead = {};
 
     defaultConfig.captureSchema.fields.forEach((field) => {
       // 1. Check for the field name directly, or common AI aliases
-      let value = raw[field];
+      let value = raw[field] as string | undefined;
 
       // 2. Map common aliases to our strict schema keys
       if (!value) {
@@ -72,7 +98,13 @@ const defaultConfig = {
 };
 
 // Merge with window.ovgConfig for white-label support
-const globalConfig = (typeof window !== 'undefined' && (window as any).ovgConfig) || {};
+interface OvGConfig {
+  tenant?: Partial<typeof defaultConfig.tenant>;
+  branding?: Partial<typeof defaultConfig.branding>;
+  context?: Partial<typeof defaultConfig.context>;
+}
+
+const globalConfig: OvGConfig = (typeof window !== 'undefined' && (window as unknown as { ovgConfig?: OvGConfig }).ovgConfig) || {};
 
 // Build the final config by merging defaults with global overrides
 export const ZillionConfig = {

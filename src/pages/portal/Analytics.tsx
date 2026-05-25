@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, TrendingUp, Users, Calendar } from 'lucide-react';
 
 export default function Analytics() {
-  const { stats, tenant } = useOutletContext<any>();
+  const context = useOutletContext<{ stats: { totalLeads: number; totalConversions: number; conversionRate: number }; tenant: unknown }>();
+  const { stats, tenant } = context;
 
   return (
     <div className="space-y-6">

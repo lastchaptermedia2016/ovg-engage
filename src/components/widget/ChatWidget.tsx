@@ -53,11 +53,58 @@ const defaultConfig: WidgetConfig = {
   headerImage: headerBg,
 };
 
+interface LocalBookingState {
+  firstName?: string;
+  title?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+  treatment?: string;
+  treatmentPrice?: number | string;
+  refreshment?: string;
+  isReturningCustomer?: boolean | null;
+}
+
+// Booking data used for WhatsApp confirmation
+interface BookingConfirmation {
+  title: string;
+  lastName: string;
+  treatment: string;
+  price: number | string;
+  time: string;
+  refreshment: string;
+  phone: string;
+}
+
+// Booking entry from JillStats
+interface JillBookingEntry {
+  id: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  refreshment: string;
+  phone: string;
+  email: string;
+  isNew: boolean;
+  time: string;
+  timestamp: string;
+  treatment: string;
+  price: number;
+  source: string;
+}
+
+interface JillStats {
+  totalRevenue: number;
+  totalBookings: number;
+  bookings: ChatMessage[];
+  lastBooking?: JillBookingEntry;
+}
+
 const ChatWidget = () => {
   const { toast } = useToast();
   const { isListening, transcript, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
   const [config, setConfig] = useState<WidgetConfig>(() => {
-    const saved = (window as any).ovgConfig || {};
+    const saved = (window as typeof window & { ovgConfig?: WidgetConfig }).ovgConfig || {};
     return { ...defaultConfig, ...saved };
   });
 
@@ -103,306 +150,16 @@ const ChatWidget = () => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<object | null>(null);
   const autoSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const [isGroqListening, setIsGroqListening] = useState(false);
 
-  // --- GROQ STT (Speech-to-Text) ---
-  const startGroqRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
-      });
-      
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await sendAudioToGroqSTT(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      mediaRecorder.start();
-      setIsGroqListening(true);
-      console.log("🎤 Groq STT recording started...");
-    } catch (err) {
-      console.error("❌ Microphone access denied:", err);
-      toast({ title: "Microphone Error", description: "Could not access microphone.", variant: "destructive" });
-    }
-  }, [toast]);
-
-  const stopGroqRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      setIsGroqListening(false);
-      console.log("🎤 Groq STT recording stopped.");
-    }
-  }, []);
-
-  const sendAudioToGroqSTT = async (audioBlob: Blob) => {
-    try {
-      console.log("📤 Sending audio to Groq STT...");
-      
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'audio.webm');
-
-      const response = await fetch('/api/groq-stt', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Groq STT failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.text) {
-        console.log("✅ Groq STT result:", data.text);
-        sendMessageDirect(data.text);
-      }
-    } catch (err) {
-      console.error("❌ Groq STT error:", err);
-      toast({ title: "Speech Recognition Error", description: "Could not process speech. Try again.", variant: "destructive" });
-    }
-  };
-
-  // --- WHATSAPP CONFIRMATION ENGINE (Whitelabel) ---
-  const sendWhatsAppConfirmation = (booking: any) => {
-    const template = config.whatsappMessageTemplate || defaultConfig.whatsappMessageTemplate!;
-    const message = template
-      .replace(/{title}/g, booking.title)
-      .replace(/{lastName}/g, booking.lastName)
-      .replace(/{treatment}/g, booking.treatment)
-      .replace(/{price}/g, booking.price)
-      .replace(/{brandName}/g, config.brandName || "our business")
-      .replace(/{time}/g, booking.time)
-      .replace(/{refreshment}/g, booking.refreshment);
-    const cleanPhone = booking.phone.replace(/\D/g, '');
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    console.log("📱 WhatsApp Link Generated:", whatsappUrl);
-  };
-
-  // --- JILL'S REVENUE LOGGING ---
-  const logBookingForJill = (aiResponse: string, userInputText: string) => {
-    console.log("🔍 [Jill Capture] Analyzing AI response for booking data...");
-    
-    // Load the local booking state that tracks all extracted info
-    let localState: any = {};
-    try {
-      const storedState = localStorage.getItem("luxe_booking_state");
-      if (storedState) localState = JSON.parse(storedState);
-    } catch {}
-    
-    console.log("📋 [Jill Capture] Local booking state:", localState);
-    
-    // Try multiple JSON extraction patterns
-    const jsonMatchBacktick = aiResponse.match(/```json\s*([\s\S]*?)\s*```/);
-    const jsonMatchBracket = aiResponse.match(/\[JSON CODE BLOCK\]\s*([\s\S]*?)\s*\[\/JSON CODE BLOCK\]/);
-    const jsonMatchBrace = aiResponse.match(/\{\s*"action"\s*:\s*"finalize_lead"[\s\S]*?\}/);
-    const jsonMatch = jsonMatchBacktick || jsonMatchBracket || jsonMatchBrace;
-
-    // Check if this is a confirmed booking
-    const isBookingConfirmed = (
-      jsonMatch || 
-      (aiResponse.includes("officially confirmed") && aiResponse.includes("VIP booking")) ||
-      (aiResponse.includes("confirmed for") && aiResponse.includes("Your VIP booking is now synced")) ||
-      (aiResponse.includes("Your VIP booking is now synced to our Sanctuary stream"))
-    );
-
-    console.log("🔍 [Jill Capture] isBookingConfirmed:", isBookingConfirmed);
-    console.log("🔍 [Jill Capture] JSON match found:", !!jsonMatch);
-
-    if (isBookingConfirmed) {
-      let bookingData: any = {};
-
-      // Try to extract from JSON first
-      if (jsonMatch) {
-        try {
-          let jsonContent = jsonMatch[0].trim();
-          
-          // For bracket format, try to find the content between the tags
-          if (!jsonContent.startsWith('{')) {
-            const jsonInTags = jsonContent.match(/\{[\s\S]*\}/);
-            if (jsonInTags) jsonContent = jsonInTags[0];
-          }
-          
-          bookingData = JSON.parse(jsonContent);
-          console.log("✅ [Jill Capture] Parsed JSON data:", bookingData);
-        } catch (error) {
-          console.error("❌ [Jill Capture] Failed to parse JSON, using fallbacks:", error);
-        }
-      }
-
-      // If JSON didn't give us data or didn't exist, extract from response text + local state
-      if (!bookingData.firstName && localState.firstName) {
-        bookingData.firstName = localState.firstName;
-      }
-      if (!bookingData.title && localState.title) {
-        bookingData.title = localState.title;
-      }
-      if (!bookingData.surname && localState.lastName) {
-        bookingData.surname = localState.lastName;
-      }
-      if (!bookingData.phone && localState.phone) {
-        bookingData.phone = localState.phone;
-      }
-      if (!bookingData.email && localState.email) {
-        bookingData.email = localState.email;
-      }
-      if (!bookingData.treatment && localState.treatment) {
-        bookingData.treatment = localState.treatment;
-      }
-      if (!bookingData.price && localState.treatmentPrice) {
-        bookingData.price = localState.treatmentPrice;
-      }
-      if (!bookingData.preferredDrink && localState.refreshment) {
-        bookingData.preferredDrink = localState.refreshment;
-      }
-      if (!bookingData.clientType && localState.isReturningCustomer !== null) {
-        bookingData.clientType = localState.isReturningCustomer ? "Return" : "New";
-      }
-
-      // Also try to extract from the response text
-      if (!bookingData.firstName) {
-        const nameMatch = aiResponse.match(/Perfect,\s+((?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+)(\w+)/i);
-        if (nameMatch) {
-          bookingData.title = nameMatch[1].trim().replace(/\.$/, '');
-          bookingData.firstName = nameMatch[2];
-        }
-      }
-      if (!bookingData.treatment) {
-        const treatmentMatch = aiResponse.match(/Your\s+(\w+)\s+for\s+\$?(\d+)/i);
-        if (treatmentMatch) {
-          bookingData.treatment = treatmentMatch[1];
-          bookingData.price = parseInt(treatmentMatch[2]);
-        }
-      }
-      if (!bookingData.preferredDrink) {
-        const drinkMatch = aiResponse.match(/Your\s+(\w+\s+\w+|\w+)\s+will\s+be\s+ready/i);
-        if (drinkMatch) {
-          bookingData.preferredDrink = drinkMatch[1];
-        }
-      }
-      
-      // Extract time from confirmation text
-      let timeStr = "";
-      const timeMatch = aiResponse.match(/at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
-      if (timeMatch) {
-        timeStr = timeMatch[1];
-      } else {
-        timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-      }
-
-      // Only capture if we have at least the minimum required data
-      if (bookingData.firstName || localState.firstName) {
-        const newEntry = {
-          id: Date.now().toString(),
-          title: bookingData.title || localState.title || "Miss",
-          firstName: bookingData.firstName || localState.firstName || "Guest",
-          lastName: bookingData.surname || localState.lastName || "Client",
-          refreshment: bookingData.preferredDrink || localState.refreshment || "Water",
-          phone: bookingData.phone || localState.phone || "No Number",
-          email: bookingData.email || localState.email || "No Email",
-          isNew: (bookingData.clientType || (localState.isReturningCustomer !== null ? (localState.isReturningCustomer ? "Return" : "New") : "New")) !== "Return",
-          time: timeStr,
-          timestamp: new Date().toISOString(),
-          treatment: bookingData.treatment || localState.treatment || "Consultation",
-          price: Number(bookingData.price) || Number(localState.treatmentPrice) || 0,
-          source: "ovg-engage"
-        };
-
-        console.log("📦 [Jill Capture] Booking data to save:", newEntry);
-
-        const rawStats = localStorage.getItem("luxe_live_stats");
-        const prev = rawStats ? JSON.parse(rawStats) : { totalRevenue: 0, totalBookings: 0, bookings: [] };
-        
-        // Avoid duplicate bookings with same phone + treatment + timestamp (within 1 min)
-        const isDuplicate = prev.bookings?.some((b: any) => 
-          b.phone === newEntry.phone && 
-          b.treatment === newEntry.treatment && 
-          Math.abs(new Date(b.timestamp || Date.now()).getTime() - Date.now()) < 60000
-        );
-        
-        if (isDuplicate) {
-          console.log("⏭️ [Jill Capture] Skipping duplicate booking");
-          return;
-        }
-        
-        const updatedBookings = [newEntry, ...(prev.bookings || [])].slice(0, 25);
-
-        const newStats = {
-          ...prev,
-          totalRevenue: (Number(prev.totalRevenue) || 0) + newEntry.price,
-          totalBookings: (Number(prev.totalBookings) || 0) + 1,
-          bookings: updatedBookings,
-          lastBooking: newEntry
-        };
-
-        localStorage.setItem("luxe_live_stats", JSON.stringify(newStats));
-        console.log("✅ SUCCESS: Lead captured by Jill's console", newEntry);
-        
-        setShowSyncBadge(true);
-        setTimeout(() => setShowSyncBadge(false), 4500);
-        
-        // Dispatch the update event
-        setTimeout(() => {
-          window.dispatchEvent(new Event('luxe_update'));
-        }, 100);
-
-        // Send WhatsApp confirmation
-        sendWhatsAppConfirmation(newEntry);
-
-        return;
-      } else {
-        console.warn("⚠️ [Jill Capture] Could not extract minimum required data (firstName) for booking");
-      }
-    } else {
-      console.log("ℹ️ [Jill Capture] Not a confirmed booking response");
-    }
-  };
-
   // --- AUTO-SCROLL ---
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
-
-  // Auto-send after browser voice input finishes
-  useEffect(() => {
-    if (!isListening && transcript.trim()) {
-      const spokenText = transcript.trim();
-      setInput(spokenText);
-      setTimeout(() => {
-        sendMessageDirect(spokenText);
-        resetTranscript();
-        setInput("");
-      }, 50);
-    }
-  }, [isListening, transcript]);
-
-  // === DISABLE BODY SCROLL WHEN CHAT IS OPEN ===
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
-    } else {
-      document.body.style.overflow = "visible";
-      document.body.style.touchAction = "auto";
-    }
-    return () => {
-      document.body.style.overflow = "visible";
-      document.body.style.touchAction = "auto";
-    };
-  }, [isOpen]);
 
   // --- WHATSAPP HELPER ---
   const openWhatsApp = useCallback((phone: string, message: string) => {
@@ -491,7 +248,7 @@ const ChatWidget = () => {
     };
 
     // Helper: fetch with timeout
-    const fetchWithTimeout = async (url: string, options: any, timeout = 3000) => {
+    const fetchWithTimeout = async (url: string, options: RequestInit, timeout = 3000) => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
       try {
@@ -702,7 +459,7 @@ const ChatWidget = () => {
     // === 7. BROWSER FALLBACK - Female Voice Selection ===
     window.speechSynthesis.cancel();
 
-    let voices = window.speechSynthesis.getVoices();
+    const voices = window.speechSynthesis.getVoices();
 
     const getBestMidwesternVoice = (v: SpeechSynthesisVoice[]) => {
       // Prioritize smooth Midwestern-sounding American English voices
@@ -776,8 +533,206 @@ const ChatWidget = () => {
     return cleaned;
   };
 
+  // --- WHATSAPP CONFIRMATION ENGINE (Whitelabel) ---
+  const sendWhatsAppConfirmation = (booking: BookingConfirmation) => {
+    const template = config.whatsappMessageTemplate || defaultConfig.whatsappMessageTemplate!;
+    const message = template
+      .replace(/{title}/g, booking.title)
+      .replace(/{lastName}/g, booking.lastName)
+      .replace(/{treatment}/g, booking.treatment)
+      .replace(/{price}/g, String(booking.price))
+      .replace(/{brandName}/g, config.brandName || "our business")
+      .replace(/{time}/g, booking.time)
+      .replace(/{refreshment}/g, booking.refreshment);
+    const cleanPhone = booking.phone.replace(/\D/g, '');
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    console.log("📱 WhatsApp Link Generated:", whatsappUrl);
+  };
+
+  // --- JILL'S REVENUE LOGGING ---
+  const logBookingForJill = useCallback((aiResponse: string, userInputText: string) => {
+    console.log("🔍 [Jill Capture] Analyzing AI response for booking data...");
+    
+    // Load the local booking state that tracks all extracted info
+    let localState: Record<string, unknown> = {};
+    try {
+      const storedState = localStorage.getItem("luxe_booking_state");
+      if (storedState) localState = JSON.parse(storedState);
+    } catch {
+      // localStorage may fail in private browsing mode
+    }
+    
+    console.log("📋 [Jill Capture] Local booking state:", localState);
+    
+    // Try multiple JSON extraction patterns
+    const jsonMatchBacktick = aiResponse.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonMatchBracket = aiResponse.match(/\[JSON CODE BLOCK\]\s*([\s\S]*?)\s*\[\/JSON CODE BLOCK\]/);
+    const jsonMatchBrace = aiResponse.match(/\{\s*"action"\s*:\s*"finalize_lead"[\s\S]*?\}/);
+    const jsonMatch = jsonMatchBacktick || jsonMatchBracket || jsonMatchBrace;
+
+    // Check if this is a confirmed booking
+    const isBookingConfirmed = (
+      jsonMatch || 
+      (aiResponse.includes("officially confirmed") && aiResponse.includes("VIP booking")) ||
+      (aiResponse.includes("confirmed for") && aiResponse.includes("Your VIP booking is now synced")) ||
+      (aiResponse.includes("Your VIP booking is now synced to our Sanctuary stream"))
+    );
+
+    console.log("🔍 [Jill Capture] isBookingConfirmed:", isBookingConfirmed);
+    console.log("🔍 [Jill Capture] JSON match found:", !!jsonMatch);
+
+    if (isBookingConfirmed) {
+      // Typed as Record<string, unknown> due to dynamic LLM JSON structure
+      let bookingData: Record<string, unknown> = {};
+
+      // Try to extract from JSON first
+      if (jsonMatch) {
+        try {
+          let jsonContent = jsonMatch[0].trim();
+          
+          // For bracket format, try to find the content between the tags
+          if (!jsonContent.startsWith('{')) {
+            const jsonInTags = jsonContent.match(/\{[\s\S]*\}/);
+            if (jsonInTags) jsonContent = jsonInTags[0];
+          }
+          
+          bookingData = JSON.parse(jsonContent);
+          console.log("✅ [Jill Capture] Parsed JSON data:", bookingData);
+        } catch (error) {
+          console.error("❌ [Jill Capture] Failed to parse JSON, using fallbacks:", error);
+        }
+      }
+
+      // If JSON didn't give us data or didn't exist, extract from response text + local state
+      if (!bookingData.firstName && localState.firstName) {
+        bookingData.firstName = localState.firstName;
+      }
+      if (!bookingData.title && localState.title) {
+        bookingData.title = localState.title;
+      }
+      if (!bookingData.surname && localState.lastName) {
+        bookingData.surname = localState.lastName;
+      }
+      if (!bookingData.phone && localState.phone) {
+        bookingData.phone = localState.phone;
+      }
+      if (!bookingData.email && localState.email) {
+        bookingData.email = localState.email;
+      }
+      if (!bookingData.treatment && localState.treatment) {
+        bookingData.treatment = localState.treatment;
+      }
+      if (!bookingData.price && localState.treatmentPrice) {
+        bookingData.price = localState.treatmentPrice;
+      }
+      if (!bookingData.preferredDrink && localState.refreshment) {
+        bookingData.preferredDrink = localState.refreshment;
+      }
+      if (!bookingData.clientType && localState.isReturningCustomer !== null) {
+        bookingData.clientType = localState.isReturningCustomer ? "Return" : "New";
+      }
+
+      // Also try to extract from the response text
+      if (!bookingData.firstName) {
+        const nameMatch = aiResponse.match(/Perfect,\s+((?:Mr|Mrs|Ms|Miss|Dr|Prof)\.?\s+)(\w+)/i);
+        if (nameMatch) {
+          bookingData.title = nameMatch[1].trim().replace(/\.$/, '');
+          bookingData.firstName = nameMatch[2];
+        }
+      }
+      if (!bookingData.treatment) {
+        const treatmentMatch = aiResponse.match(/Your\s+(\w+)\s+for\s+\$?(\d+)/i);
+        if (treatmentMatch) {
+          bookingData.treatment = treatmentMatch[1];
+          bookingData.price = parseInt(treatmentMatch[2]);
+        }
+      }
+      if (!bookingData.preferredDrink) {
+        const drinkMatch = aiResponse.match(/Your\s+(\w+\s+\w+|\w+)\s+will\s+be\s+ready/i);
+        if (drinkMatch) {
+          bookingData.preferredDrink = drinkMatch[1];
+        }
+      }
+      
+      // Extract time from confirmation text
+      let timeStr = "";
+      const timeMatch = aiResponse.match(/at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+      if (timeMatch) {
+        timeStr = timeMatch[1];
+      } else {
+        timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      }
+
+      // Only capture if we have at least the minimum required data
+      if (bookingData.firstName || localState.firstName) {
+        const newEntry: JillBookingEntry = {
+          id: Date.now().toString(),
+          title: (bookingData.title as string) || (localState.title as string) || "Miss",
+          firstName: (bookingData.firstName as string) || (localState.firstName as string) || "Guest",
+          lastName: (bookingData.surname as string) || (localState.lastName as string) || "Client",
+          refreshment: (bookingData.preferredDrink as string) || (localState.refreshment as string) || "Water",
+          phone: (bookingData.phone as string) || (localState.phone as string) || "No Number",
+          email: (bookingData.email as string) || (localState.email as string) || "No Email",
+          isNew: ((bookingData.clientType as string) || (localState.isReturningCustomer !== null ? (localState.isReturningCustomer ? "Return" : "New") : "New")) !== "Return",
+          time: timeStr,
+          timestamp: new Date().toISOString(),
+          treatment: (bookingData.treatment as string) || (localState.treatment as string) || "Consultation",
+          price: Number(bookingData.price) || Number(localState.treatmentPrice) || 0,
+          source: "ovg-engage"
+        };
+
+        console.log("📦 [Jill Capture] Booking data to save:", newEntry);
+
+        const rawStats = localStorage.getItem("luxe_live_stats");
+        const prev: { totalRevenue?: number; totalBookings?: number; bookings?: JillBookingEntry[] } = rawStats ? JSON.parse(rawStats) : { totalRevenue: 0, totalBookings: 0, bookings: [] };
+        
+        // Avoid duplicate bookings with same phone + treatment + timestamp (within 1 min)
+        const isDuplicate = prev.bookings?.some((b: JillBookingEntry) => 
+          b.phone === newEntry.phone && 
+          b.treatment === newEntry.treatment && 
+          Math.abs(new Date(b.timestamp || Date.now()).getTime() - Date.now()) < 60000
+        );
+        
+        if (isDuplicate) {
+          console.log("⏭️ [Jill Capture] Skipping duplicate booking");
+          return;
+        }
+        
+        const updatedBookings = [newEntry, ...(prev.bookings || [])].slice(0, 25);
+
+        const newStats = {
+          ...prev,
+          totalRevenue: (Number(prev.totalRevenue) || 0) + newEntry.price,
+          totalBookings: (Number(prev.totalBookings) || 0) + 1,
+          bookings: updatedBookings,
+          lastBooking: newEntry
+        };
+
+        localStorage.setItem("luxe_live_stats", JSON.stringify(newStats));
+        console.log("✅ SUCCESS: Lead captured by Jill's console", newEntry);
+        
+        setShowSyncBadge(true);
+        setTimeout(() => setShowSyncBadge(false), 4500);
+        
+        // Dispatch the update event
+        setTimeout(() => {
+          window.dispatchEvent(new Event('luxe_update'));
+        }, 100);
+
+        // Send WhatsApp confirmation
+        sendWhatsAppConfirmation(newEntry);
+
+        return;
+      } else {
+        console.warn("⚠️ [Jill Capture] Could not extract minimum required data (firstName) for booking");
+      }
+    } else {
+      console.log("ℹ️ [Jill Capture] Not a confirmed booking response");
+    }
+  }, []);
+
   // --- SEND MESSAGE ---
-  const sendMessageDirect = async (userInputText: string) => {
+  const sendMessageDirect = useCallback(async (userInputText: string) => {
     if (!userInputText.trim()) return;
 
     const userMsg: ChatMessage = { 
@@ -794,15 +749,12 @@ const ChatWidget = () => {
     setIsTyping(true);
 
     try {
-      let response = await generateAIResponse(userInputText, newMsgs);
+      const response = await generateAIResponse(userInputText, newMsgs);
       
       const hasBookingJsonBacktick = /```json\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?```/.test(response);
       const hasBookingJsonBracket = /\[JSON CODE BLOCK\]\s*[\s\S]*?"action"\s*:\s*"finalize_lead"[\s\S]*?\[\/JSON CODE BLOCK\]/.test(response);
       const hasBookingJson = hasBookingJsonBacktick || hasBookingJsonBracket;
       
-      // VIP synced text is now part of the AI response itself (in the system prompt)
-      // No need to append it here anymore
-
       const displayResponse = stripJsonFromResponse(response);
 
       const aiMsg: ChatMessage = { 
@@ -823,7 +775,7 @@ const ChatWidget = () => {
         console.log('📋 FULL CONVERSATION CAPTURE:');
         console.log('═'.repeat(60));
         
-        finalMsgs.forEach((msg, index) => {
+        finalMsgs.forEach((msg) => {
           const msgTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           if (msg.role === 'user') {
             console.log(`👤 [${msgTime}] User: ${msg.text}`);
@@ -850,9 +802,104 @@ const ChatWidget = () => {
     } finally {
       setIsTyping(false);
     }
-  };
+  }, [messages, speak, logBookingForJill, config.aiName, toast]);
 
-  const handleAcceptConsent = () => {
+  // --- GROQ STT (Speech-to-Text) ---
+  const sendAudioToGroqSTT = useCallback(async (audioBlob: Blob) => {
+    try {
+      console.log("📤 Sending audio to Groq STT...");
+      
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.webm');
+
+      const response = await fetch('/api/groq-stt', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Groq STT failed: ${response.status}`);
+      }
+
+      const data: { text?: string } = await response.json();
+      if (data.text) {
+        console.log("✅ Groq STT result:", data.text);
+        sendMessageDirect(data.text);
+      }
+    } catch (err) {
+      console.error("❌ Groq STT error:", err);
+      toast({ title: "Speech Recognition Error", description: "Could not process speech. Try again.", variant: "destructive" });
+    }
+  }, [toast, sendMessageDirect]);
+
+  const startGroqRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+      });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await sendAudioToGroqSTT(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      mediaRecorder.start();
+      setIsGroqListening(true);
+      console.log("🎤 Groq STT recording started...");
+    } catch (err) {
+      console.error("❌ Microphone access denied:", err);
+      toast({ title: "Microphone Error", description: "Could not access microphone.", variant: "destructive" });
+    }
+  }, [toast, sendAudioToGroqSTT]);
+
+  const stopGroqRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsGroqListening(false);
+      console.log("🎤 Groq STT recording stopped.");
+    }
+  }, []);
+
+  // Auto-send after browser voice input finishes
+  useEffect(() => {
+    if (!isListening && transcript.trim()) {
+      const spokenText = transcript.trim();
+      setInput(spokenText);
+      setTimeout(() => {
+        sendMessageDirect(spokenText);
+        resetTranscript();
+        setInput("");
+      }, 50);
+    }
+  }, [isListening, transcript, sendMessageDirect, resetTranscript]);
+
+  // === DISABLE BODY SCROLL WHEN CHAT IS OPEN ===
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+    } else {
+      document.body.style.overflow = "visible";
+      document.body.style.touchAction = "auto";
+    }
+    return () => {
+      document.body.style.overflow = "visible";
+      document.body.style.touchAction = "auto";
+    };
+  }, [isOpen]);
+
+  const handleAcceptConsent = useCallback(() => {
     setHasConsent(true);
     setShowConsent(false);
     localStorage.setItem("ovgweb_ai_consent", "true");
@@ -861,14 +908,14 @@ const ChatWidget = () => {
       setMessages([welcome]);
       speak(config.greeting || "");
     }
-  };
+  }, [messages.length, config.greeting, speak]);
 
   useEffect(() => {
     if (isOpen && messages.length === 0 && !hasGreeted && hasConsent) {
       setHasGreeted(true);
       handleAcceptConsent();
     }
-  }, [isOpen, messages.length, hasGreeted, hasConsent]);
+  }, [isOpen, messages.length, hasGreeted, hasConsent, handleAcceptConsent]);
 
   const handleOpenChat = () => {
     if ('speechSynthesis' in window) {

@@ -18,7 +18,7 @@ const ClientHelpModal: React.FC = () => {
 
   const renderMarkdown = (text: string) => {
     // Simple markdown renderer
-    let html = text
+    const html = text
       .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-white mb-4 mt-6 first:mt-0">$1</h1>')
       .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold text-cyan-400 mb-3 mt-5">$1</h2>')
       .replace(/^### (.*$)/gim, '<h3 class="text-lg font-medium text-white mb-2 mt-4">$1</h3>')

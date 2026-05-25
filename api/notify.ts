@@ -78,8 +78,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           await sendWhatsApp(phone, confirmationMessage);
           results.whatsapp = true;
-        } catch (error: any) {
-          results.errors.push(`WhatsApp: ${error.message}`);
+        } catch (error: unknown) {
+          results.errors.push(`WhatsApp: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
     }
@@ -90,8 +90,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           await sendSMS(phone, confirmationMessage);
           results.sms = true;
-        } catch (error: any) {
-          results.errors.push(`SMS: ${error.message}`);
+        } catch (error: unknown) {
+          results.errors.push(`SMS: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
     }
@@ -102,8 +102,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           await sendEmail(email, clientName, confirmationMessage);
           results.email = true;
-        } catch (error: any) {
-          results.errors.push(`Email: ${error.message}`);
+        } catch (error: unknown) {
+          results.errors.push(`Email: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
     }
@@ -128,12 +128,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       errors: results.errors
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Notification error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return res.status(500).json({
       success: false,
       error: 'Failed to send notification',
-      errors: [error.message]
+      errors: [errorMessage]
     });
   }
 }
